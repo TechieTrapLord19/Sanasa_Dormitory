@@ -1,0 +1,61 @@
+.room-header {
+    background-color: white;
+}
+.room-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #03255b;
+    margin: 0;
+}
+.room-status-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+}
+.room-status-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+}
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+.status-dot.available {
+    background-color: #10b981;
+}
+.status-dot.occupied {
+    background-color: #ef4444;
+}
+.status-dot.maintenance {
+    background-color: #f59e0b;
+}
+.create-room-btn {
+    background-color: #03255b;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background-color 0.3s ease;
+}
+.create-room-btn:hover {
+    background-color: #021d47;
+    color: white;
+}
+.create-room-btn-icon {
+    width: 24px;
+    height: 24px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
