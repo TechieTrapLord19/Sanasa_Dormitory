@@ -3,15 +3,45 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Tenant;
 
 class TenantController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        $query = Tenant::query();
+
+        // Search by name or contact
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('middle_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('contact_num', 'like', "%{$search}%")
+                  ->orWhere('emer_contact_num', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by status
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        $tenants = $query->orderBy('last_name')->orderBy('first_name')->get();
+        
+        // Get counts for status indicators
+        $statusCounts = [
+            'active' => Tenant::where('status', 'active')->count(),
+            'inactive' => Tenant::where('status', 'inactive')->count(),
+            'total' => Tenant::count(),
+        ];
+
+        return view('contents.tenants', compact('tenants', 'statusCounts'));
     }
 
     /**
@@ -27,7 +57,22 @@ class TenantController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validatedData = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'address' => 'nullable|string',
+            'birth_date' => 'nullable|date',
+            'id_document' => 'nullable|string|max:255',
+            'contact_num' => 'nullable|string|max:20',
+            'emer_contact_num' => 'nullable|string|max:20',
+            'status' => 'required|in:active,inactive',
+        ]);
+
+        Tenant::create($validatedData);
+
+        return redirect()->route('tenants')->with('success', 'Tenant created successfully!');
     }
 
     /**

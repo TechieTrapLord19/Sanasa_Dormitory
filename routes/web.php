@@ -5,6 +5,8 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\IndexController;
 use App\Http\Controllers\RoomController;
+use App\Http\Controllers\RateController;
+use App\Http\Controllers\TenantController;
 
 //default page to login
 Route::get('/', [IndexController::class, 'index'])->name('home');
@@ -21,11 +23,12 @@ Route::post('/register', [RegisterController::class, 'register']);
 Route::middleware('auth')->group(function () {
     Route::view('/dashboard', 'contents.dashboard')->name('dashboard');
     Route::view('/bookings', 'contents.bookings')->name('bookings');
-    Route::view('/tenants', 'contents.tenants')->name('tenants');
+    Route::get('/tenants', [TenantController::class, 'index'])->name('tenants');
+    Route::post('/tenants', [TenantController::class, 'store'])->name('tenants.store');
     Route::view('/invoices', 'contents.invoices')->name('invoices');
     Route::view('/payments', 'contents.payments')->name('payments');
     Route::resource('rooms', RoomController::class);
-    Route::view('/rates', 'contents.rates')->name('rates');
+    Route::resource('rates', RateController::class);
     Route::view('/electric-readings', 'contents.electric-readings')->name('electric-readings');
     Route::view('/maintenance-logs', 'contents.maintenance-logs')->name('maintenance-logs');
     Route::view('/asset-inventory', 'contents.asset-inventory')->name('asset-inventory');

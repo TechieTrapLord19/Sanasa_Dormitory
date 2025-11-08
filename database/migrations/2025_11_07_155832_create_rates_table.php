@@ -12,7 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('rates', function (Blueprint $table) {
-            $table->id();
+            $table->id('rate_id');
+            $table->string('duration_type');
+            $table->decimal('base_price', 10, 2);
+            $table->text('inclusion');
             $table->timestamps();
         });
     }

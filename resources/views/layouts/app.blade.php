@@ -18,10 +18,23 @@
 <style>
     body {
         font-family: 'Inter', sans-serif;
+        overflow-x: hidden;
     }
 
     .app-sidebar {
-        background-color: #03255b !important;
+        background-color:rgb(7, 42, 97) !important;
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        z-index: 1000;
+    }
+    
+    .main-content-wrapper {
+        margin-left: 256px;
+        width: calc(100% - 256px);
+        min-height: 100vh;
+        overflow-y: auto;
     }
     .active > a {
         background-color: rgba(255, 255, 255, 0.2);
@@ -45,13 +58,13 @@
 
 </head>
 <body class="bg-white">
-    <div class="min-vh-100 d-flex">
+    <div class="d-flex">
         <!-- Sidebar -->
         <aside class="app-sidebar bg-primary text-white d-flex flex-column" style="width: 256px;">
-            <div class="border-bottom d-flex align-items-center" style="height: 80px;">
+            <div class="border-bottom d-flex align-items-center" style="height: 80px; flex-shrink: 0;">
                 <img src="{{ asset('images/Logo1.png') }}" alt="Sanasa Dormitory" class="img-fluid" style="max-height: 100%; width: 100%;" >
             </div>
-            <nav class="flex-grow-1 overflow-auto py-3">
+            <nav class="flex-grow-1 py-3" style="overflow-y: auto; overflow-x: hidden;">
                 <ul class="list-unstyled px-2 mb-0">
                     <li class="mb-1 {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                         <a href="{{ route('dashboard') }}" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
@@ -63,7 +76,7 @@
                             Bookings
                         </a>
                     </li>
-                    <li class="mb-1 {{ request()->routeIs('tenants') ? 'active' : '' }}">
+                    <li class="mb-1 {{ request()->routeIs('tenants*') ? 'active' : '' }}">
                         <a href="{{ route('tenants') }}" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
                             Tenants
                         </a>
@@ -83,8 +96,8 @@
                             Rooms
                         </a>
                     </li>
-                    <li class="mb-1 {{ request()->routeIs('rates') ? 'active' : '' }}">
-                        <a href="{{ route('rates') }}" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
+                    <li class="mb-1 {{ request()->routeIs('rates.*') ? 'active' : '' }}">
+                        <a href="{{ route('rates.index') }}" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
                             Rates
                         </a>
                     </li>
@@ -130,8 +143,10 @@
         </aside>
 
         <!-- Main content -->
-        <div class="flex-grow-1 p-4">
-            @yield('content')
+        <div class="main-content-wrapper">
+            <div class="p-4">
+                @yield('content')
+            </div>
         </div>
     </div>
 

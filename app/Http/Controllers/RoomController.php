@@ -20,8 +20,9 @@ class RoomController extends Controller
             'occupied' => Room::where('status', 'occupied')->count(),
             'maintenance' => Room::where('status', 'maintenance')->count(),
         ];
+        $floors = Room::select('floor')->distinct()->orderBy('floor')->pluck('floor');
 
-        return view('contents.rooms', compact('rooms', 'roomCounts', 'totalRooms'));
+        return view('contents.rooms', compact('rooms', 'roomCounts', 'totalRooms', 'floors'));
     }
 
     /**
