@@ -317,42 +317,25 @@
                                 {{ ucfirst($room->status) }}
                             </span>
                         </div>
-
                         <div class="room-info-item">
                             <span class="room-info-label">Tenant:</span>
-                            <span>{{ $room->status === 'occupied' ? 'Assigned' : 'None' }}</span>
+                            <span>
+                                @if($room->activeBooking && $room->activeBooking->tenant)
+                                    {{ $room->activeBooking->tenant->full_name }}
+                                @else
+                                    N/A
+                                @endif
+                            </span>
                         </div>
 
                         <div class="room-info-item">
                             <span class="room-info-label">Rate:</span>
                             <span>
-                                @php
-                                    $rates = [];
-
-                                    // Common field names
-                                    if (!empty($room->daily_rate)) {
-                                        $rates[] = 'Daily: $' . number_format($room->daily_rate, 2);
-                                    }
-                                    if (!empty($room->weekly_rate)) {
-                                        $rates[] = 'Weekly: $' . number_format($room->weekly_rate, 2);
-                                    }
-                                    if (!empty($room->monthly_rate)) {
-                                        $rates[] = 'Monthly: $' . number_format($room->monthly_rate, 2);
-                                    }
-
-                                    // Fallback if rates are provided as a relation/array (each with type and amount)
-                                    if (empty($rates) && isset($room->rates) && is_iterable($room->rates)) {
-                                        foreach ($room->rates as $r) {
-                                            $type = $r->type ?? ($r['type'] ?? null);
-                                            $amount = $r->amount ?? ($r['amount'] ?? null);
-                                            if ($type && $amount !== null) {
-                                                $rates[] = ucfirst($type) . ': $' . number_format($amount, 2);
-                                            }
-                                        }
-                                    }
-                                @endphp
-
-                                {{ !empty($rates) ? implode(' / ', $rates) : 'N/A' }}
+                                @if($room->activeBooking && $room->activeBooking->rate)
+                                    {{ $room->activeBooking->rate->duration_type }} - ₱{{ number_format($room->activeBooking->rate->base_price, 2) }}
+                                @else
+                                    N/A
+                                @endif
                             </span>
                         </div>
 

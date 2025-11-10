@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Room;
 use Illuminate\Validation\Rule;
+use App\Models\Tenant;
 
 class RoomController extends Controller
 {
@@ -12,8 +13,9 @@ class RoomController extends Controller
      * Display a listing of the resource.
      */
     public function index()
-    {
+    {   $tenants = Tenant::all();
         $rooms = Room::all();
+        $rooms = Room::with(['tenant', 'rate', 'activeBooking.tenant','activeBooking.tenant'])->get();
         $totalRooms = $rooms->count();
         $roomCounts = [
             'available' => Room::where('status', 'available')->count(),
@@ -46,7 +48,9 @@ public function store(Request $request)
             'status' => [
                 'required',
                 Rule::in(['available', 'occupied', 'maintenance']) // <-- This is the check
-            ]
+            ],
+            'rate_id' => 'required|exists:rates,rate_id'
+
         ]);
 
         Room::create($validatedData);

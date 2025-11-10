@@ -23,8 +23,11 @@
 <body>
     <div class="min-vh-100 d-flex">
         <!-- First Column - Background Image or Dark Blue Color -->
-        <div class="col-6" style="background-color: #022c6e;">
-            <!-- Dark blue background -->
+        <div class="col-6 d-flex" style="background-color: #022c6e;">
+            <div class="d-flex flex-column justify-content-center align-items-center h-100 text-white p-4 w-100">
+                <img src="{{ asset('images/loginimage.png') }}" alt="Sanasa Dormitory Logo" class="" style="max-width:200px;">
+                <h1 class="mb-3">Welcome to Sanasa</h1>
+            </div>
         </div>
 
         <!-- Second Column - Login/Register Form -->

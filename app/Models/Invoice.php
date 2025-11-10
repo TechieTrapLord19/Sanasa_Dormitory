@@ -3,8 +3,63 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Invoice extends Model
 {
-    //
+    protected $primaryKey = 'invoice_id';
+    
+    protected $fillable = [
+        'booking_id',
+        'date_generated',
+        'rent_subtotal',
+        'utility_water_fee',
+        'utility_wifi_fee',
+        'utility_electricity_fee',
+        'total_due',
+        'is_paid',
+    ];
+
+    protected $casts = [
+        'date_generated' => 'date',
+        'rent_subtotal' => 'decimal:2',
+        'utility_water_fee' => 'decimal:2',
+        'utility_wifi_fee' => 'decimal:2',
+        'utility_electricity_fee' => 'decimal:2',
+        'total_due' => 'decimal:2',
+        'is_paid' => 'boolean',
+    ];
+
+    /**
+     * Get the booking this invoice belongs to
+     */
+    public function booking(): BelongsTo
+    {
+        return $this->belongsTo(Booking::class, 'booking_id', 'booking_id');
+    }
+
+    /**
+     * Get all payments for this invoice
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class, 'invoice_id', 'invoice_id');
+    }
+
+    /**
+     * Get the total amount paid for this invoice
+     */
+    public function getTotalPaidAttribute()
+    {
+        return $this->payments()->sum('amount');
+    }
+
+    /**
+     * Get the remaining balance for this invoice
+     */
+    public function getRemainingBalanceAttribute()
+    {
+        return max(0, $this->total_due - $this->total_paid);
+    }
 }

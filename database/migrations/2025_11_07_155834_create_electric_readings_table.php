@@ -12,7 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('electric_readings', function (Blueprint $table) {
-            $table->id();
+            $table->id('reading_id');
+            $table->foreignId('room_id')->constrained('rooms', 'room_id'); // FK to rooms
+            $table->date('reading_date');
+            $table->decimal('meter_value_kwh', 8, 2); // Kilowatt-hours
+            $table->boolean('is_billed')->default(false); // Whether this reading has been included in an invoice
             $table->timestamps();
         });
     }

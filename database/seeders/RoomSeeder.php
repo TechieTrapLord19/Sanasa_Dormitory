@@ -14,8 +14,7 @@ class RoomSeeder extends Seeder
      */
     public function run(): void
     {
-        // 3. Clear the table first so you don't get duplicates
-        DB::table('rooms')->truncate();
+
 
         // 4. Loop through 3 floors
         for ($floor = 1; $floor <= 3; $floor++) {

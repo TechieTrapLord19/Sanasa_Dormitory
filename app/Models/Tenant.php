@@ -44,4 +44,12 @@ class Tenant extends Model
     {
         return $this->email ?? $this->contact_num ?? 'N/A';
     }
+
+    /**
+     * Get all bookings for this tenant
+     */
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class, 'tenant_id', 'tenant_id');
+    }
 }

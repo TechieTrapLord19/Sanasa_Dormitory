@@ -71,8 +71,8 @@
                             Dashboard
                         </a>
                     </li>
-                    <li class="mb-1 {{ request()->routeIs('bookings') ? 'active' : '' }}">
-                        <a href="{{ route('bookings') }}" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
+                    <li class="mb-1 {{ request()->routeIs('bookings.*') ? 'active' : '' }}">
+                        <a href="{{ route('bookings.index') }}" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
                             Bookings
                         </a>
                     </li>

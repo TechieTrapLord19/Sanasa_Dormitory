@@ -12,8 +12,6 @@ class RateSeeder extends Seeder
 
     public function run(): void
     {
-        // This clears the table first
-        DB::table('rates')->truncate();
 
         // 1. Daily Rate (Utilities INCLUDED)
         Rate::create([

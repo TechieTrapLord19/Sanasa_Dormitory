@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
 
         $this->call([
+            UserSeeder::class, // <-- Call the UserSeeder here
             RateSeeder::class, // <-- Call the RateSeeder here
             RoomSeeder::class, // <-- Call the RoomSeeder here
         ]);
