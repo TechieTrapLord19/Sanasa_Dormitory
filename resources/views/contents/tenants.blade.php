@@ -197,12 +197,12 @@
         background-color: #fecaca;
     }
 
-    .contact-info-label {
+    /* .contact-info-label {
         font-size: 0.75rem;
         color: #718096;
         margin-bottom: 0.5rem;
         font-weight: 600;
-    }
+    } */
 </style>
 
 <div class="tenants-header">
@@ -224,41 +224,42 @@
 
 <!-- Filters -->
 <div class="tenants-filters">
-    <div class="filter-group">
-        <p class="filter-label mb-0">Search Tenant:</p>
-        <form method="GET" action="{{ route('tenants') }}" class="d-flex gap-2 flex-grow-1">
-            <input type="text" 
-                   class="filter-input" 
-                   name="search" 
-                   id="searchInput"
-                   placeholder="Search by name or contact..." 
-                   value="{{ request('search') }}">
-            <input type="hidden" name="status" id="statusInput" value="{{ request('status', 'all') }}">
-        </form>
-    </div>
-    <div class="filter-group mt-3">
+        <div class="filter-group">
         <p class="filter-label mb-0">Filter by Status:</p>
-        <button class="filter-btn {{ request('status', 'all') === 'all' ? 'active' : '' }}" 
-                data-status="all" 
+        <button class="filter-btn {{ request('status', 'all') === 'all' ? 'active' : '' }}"
+                data-status="all"
                 onclick="filterByStatus('all')">
             All ({{ $statusCounts['total'] ?? 0 }})
         </button>
-        <button class="filter-btn {{ request('status') === 'active' ? 'active' : '' }}" 
-                data-status="active" 
+        <button class="filter-btn {{ request('status') === 'active' ? 'active' : '' }}"
+                data-status="active"
                 onclick="filterByStatus('active')">
             Active ({{ $statusCounts['active'] ?? 0 }})
         </button>
-        <button class="filter-btn {{ request('status') === 'inactive' ? 'active' : '' }}" 
-                data-status="inactive" 
+        <button class="filter-btn {{ request('status') === 'inactive' ? 'active' : '' }}"
+                data-status="inactive"
                 onclick="filterByStatus('inactive')">
             Inactive ({{ $statusCounts['inactive'] ?? 0 }})
         </button>
     </div>
+    <div class="filter-group mt-3">
+        <p class="filter-label mb-0">Search Tenant:</p>
+        <form method="GET" action="{{ route('tenants') }}" class="d-flex gap-2 flex-grow-1">
+            <input type="text"
+                   class="filter-input"
+                   name="search"
+                   id="searchInput"
+                   placeholder="Search by name or contact..."
+                   value="{{ request('search') }}">
+            <input type="hidden" name="status" id="statusInput" value="{{ request('status', 'all') }}">
+        </form>
+    </div>
+
 </div>
 
 <!-- Tenants Table -->
 <div class="tenants-table-container">
-    <div class="contact-info-label px-3 pt-3 mb-0">Contact Info (Phone/Email)</div>
+        {{-- <div class="contact-info-label px-3 pt-3 mb-0">Contact Info (Phone/Email)</div> --}}
     <table class="tenants-table">
         <thead>
             <tr>
@@ -351,7 +352,7 @@
                         <div class="col-md-6 mb-3">
                             <label for="contact_num" class="form-label">Contact Number</label>
                             <input type="text" class="form-control @error('contact_num') is-invalid @enderror"
-                                   id="contact_num" name="contact_num" value="{{ old('contact_num') }}" 
+                                   id="contact_num" name="contact_num" value="{{ old('contact_num') }}"
                                    placeholder="0912-345-6789">
                             @error('contact_num')
                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -422,7 +423,7 @@ function filterByStatus(status) {
     const statusInput = document.getElementById('statusInput');
     const form = statusInput.closest('form');
     statusInput.value = status;
-    
+
     // Update active button
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.classList.remove('active');
@@ -430,14 +431,14 @@ function filterByStatus(status) {
             btn.classList.add('active');
         }
     });
-    
+
     form.submit();
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('searchInput');
     let searchTimeout;
-    
+
     // Auto-submit search after user stops typing (debounce)
     searchInput.addEventListener('input', function() {
         clearTimeout(searchTimeout);
@@ -447,7 +448,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 500);
     });
-    
+
     // Submit on Enter key
     searchInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {

@@ -18,6 +18,7 @@ class Booking extends Model
         'checkin_date',
         'checkout_date',
         'total_calculated_fee',
+        'security_deposit_due',
         'status',
     ];
 
@@ -25,6 +26,7 @@ class Booking extends Model
         'checkin_date' => 'date',
         'checkout_date' => 'date',
         'total_calculated_fee' => 'decimal:2',
+        'security_deposit_due' => 'decimal:2',
     ];
 
     /**

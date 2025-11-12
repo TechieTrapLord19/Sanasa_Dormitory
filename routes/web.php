@@ -8,6 +8,8 @@ use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RateController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\PaymentController;
 
 //default page to login
 Route::get('/', [IndexController::class, 'index'])->name('home');
@@ -38,7 +40,8 @@ Route::middleware('auth')->group(function () {
     
     Route::get('/tenants', [TenantController::class, 'index'])->name('tenants');
     Route::post('/tenants', [TenantController::class, 'store'])->name('tenants.store');
-    Route::view('/invoices', 'contents.invoices')->name('invoices');
+    Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices');
+    Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
     Route::view('/payments', 'contents.payments')->name('payments');
     Route::resource('rooms', RoomController::class);
     Route::resource('rates', RateController::class);

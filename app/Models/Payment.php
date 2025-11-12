@@ -10,10 +10,13 @@ class Payment extends Model
     protected $primaryKey = 'payment_id';
     
     protected $fillable = [
+        'booking_id',
         'invoice_id',
         'collected_by_user_id',
+        'payment_type',
         'amount',
         'payment_method',
+        'reference_number',
         'date_received',
     ];
 
@@ -23,7 +26,15 @@ class Payment extends Model
     ];
 
     /**
-     * Get the invoice this payment belongs to
+     * Get the booking this payment belongs to
+     */
+    public function booking(): BelongsTo
+    {
+        return $this->belongsTo(Booking::class, 'booking_id', 'booking_id');
+    }
+
+    /**
+     * Get the invoice this payment belongs to (nullable for Security Deposit payments)
      */
     public function invoice(): BelongsTo
     {

@@ -1,13 +1,13 @@
 <?php
 
 namespace App\Models;
-
 use Illuminate\Database\Eloquent\Model;
-
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 class Tenant extends Model
 {
+    use HasFactory;
     protected $primaryKey = 'tenant_id';
-    
+
     protected $fillable = [
         'first_name',
         'middle_name',

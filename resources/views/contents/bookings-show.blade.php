@@ -251,14 +251,14 @@
                     <button type="submit" class="btn-action btn-checkin">Check-In Tenant</button>
                 </form>
             @endif
-            
+
             @if($booking->status === 'Active')
                 <form action="{{ route('bookings.checkout', $booking->booking_id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to check out this tenant?');">
                     @csrf
                     <button type="submit" class="btn-action btn-checkout">Check-Out Tenant</button>
                 </form>
             @endif
-            
+
             @if($booking->status !== 'Canceled' && $booking->status !== 'Completed')
                 <a href="{{ route('bookings.edit', $booking->booking_id) }}" class="btn-action btn-edit">Edit Booking</a>
             @endif
@@ -336,17 +336,6 @@
         </div>
     </div>
 
-    <!-- Action Buttons for Financial Management -->
-    <div class="action-buttons mb-4">
-        @if($booking->status === 'Active')
-            <button type="button" class="btn-action btn-generate-invoice" data-bs-toggle="modal" data-bs-target="#generateInvoiceModal">
-                Generate Monthly Invoice
-            </button>
-        @endif
-        <button type="button" class="btn-action btn-add-payment" data-bs-toggle="modal" data-bs-target="#addPaymentModal">
-            Add Payment
-        </button>
-    </div>
 
     <!-- Invoices Table -->
     <div class="table-container">
@@ -417,7 +406,7 @@
                     }
                     $allPayments = $allPayments->sortByDesc('date_received');
                 @endphp
-                
+
                 @forelse($allPayments as $payment)
                     <tr>
                         <td>#{{ $payment->payment_id }}</td>
@@ -476,7 +465,7 @@
 <script>
 function addPaymentForInvoice(invoiceId) {
     // This will be implemented when the Payments module is ready
-    document.getElementById('addPaymentModal').querySelector('.modal-body').innerHTML = 
+    document.getElementById('addPaymentModal').querySelector('.modal-body').innerHTML =
         `<p>Add payment for Invoice #${invoiceId}. This feature will be implemented in the Payments module.</p>`;
     new bootstrap.Modal(document.getElementById('addPaymentModal')).show();
 }

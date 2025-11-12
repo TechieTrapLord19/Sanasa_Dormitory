@@ -41,6 +41,12 @@
         justify-content: center;
         font-size: 1rem;
     }
+       .filter-label {
+        font-weight: 600;
+        color: #2d3748;
+        font-size: 0.875rem;
+        margin: 0;
+    }
 
     /* Tabs Styles */
     .bookings-tabs {
@@ -197,13 +203,37 @@
         font-size: 0.875rem;
         background-color: white;
         color: #4a5568;
-        min-width: 250px;
+        min-width: 10px;
+        max-width: 300px;
+
     }
 
     .search-box:focus {
         outline: none;
         border-color: #03255b;
         box-shadow: 0 0 0 3px rgba(3, 37, 91, 0.1);
+    }
+        .filter-btn {
+        padding: 0.5rem 1rem;
+        border: 1px solid #e2e8f0;
+        background-color: white;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #4a5568;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .filter-btn:hover {
+        background-color: #f7fafc;
+        border-color: #cbd5e0;
+    }
+
+    .filter-btn.active {
+        background-color: #03255b;
+        color: white;
+        border-color: #03255b;
     }
 </style>
 
@@ -227,34 +257,47 @@
 <!-- Tabs -->
 <div class="bookings-tabs">
     <div class="tab-buttons">
-        <a href="{{ route('bookings.index', ['status' => 'Upcoming']) }}" 
-           class="tab-btn {{ ($statusFilter ?? 'Upcoming') === 'Upcoming' ? 'active' : '' }}">
-            Upcoming ({{ $statusCounts['Upcoming'] ?? 0 }})
-        </a>
-        <a href="{{ route('bookings.index', ['status' => 'Active']) }}" 
-           class="tab-btn {{ ($statusFilter ?? '') === 'Active' ? 'active' : '' }}">
-            Active ({{ $statusCounts['Active'] ?? 0 }})
-        </a>
-        <a href="{{ route('bookings.index', ['status' => 'Completed']) }}" 
-           class="tab-btn {{ ($statusFilter ?? '') === 'Completed' ? 'active' : '' }}">
-            Completed ({{ $statusCounts['Completed'] ?? 0 }})
-        </a>
-        <a href="{{ route('bookings.index', ['status' => 'Canceled']) }}" 
-           class="tab-btn {{ ($statusFilter ?? '') === 'Canceled' ? 'active' : '' }}">
-            Canceled ({{ $statusCounts['Canceled'] ?? 0 }})
-        </a>
+        <p class="filter-label mb-0 align-self-center">Filter by Status:</p>
+
+        <form method="GET" action="{{ route('bookings.index') }}" class="d-inline-block" style="display:inline-block;">
+            <input type="hidden" name="status" value="Upcoming">
+            <button type="submit" class="filter-btn {{ ($statusFilter ?? 'Upcoming') === 'Upcoming' ? 'active' : '' }}">
+                Upcoming ({{ $statusCounts['Upcoming'] ?? 0 }})
+            </button>
+        </form>
+
+        <form method="GET" action="{{ route('bookings.index') }}" class="d-inline-block" style="display:inline-block;">
+            <input type="hidden" name="status" value="Active">
+            <button type="submit" class="filter-btn {{ ($statusFilter ?? '') === 'Active' ? 'active' : '' }}">
+                Active ({{ $statusCounts['Active'] ?? 0 }})
+            </button>
+        </form>
+
+        <form method="GET" action="{{ route('bookings.index') }}" class="d-inline-block" style="display:inline-block;">
+            <input type="hidden" name="status" value="Completed">
+            <button type="submit" class="filter-btn {{ ($statusFilter ?? '') === 'Completed' ? 'active' : '' }}">
+                Completed ({{ $statusCounts['Completed'] ?? 0 }})
+            </button>
+        </form>
+
+        <form method="GET" action="{{ route('bookings.index') }}" class="d-inline-block" style="display:inline-block;">
+            <input type="hidden" name="status" value="Canceled">
+            <button type="submit" class="filter-btn {{ ($statusFilter ?? '') === 'Canceled' ? 'active' : '' }}">
+                Canceled ({{ $statusCounts['Canceled'] ?? 0 }})
+            </button>
+        </form>
     </div>
-    
+
     <!-- Search -->
     <div class="mt-3">
         <form method="GET" action="{{ route('bookings.index') }}" class="d-flex gap-2">
-            <input type="text" 
-                   class="search-box" 
-                   name="search" 
-                   placeholder="Search by tenant name or room number..." 
+            <p class="filter-label mb-0 align-self-center">Search Tenant:</p>
+            <input type="text"
+                   class="search-box"
+                   name="search"
+                   placeholder="Search Bookings"
                    value="{{ request('search') }}">
-            <input type="hidden" name="status" value="{{ $statusFilter ?? 'Upcoming' }}">
-            <button type="submit" class="btn btn-primary">Search</button>
+           <input type="hidden" name="status" id="statusInput" value="{{ request('status', 'all') }}">
         </form>
     </div>
 </div>

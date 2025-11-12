@@ -35,9 +35,12 @@ class BookingController extends Controller
             case 'Canceled':
                 $query->where('status', 'Canceled');
                 break;
+            case 'Pending Payment':
+                $query->where('status', 'Pending Payment');
+                break;
             case 'Upcoming':
             default:
-                $query->whereIn('status', ['Reserved', 'Active'])
+                $query->whereIn('status', ['Pending Payment', 'Reserved', 'Active'])
                       ->where('checkin_date', '>=', now()->toDateString());
                 break;
         }
@@ -58,9 +61,10 @@ class BookingController extends Controller
 
         // Get counts for tabs
         $statusCounts = [
-            'Upcoming' => Booking::whereIn('status', ['Reserved', 'Active'])
+            'Upcoming' => Booking::whereIn('status', ['Pending Payment', 'Reserved', 'Active'])
                                  ->where('checkin_date', '>=', now()->toDateString())
                                  ->count(),
+            'Pending Payment' => Booking::where('status', 'Pending Payment')->count(),
             'Active' => Booking::where('status', 'Active')->count(),
             'Completed' => Booking::where('status', 'Completed')->count(),
             'Canceled' => Booking::where('status', 'Canceled')->count(),
@@ -118,6 +122,12 @@ class BookingController extends Controller
 
         DB::beginTransaction();
         try {
+            // Calculate security deposit (for Monthly bookings, it equals the monthly rent)
+            $securityDeposit = 0.00;
+            if ($rate->duration_type === 'Monthly') {
+                $securityDeposit = $rate->base_price; // Security deposit = 1 month's rent
+            }
+
             // Create booking
             $booking = Booking::create([
                 'room_id' => $validatedData['room_id'],
@@ -127,32 +137,39 @@ class BookingController extends Controller
                 'checkin_date' => $validatedData['checkin_date'],
                 'checkout_date' => $validatedData['checkout_date'],
                 'total_calculated_fee' => $totalFee,
-                'status' => 'Reserved',
+                'security_deposit_due' => $securityDeposit,
+                'status' => 'Pending Payment', // Initial status as per scenario
             ]);
 
-            // Update room status
+            // Update room status to occupied
             $room = Room::findOrFail($validatedData['room_id']);
-            $room->update(['status' => 'occupied']); // Using 'occupied' as closest match to 'Reserved'
+            $room->update(['status' => 'occupied']);
 
-            // Create initial invoice (Deposit for monthly, Upfront for daily/weekly)
-            $invoiceType = $rate->duration_type === 'Monthly' ? 'Deposit' : 'Upfront Payment';
-            $initialAmount = $this->calculateInitialPayment($rate, $totalFee);
+            // For Monthly bookings: Create the first invoice (Advance Rent + Utilities)
+            // This invoice includes: Rent (P5,000) + Water (P350) + Wi-Fi (P260) = P5,610
+            if ($rate->duration_type === 'Monthly') {
+                $rentSubtotal = $rate->base_price; // P5,000 (monthly rent)
+                $utilityWaterFee = 350.00; // Fixed water fee
+                $utilityWifiFee = 260.00; // Fixed wifi fee
+                $utilityElectricityFee = 0.00; // No electricity usage yet (first month)
+                $totalDue = $rentSubtotal + $utilityWaterFee + $utilityWifiFee + $utilityElectricityFee; // P5,610
 
-            $invoice = Invoice::create([
-                'booking_id' => $booking->booking_id,
-                'date_generated' => now()->toDateString(),
-                'rent_subtotal' => $initialAmount,
-                'utility_water_fee' => 0,
-                'utility_wifi_fee' => 0,
-                'utility_electricity_fee' => 0,
-                'total_due' => $initialAmount,
-                'is_paid' => false,
-            ]);
+                Invoice::create([
+                    'booking_id' => $booking->booking_id,
+                    'date_generated' => now()->toDateString(),
+                    'rent_subtotal' => $rentSubtotal,
+                    'utility_water_fee' => $utilityWaterFee,
+                    'utility_wifi_fee' => $utilityWifiFee,
+                    'utility_electricity_fee' => $utilityElectricityFee,
+                    'total_due' => $totalDue,
+                    'is_paid' => false,
+                ]);
+            }
 
             DB::commit();
 
             return redirect()->route('bookings.show', $booking->booking_id)
-                            ->with('success', 'Booking created successfully! Please add the initial payment.');
+                            ->with('success', 'Booking created successfully! The first invoice has been generated. Please record the security deposit and advance rent payments.');
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors(['error' => 'Failed to create booking: ' . $e->getMessage()])->withInput();

@@ -19,7 +19,8 @@ return new class extends Migration
             $table->foreignId('recorded_by_user_id')->constrained('users', 'user_id'); // FK to users (who made the booking)
             $table->date('checkin_date');
             $table->date('checkout_date');
-            $table->decimal('total_calculated_fee', 10, 2); // e.g., total rent for the period
+            $table->decimal('total_calculated_fee', 10, 2);
+            $table->decimal('security_deposit_due', 10, 2)->default(0.00);
             $table->string('status'); // e.g., 'Reserved', 'Active', 'Completed', 'Canceled'
             $table->timestamps();
         });
