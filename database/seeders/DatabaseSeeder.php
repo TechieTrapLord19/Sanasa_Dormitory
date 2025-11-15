@@ -11,7 +11,6 @@ class DatabaseSeeder extends Seeder
     use WithoutModelEvents;
 
     /**
-     * Seed the application's database.
      */
     public function run(): void
     {
@@ -22,6 +21,7 @@ class DatabaseSeeder extends Seeder
             RateSeeder::class, // <-- Call the RateSeeder here
             RoomSeeder::class, // <-- Call the RoomSeeder here
             TenantSeeder::class, // <-- Call the TenantSeeder here
+            RoomAssetSeeder::class, // <-- Call the RoomAssetSeeder here
         ]);
     }
 }

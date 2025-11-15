@@ -160,8 +160,29 @@
         color: #dc2626;
     }
 
+    .status-badge.Pending-Payment {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+
+    .status-badge.Partial-Payment {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+
+    .status-badge.Paid {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+
     .action-buttons {
         display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn-view, .btn-cancel, .action-buttons button, .action-buttons a {
+        display: inline-flex;
+        align-items: center;
         gap: 0.5rem;
     }
 
@@ -215,25 +236,122 @@
     }
         .filter-btn {
         padding: 0.5rem 1rem;
-        border: 1px solid #e2e8f0;
-        background-color: white;
+        border: none;
+        background-color: transparent;
         border-radius: 6px;
         font-size: 0.875rem;
         font-weight: 500;
-        color: #4a5568;
+        color: #718096;
         cursor: pointer;
         transition: all 0.2s ease;
+        text-decoration: none;
     }
 
     .filter-btn:hover {
+        color: #03255b;
         background-color: #f7fafc;
-        border-color: #cbd5e0;
     }
 
     .filter-btn.active {
         background-color: #03255b;
         color: white;
+        font-weight: 600;
+    }
+
+    /* Pagination Styles */
+    .pagination-wrapper {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.25rem;
+        background-color: #f8fafc;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .pagination-wrapper .form-select {
+        width: auto;
+        border-radius: 999px;
+        min-width: 70px;
+    }
+    .pagination-left {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .pagination-center {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .pagination-right {
+        display: flex;
+        align-items: center;
+    }
+    .pagination-wrapper .pagination {
+        margin: 0;
+        display: flex;
+        list-style: none;
+        gap: 0.25rem;
+    }
+    .pagination-wrapper .pagination .page-item {
+        margin: 0;
+    }
+    .pagination-wrapper .pagination .page-link {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        color: #475569;
+        text-decoration: none;
+        background-color: white;
+        font-size: 0.875rem;
+        min-width: 38px;
+        text-align: center;
+        display: inline-block;
+        transition: all 0.2s ease;
+    }
+    .pagination-wrapper .pagination .page-link:hover {
+        background-color: #f1f5f9;
+        border-color: #cbd5e1;
+        color: #03255b;
+    }
+    .pagination-wrapper .pagination .page-item.active .page-link {
+        background-color: #03255b;
         border-color: #03255b;
+        color: white;
+        font-weight: 600;
+    }
+    .pagination-wrapper .pagination .page-item.disabled .page-link {
+        background-color: #f8fafc;
+        border-color: #e2e8f0;
+        color: #94a3b8;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+    .pagination-wrapper .pagination .page-link:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(3, 37, 91, 0.1);
+    }
+    .pagination-wrapper svg {
+        display: none !important;
+    }
+    .pagination-wrapper nav > div:first-child {
+        display: none !important;
+    }
+    .pagination-wrapper nav > div:last-child > div:first-child {
+        display: none !important;
+    }
+    .pagination-wrapper nav > div:last-child > div:last-child {
+        display: block !important;
+    }
+    .pagination-center .small {
+        font-size: 0.875rem;
+        color: #64748b;
+        margin: 0;
+    }
+    .pagination-center .fw-semibold {
+        font-weight: 600;
+        color: #0f172a;
     }
 </style>
 
@@ -247,7 +365,7 @@
         <!-- Right: Create Button -->
         <div class="col-md-4 d-flex justify-content-end">
             <a href="{{ route('bookings.create') }}" class="create-booking-btn">
-                <span class="create-booking-btn-icon">+</span>
+                <i class="bi bi-plus-circle"></i>
                 <span>Create New Booking</span>
             </a>
         </div>
@@ -256,18 +374,58 @@
 
 <!-- Tabs -->
 <div class="bookings-tabs">
+    <!-- Search -->
+    <div class="mb-3">
+        <form method="GET" action="{{ route('bookings.index') }}" class="d-flex align-items-center gap-2">
+            <p class="filter-label mb-0">Search:</p>
+            <input type="text"
+                   class="search-box"
+                   name="search"
+                   placeholder="Search by tenant name or room number..."
+                   value="{{ request('search') }}">
+           <input type="hidden" name="status" id="statusInput" value="{{ request('status', 'Upcoming') }}">
+        </form>
+    </div>
+
+    <!-- Filters -->
     <div class="tab-buttons">
         <p class="filter-label mb-0 align-self-center">Filter by Status:</p>
 
         <form method="GET" action="{{ route('bookings.index') }}" class="d-inline-block" style="display:inline-block;">
             <input type="hidden" name="status" value="Upcoming">
+            <input type="hidden" name="search" value="{{ request('search') }}">
             <button type="submit" class="filter-btn {{ ($statusFilter ?? 'Upcoming') === 'Upcoming' ? 'active' : '' }}">
                 Upcoming ({{ $statusCounts['Upcoming'] ?? 0 }})
             </button>
         </form>
 
         <form method="GET" action="{{ route('bookings.index') }}" class="d-inline-block" style="display:inline-block;">
+            <input type="hidden" name="status" value="Pending Payment">
+            <input type="hidden" name="search" value="{{ request('search') }}">
+            <button type="submit" class="filter-btn {{ ($statusFilter ?? '') === 'Pending Payment' ? 'active' : '' }}">
+                Pending Payment ({{ $statusCounts['Pending Payment'] ?? 0 }})
+            </button>
+        </form>
+
+        <form method="GET" action="{{ route('bookings.index') }}" class="d-inline-block" style="display:inline-block;">
+            <input type="hidden" name="status" value="Partial Payment">
+            <input type="hidden" name="search" value="{{ request('search') }}">
+            <button type="submit" class="filter-btn {{ ($statusFilter ?? '') === 'Partial Payment' ? 'active' : '' }}">
+                Partial Payment ({{ $statusCounts['Partial Payment'] ?? 0 }})
+            </button>
+        </form>
+
+        <form method="GET" action="{{ route('bookings.index') }}" class="d-inline-block" style="display:inline-block;">
+            <input type="hidden" name="status" value="Paid">
+            <input type="hidden" name="search" value="{{ request('search') }}">
+            <button type="submit" class="filter-btn {{ ($statusFilter ?? '') === 'Paid' ? 'active' : '' }}">
+                Paid ({{ $statusCounts['Paid'] ?? 0 }})
+            </button>
+        </form>
+
+        <form method="GET" action="{{ route('bookings.index') }}" class="d-inline-block" style="display:inline-block;">
             <input type="hidden" name="status" value="Active">
+            <input type="hidden" name="search" value="{{ request('search') }}">
             <button type="submit" class="filter-btn {{ ($statusFilter ?? '') === 'Active' ? 'active' : '' }}">
                 Active ({{ $statusCounts['Active'] ?? 0 }})
             </button>
@@ -275,6 +433,7 @@
 
         <form method="GET" action="{{ route('bookings.index') }}" class="d-inline-block" style="display:inline-block;">
             <input type="hidden" name="status" value="Completed">
+            <input type="hidden" name="search" value="{{ request('search') }}">
             <button type="submit" class="filter-btn {{ ($statusFilter ?? '') === 'Completed' ? 'active' : '' }}">
                 Completed ({{ $statusCounts['Completed'] ?? 0 }})
             </button>
@@ -282,22 +441,10 @@
 
         <form method="GET" action="{{ route('bookings.index') }}" class="d-inline-block" style="display:inline-block;">
             <input type="hidden" name="status" value="Canceled">
+            <input type="hidden" name="search" value="{{ request('search') }}">
             <button type="submit" class="filter-btn {{ ($statusFilter ?? '') === 'Canceled' ? 'active' : '' }}">
                 Canceled ({{ $statusCounts['Canceled'] ?? 0 }})
             </button>
-        </form>
-    </div>
-
-    <!-- Search -->
-    <div class="mt-3">
-        <form method="GET" action="{{ route('bookings.index') }}" class="d-flex gap-2">
-            <p class="filter-label mb-0 align-self-center">Search Tenant:</p>
-            <input type="text"
-                   class="search-box"
-                   name="search"
-                   placeholder="Search Bookings"
-                   value="{{ request('search') }}">
-           <input type="hidden" name="status" id="statusInput" value="{{ request('status', 'all') }}">
         </form>
     </div>
 </div>
@@ -312,7 +459,6 @@
                 <th>Check-in Date</th>
                 <th>Check-out Date</th>
                 <th>Rate</th>
-                <th>Total Fee</th>
                 <th>Status</th>
                 <th>Actions</th>
             </tr>
@@ -335,22 +481,24 @@
                     <td>
                         {{ $booking->rate->duration_type }} - ₱{{ number_format($booking->rate->base_price, 2) }}
                     </td>
+
                     <td>
-                        <strong>₱{{ number_format($booking->total_calculated_fee, 2) }}</strong>
-                    </td>
-                    <td>
-                        <span class="status-badge {{ $booking->status }}">
-                            {{ $booking->status }}
+                        <span class="status-badge {{ str_replace(' ', '-', $booking->effective_status) }}">
+                            {{ $booking->effective_status }}
                         </span>
                     </td>
                     <td>
                         <div class="action-buttons">
-                            <a href="{{ route('bookings.show', $booking->booking_id) }}" class="btn-view">View Details</a>
-                            @if($booking->status !== 'Canceled' && $booking->status !== 'Completed')
+                            <a href="{{ route('bookings.show', $booking->booking_id) }}" class="btn-view">
+                                <i class="bi bi-eye"></i> View Details
+                            </a>
+                            @if($booking->effective_status !== 'Canceled' && $booking->effective_status !== 'Completed')
                                 <form action="{{ route('bookings.destroy', $booking->booking_id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to cancel this booking?');">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn-cancel">Cancel Booking</button>
+                                    <button type="submit" class="btn-cancel">
+                                        <i class="bi bi-x-circle"></i> Cancel Booking
+                                    </button>
                                 </form>
                             @endif
                         </div>
@@ -363,5 +511,36 @@
             @endforelse
         </tbody>
     </table>
+
+    <div class="pagination-wrapper">
+        <div class="pagination-left">
+            <form method="GET" action="{{ route('bookings.index') }}" class="d-flex align-items-center gap-2">
+                <input type="hidden" name="search" value="{{ $searchTerm }}">
+                <input type="hidden" name="status" value="{{ $statusFilter }}">
+                <label for="perPage" class="text-muted small mb-0">Rows per page</label>
+                <select class="form-select form-select-sm" id="perPage" name="per_page" onchange="this.form.submit()">
+                    @foreach([10, 25, 50] as $option)
+                        <option value="{{ $option }}" {{ (int) $perPage === $option ? 'selected' : '' }}>
+                            {{ $option }}
+                        </option>
+                    @endforeach
+                </select>
+            </form>
+        </div>
+        <div class="pagination-center">
+            <p class="small text-muted mb-0">
+                Showing
+                <span class="fw-semibold">{{ $bookings->firstItem() ?? 0 }}</span>
+                to
+                <span class="fw-semibold">{{ $bookings->lastItem() ?? 0 }}</span>
+                of
+                <span class="fw-semibold">{{ $bookings->total() }}</span>
+                results
+            </p>
+        </div>
+        <div class="pagination-right">
+            {{ $bookings->appends(['status' => $statusFilter, 'search' => $searchTerm, 'per_page' => $perPage])->links() }}
+        </div>
+    </div>
 </div>
 @endsection

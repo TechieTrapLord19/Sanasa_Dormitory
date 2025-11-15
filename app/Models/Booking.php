@@ -18,7 +18,6 @@ class Booking extends Model
         'checkin_date',
         'checkout_date',
         'total_calculated_fee',
-        'security_deposit_due',
         'status',
     ];
 
@@ -26,7 +25,6 @@ class Booking extends Model
         'checkin_date' => 'date',
         'checkout_date' => 'date',
         'total_calculated_fee' => 'decimal:2',
-        'security_deposit_due' => 'decimal:2',
     ];
 
     /**
@@ -74,14 +72,15 @@ class Booking extends Model
      */
     public static function hasOverlap($roomId, $checkinDate, $checkoutDate, $excludeBookingId = null)
     {
-        $query = self::where('room_id', $roomId)
+        $query = static::where('room_id', $roomId)
             ->where('status', '!=', 'Canceled')
-            ->where(function($q) use ($checkinDate, $checkoutDate) {
-                $q->where(function($q2) use ($checkinDate, $checkoutDate) {
-                    // New booking starts before existing ends AND new booking ends after existing starts
-                    $q2->where('checkin_date', '<', $checkoutDate)
-                       ->where('checkout_date', '>', $checkinDate);
-                });
+            ->where(function ($q) use ($checkinDate, $checkoutDate) {
+                $q->whereBetween('checkin_date', [$checkinDate, $checkoutDate])
+                  ->orWhereBetween('checkout_date', [$checkinDate, $checkoutDate])
+                  ->orWhere(function ($q2) use ($checkinDate, $checkoutDate) {
+                      $q2->where('checkin_date', '<=', $checkinDate)
+                         ->where('checkout_date', '>=', $checkoutDate);
+                  });
             });
 
         if ($excludeBookingId) {
@@ -93,5 +92,54 @@ class Booking extends Model
     public function activeBooking()
     {
         return $this->hasOne(\App\Models\Booking::class, 'room_id', 'room_id')->where('status', 'active');
+    }
+
+    /**
+     * Get the effective status based on invoice payment status
+     * Returns: 'Pending Payment', 'Partial Payment', 'Paid', 'Active', 'Completed', or 'Canceled'
+     * Note: Even if booking is Active, it can still show Pending/Partial Payment if invoices are not fully paid
+     */
+    public function getEffectiveStatusAttribute(): string
+    {
+        // If booking is in a final state (Completed or Canceled), return it
+        if (in_array($this->status, ['Completed', 'Canceled'])) {
+            return $this->status;
+        }
+
+        // Load invoices with payments
+        $invoices = $this->invoices()->with('payments')->get();
+        
+        if ($invoices->isEmpty()) {
+            // If booking is Active but no invoices, still show Active
+            return $this->status === 'Active' ? 'Active' : 'Pending Payment';
+        }
+
+        $totalDue = $invoices->sum('total_due');
+        $totalPaid = 0;
+        $hasAnyPayment = false;
+
+        foreach ($invoices as $invoice) {
+            $invoicePaid = $invoice->payments->sum('amount');
+            $totalPaid += $invoicePaid;
+            if ($invoicePaid > 0) {
+                $hasAnyPayment = true;
+            }
+        }
+
+        // If no payments at all
+        if (!$hasAnyPayment) {
+            // If booking is Active but no payments, show Pending Payment
+            return 'Pending Payment';
+        }
+
+        // If all invoices are fully paid
+        if ($totalPaid >= $totalDue) {
+            // If booking is Active and fully paid, show Active
+            return $this->status === 'Active' ? 'Active' : 'Paid';
+        }
+
+        // If partial payment (some payments but not fully paid)
+        // Show Partial Payment even if booking is Active
+        return 'Partial Payment';
     }
 }

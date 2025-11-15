@@ -182,9 +182,10 @@
     }
     .invoices-table-card {
         background-color: white;
-        border-radius: 12px;
-        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         overflow: hidden;
+        margin-bottom: 2rem;
     }
     .invoices-table {
         width: 100%;
@@ -236,6 +237,10 @@
         background: #e0f2fe;
         color: #0369a1;
     }
+    .badge-status.canceled {
+        background: #fee2e2;
+        color: #991b1b;
+    }
     .tenant-meta {
         display: flex;
         flex-direction: column;
@@ -255,22 +260,31 @@
         font-weight: 600;
         color: #1f2937;
     }
-    .add-payment-btn {
-        background: #f0f4ff;
-        color: #03255b;
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+    .btn-add-payment {
+        padding: 0.5rem 1rem;
         border: none;
-        border-radius: 999px;
-        padding: 0.45rem 0.95rem;
-        font-size: 0.85rem;
-        font-weight: 600;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
         transition: all 0.2s ease;
+        background-color: #10b981;
+        color: white;
         display: inline-flex;
         align-items: center;
-        gap: 0.4rem;
+        gap: 0.5rem;
     }
-    .add-payment-btn:hover {
-        background: #e1eaff;
-        color: #021b44;
+
+    .btn-add-payment i {
+        font-size: 1rem;
+    }
+    .btn-add-payment:hover {
+        background-color: #059669;
+        color: white;
     }
     .invoice-metadata {
         display: flex;
@@ -293,10 +307,98 @@
         align-items: center;
         padding: 1rem 1.25rem;
         background-color: #f8fafc;
+        flex-wrap: wrap;
+        gap: 1rem;
     }
     .pagination-wrapper .form-select {
         width: auto;
         border-radius: 999px;
+        min-width: 70px;
+    }
+    .pagination-left {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .pagination-center {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .pagination-right {
+        display: flex;
+        align-items: center;
+    }
+    /* Fix pagination styling */
+    .pagination-wrapper .pagination {
+        margin: 0;
+        display: flex;
+        list-style: none;
+        gap: 0.25rem;
+    }
+    .pagination-wrapper .pagination .page-item {
+        margin: 0;
+    }
+    .pagination-wrapper .pagination .page-link {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        color: #475569;
+        text-decoration: none;
+        background-color: white;
+        font-size: 0.875rem;
+        min-width: 38px;
+        text-align: center;
+        display: inline-block;
+        transition: all 0.2s ease;
+    }
+    .pagination-wrapper .pagination .page-link:hover {
+        background-color: #f1f5f9;
+        border-color: #cbd5e1;
+        color: #03255b;
+    }
+    .pagination-wrapper .pagination .page-item.active .page-link {
+        background-color: #03255b;
+        border-color: #03255b;
+        color: white;
+        font-weight: 600;
+    }
+    .pagination-wrapper .pagination .page-item.disabled .page-link {
+        background-color: #f8fafc;
+        border-color: #e2e8f0;
+        color: #94a3b8;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+    .pagination-wrapper .pagination .page-link:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(3, 37, 91, 0.1);
+    }
+    /* Hide the large chevron icons if they exist */
+    .pagination-wrapper svg {
+        display: none !important;
+    }
+    /* Hide the "Showing X to Y" text from Laravel pagination since we display it manually */
+    .pagination-wrapper nav > div:first-child {
+        display: none !important; /* Hide mobile pagination */
+    }
+    .pagination-wrapper nav > div:last-child > div:first-child {
+        display: none !important; /* Hide the "Showing X to Y" text div */
+    }
+    /* Show only the pagination controls (ul.pagination) */
+    .pagination-wrapper nav > div:last-child > div:last-child {
+        display: block !important;
+    }
+    /* Style our custom "Showing X to Y" text */
+    .pagination-center .small {
+        font-size: 0.875rem;
+        color: #64748b;
+        margin: 0;
+    }
+    .pagination-center .fw-semibold {
+        font-weight: 600;
+        color: #0f172a;
     }
     .no-data-state {
         text-align: center;
@@ -371,12 +473,7 @@
         <div>
             <h1 class="invoices-title" style="margin:0">Invoices Management</h1>
         </div>
-        <div style="display:flex;align-items:center;gap:0.5rem;">
-            <button class="add-invoice-btn" data-bs-toggle="modal" data-bs-target="#recordPaymentModal" disabled style="opacity:0.5;cursor:not-allowed;" title="Use the 'Add Payment' button on invoice rows to record payments">
-                <span class="add-invoice-btn-icon">+</span>
-                Add Payment
-            </button>
-        </div>
+
     </div>
 
     <div class="summary-cards">
@@ -422,10 +519,11 @@
             <div class="legend">
                 <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f97316;"></span>
                 Pending
-                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;"></span>
-                Paid
                 <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#0ea5e9;"></span>
                 Partial
+                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;"></span>
+                Paid
+
             </div>
         </div>
         <div class="filter-search">
@@ -448,26 +546,41 @@
                     <th>Invoice</th>
                     <th>Tenant &amp; Room</th>
                     <th>Billing</th>
-                    <th>Rent</th>
+                    <th>Type</th>
                     <th>Utilities</th>
                     <th>Total Due</th>
                     <th>Collected</th>
                     <th>Status</th>
-                    <th></th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($invoices as $invoice)
                     @php
-                        $utilitiesTotal = ($invoice->utility_water_fee ?? 0)
-                            + ($invoice->utility_wifi_fee ?? 0)
-                            + ($invoice->utility_electricity_fee ?? 0);
+                        // Check if this is a security deposit invoice
+                        $isSecurityDepositInvoice = ($invoice->rent_subtotal == 0 && 
+                                                    $invoice->utility_water_fee == 0 && 
+                                                    $invoice->utility_wifi_fee == 0 && 
+                                                    $invoice->utility_electricity_fee > 0);
+                        
+                        if ($isSecurityDepositInvoice) {
+                            $utilitiesTotal = 0; // Security deposit is shown separately
+                            $securityDeposit = $invoice->utility_electricity_fee ?? 0;
+                        } else {
+                            $utilitiesTotal = ($invoice->utility_water_fee ?? 0)
+                                + ($invoice->utility_wifi_fee ?? 0)
+                                + ($invoice->utility_electricity_fee ?? 0);
+                            $securityDeposit = 0;
+                        }
+                        
                         $statusLabel = $invoice->status_label;
                         $badgeClass = $statusLabel === 'Paid'
                             ? 'paid'
                             : ($statusLabel === 'Pending'
                                 ? 'pending'
-                                : 'partial');
+                                : ($statusLabel === 'Canceled'
+                                    ? 'canceled'
+                                    : 'partial'));
                     @endphp
                     <tr>
                         <td>
@@ -492,8 +605,14 @@
                                 </span>
                             </div>
                         </td>
-                        <td class="amount-col">₱{{ number_format($invoice->rent_subtotal ?? 0, 2) }}</td>
-                        <td class="amount-col">₱{{ number_format($utilitiesTotal, 2) }}</td>
+                        <td class="amount-col">{{ $invoice->billing_label ?? '—' }}</td>
+                        <td class="amount-col">
+                            @if($isSecurityDepositInvoice)
+                                ₱{{ number_format($securityDeposit, 2) }}
+                            @else
+                                ₱{{ number_format($utilitiesTotal, 2) }}
+                            @endif
+                        </td>
                         <td class="amount-col">₱{{ number_format($invoice->total_due ?? 0, 2) }}</td>
                         <td class="amount-col text-success">₱{{ number_format($invoice->total_collected ?? 0, 2) }}</td>
                         <td>
@@ -502,22 +621,19 @@
                             </span>
                         </td>
                         <td>
-                            @if($statusLabel !== 'Paid')
-                                <button class="add-payment-btn"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#recordPaymentModal"
-                                        data-invoice="{{ $invoice->invoice_id }}"
-                                        data-booking="{{ $invoice->booking_id }}"
-                                        data-tenant="{{ $invoice->tenant_name }}"
-                                        data-amount="{{ number_format($invoice->remaining_balance, 2) }}">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                        <path d="M7.5 1a.5.5 0 0 1 1 0v6h6a.5.5 0 0 1 0 1h-6v6a.5.5 0 0 1-1 0V8h-6a.5.5 0 0 1 0-1h6z"/>
-                                    </svg>
-                                    Add Payment
-                                </button>
-                            @else
-                                <span class="text-muted" style="font-size:0.8rem;">Paid in full</span>
-                            @endif
+                            <div class="action-buttons">
+                                @if($statusLabel !== 'Paid' && $statusLabel !== 'Canceled')
+                                    <button class="btn-add-payment"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#recordPaymentModal"
+                                            data-invoice="{{ $invoice->invoice_id }}"
+                                            data-booking="{{ $invoice->booking_id }}"
+                                            data-tenant="{{ $invoice->tenant_name }}"
+                                            data-amount="{{ number_format($invoice->remaining_balance, 2) }}">
+                                        <i class="bi bi-credit-card"></i> Add Payment
+                                    </button>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                 @empty
@@ -534,19 +650,32 @@
         </table>
 
         <div class="pagination-wrapper">
-            <form method="GET" action="{{ route('invoices') }}" class="d-flex align-items-center gap-2">
-                <input type="hidden" name="search" value="{{ $searchTerm }}">
-                <input type="hidden" name="status" value="{{ $activeStatus }}">
-                <label for="perPage" class="text-muted small mb-0">Rows per page</label>
-                <select class="form-select form-select-sm" id="perPage" name="per_page" onchange="this.form.submit()">
-                    @foreach([10, 25, 50] as $option)
-                        <option value="{{ $option }}" {{ (int) $perPage === $option ? 'selected' : '' }}>
-                            {{ $option }}
-                        </option>
-                    @endforeach
-                </select>
-            </form>
-            <div>
+            <div class="pagination-left">
+                <form method="GET" action="{{ route('invoices') }}" class="d-flex align-items-center gap-2">
+                    <input type="hidden" name="search" value="{{ $searchTerm }}">
+                    <input type="hidden" name="status" value="{{ $activeStatus }}">
+                    <label for="perPage" class="text-muted small mb-0">Rows per page</label>
+                    <select class="form-select form-select-sm" id="perPage" name="per_page" onchange="this.form.submit()">
+                        @foreach([10, 25, 50] as $option)
+                            <option value="{{ $option }}" {{ (int) $perPage === $option ? 'selected' : '' }}>
+                                {{ $option }}
+                            </option>
+                        @endforeach
+                    </select>
+                </form>
+            </div>
+            <div class="pagination-center">
+                <p class="small text-muted mb-0">
+                    Showing
+                    <span class="fw-semibold">{{ $invoices->firstItem() ?? 0 }}</span>
+                    to
+                    <span class="fw-semibold">{{ $invoices->lastItem() ?? 0 }}</span>
+                    of
+                    <span class="fw-semibold">{{ $invoices->total() }}</span>
+                    results
+                </p>
+            </div>
+            <div class="pagination-right">
                 {{ $invoices->appends(['status' => $activeStatus, 'search' => $searchTerm, 'per_page' => $perPage])->links() }}
             </div>
         </div>
@@ -605,12 +734,12 @@
                         <label for="amount" class="form-label">Amount <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text">₱</span>
-                            <input type="number" 
-                                   class="form-control @error('amount') is-invalid @enderror" 
-                                   id="amount" 
-                                   name="amount" 
-                                   step="0.01" 
-                                   min="0.01" 
+                            <input type="number"
+                                   class="form-control @error('amount') is-invalid @enderror"
+                                   id="amount"
+                                   name="amount"
+                                   step="0.01"
+                                   min="0.01"
                                    required
                                    placeholder="0.00">
                         </div>
@@ -621,9 +750,9 @@
 
                     <div class="mb-3">
                         <label for="payment_method" class="form-label">Payment Method <span class="text-danger">*</span></label>
-                        <select class="form-select @error('payment_method') is-invalid @enderror" 
-                                id="payment_method" 
-                                name="payment_method" 
+                        <select class="form-select @error('payment_method') is-invalid @enderror"
+                                id="payment_method"
+                                name="payment_method"
                                 required>
                             <option value="">Select payment method...</option>
                             <option value="Cash" {{ old('payment_method') === 'Cash' ? 'selected' : '' }}>Cash</option>
@@ -636,10 +765,10 @@
 
                     <div class="mb-3" id="referenceNumberGroup" style="display: none;">
                         <label for="reference_number" class="form-label">Reference Number <span class="text-danger">*</span></label>
-                        <input type="text" 
-                               class="form-control @error('reference_number') is-invalid @enderror" 
-                               id="reference_number" 
-                               name="reference_number" 
+                        <input type="text"
+                               class="form-control @error('reference_number') is-invalid @enderror"
+                               id="reference_number"
+                               name="reference_number"
                                placeholder="Enter GCash transaction reference">
                         @error('reference_number')
                             <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -649,11 +778,11 @@
 
                     <div class="mb-3">
                         <label for="date_received" class="form-label">Date Received <span class="text-danger">*</span></label>
-                        <input type="date" 
-                               class="form-control @error('date_received') is-invalid @enderror" 
-                               id="date_received" 
-                               name="date_received" 
-                               value="{{ old('date_received', date('Y-m-d')) }}" 
+                        <input type="date"
+                               class="form-control @error('date_received') is-invalid @enderror"
+                               id="date_received"
+                               name="date_received"
+                               value="{{ old('date_received', date('Y-m-d')) }}"
                                required>
                         @error('date_received')
                             <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -661,8 +790,12 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Payment</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-credit-card"></i> Save Payment
+                    </button>
                 </div>
             </form>
         </div>
@@ -676,7 +809,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const referenceNumberGroup = document.getElementById('referenceNumberGroup');
     const referenceNumberInput = document.getElementById('reference_number');
     const dateReceivedInput = document.getElementById('date_received');
-    
+
     // Set default date to today if not set
     if (!dateReceivedInput.value) {
         dateReceivedInput.value = new Date().toISOString().split('T')[0];

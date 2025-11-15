@@ -152,6 +152,13 @@
         font-weight: 500;
         cursor: pointer;
         transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-edit i, .btn-delete i {
+        font-size: 1rem;
     }
 
     .btn-edit {
@@ -208,7 +215,7 @@
         <!-- Right: Create Button -->
         <div class="col-md-4 d-flex justify-content-end">
             <button class="create-rate-btn" data-bs-toggle="modal" data-bs-target="#createRateModal">
-                <span class="create-rate-btn-icon">+</span>
+                <i class="bi bi-plus-circle"></i>
                 <span>Create New Rate</span>
             </button>
         </div>
@@ -254,8 +261,12 @@
                     <td>{{ $rate->inclusion }}</td>
                     <td>
                         <div class="action-buttons">
-                            <button class="btn-edit" onclick="editRate({{ $rate->rate_id }})">Edit</button>
-                            <button class="btn-delete" onclick="deleteRate({{ $rate->rate_id }})">Delete</button>
+                            <button class="btn-edit" onclick="editRate({{ $rate->rate_id }})">
+                                <i class="bi bi-pencil-square"></i> Edit
+                            </button>
+                            <button class="btn-delete" onclick="deleteRate({{ $rate->rate_id }})">
+                                <i class="bi bi-trash"></i> Delete
+                            </button>
                         </div>
                     </td>
                 </tr>
@@ -300,8 +311,12 @@
                         <td>{{ $rate->inclusion }}</td>
                         <td>
                             <div class="action-buttons">
-                                <button class="btn-edit" onclick="editRoomRate({{ $room->room_id }}, {{ $rate->rate_id }})">Edit</button>
-                                <button class="btn-delete" onclick="deleteRoomRate({{ $room->room_id }}, {{ $rate->rate_id }})">Delete</button>
+                                <button class="btn-edit" onclick="editRoomRate({{ $room->room_id }}, {{ $rate->rate_id }})">
+                                    <i class="bi bi-pencil-square"></i> Edit
+                                </button>
+                                <button class="btn-delete" onclick="deleteRoomRate({{ $room->room_id }}, {{ $rate->rate_id }})">
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
                             </div>
                         </td>
                     </tr>
@@ -361,8 +376,12 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Create Rate</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Close
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Create Rate
+                    </button>
                 </div>
             </form>
         </div>

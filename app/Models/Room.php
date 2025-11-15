@@ -55,4 +55,12 @@ class Room extends Model
     {
         return $this->belongsTo(Rate::class, 'rate_id', 'rate_id');
     }
+
+    /**
+     * Get all assets for this room
+     */
+    public function assets(): HasMany
+    {
+        return $this->hasMany(Asset::class, 'room_id', 'room_id');
+    }
 }

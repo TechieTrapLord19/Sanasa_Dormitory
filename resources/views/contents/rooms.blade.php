@@ -66,6 +66,13 @@
     }
 
     /* Room Card Styles */
+    .room-card-link {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        height: 100%;
+    }
+
     .room-card {
         border: none;
         border-radius: 12px;
@@ -75,6 +82,7 @@
         overflow: hidden;
         background: white;
         height: 100%;
+        cursor: pointer;
     }
 
     .room-card:hover {
@@ -198,6 +206,7 @@
         color: #2d3748;
         font-size: 0.875rem;
         margin: 0;
+        min-width: 130px;
     }
 
     .filter-btn {
@@ -268,20 +277,18 @@
         <!-- Left: Filters (two groups stacked) -->
         <div class="col-md-8">
             <div class="filter-group">
+                <p class="filter-label mb-0">Filter by Floor:</p>
+                <button class="filter-btn active" data-filter="floor" data-value="all">All</button>
+                @foreach($floors as $floor)
+                    <button class="filter-btn" data-filter="floor" data-value="{{ $floor }}">Floor {{ $floor }}</button>
+                @endforeach
+            </div>
+            <div class="filter-group mt-3">
                 <p class="filter-label mb-0">Filter by Status:</p>
                 <button class="filter-btn active" data-filter="status" data-value="all">All</button>
                 <button class="filter-btn" data-filter="status" data-value="available">Available</button>
                 <button class="filter-btn" data-filter="status" data-value="occupied">Occupied</button>
                 <button class="filter-btn" data-filter="status" data-value="maintenance">Maintenance</button>
-            </div>
-            <div class="filter-group mt-3">
-                <p class="filter-label mb-0">Filter by Floor:</p>
-                <select class="filter-select" id="floorFilter">
-                    <option value="all">All Floors</option>
-                    @foreach($floors as $floor)
-                        <option value="{{ $floor }}">Floor {{ $floor }}</option>
-                    @endforeach
-                </select>
             </div>
         </div>
 
@@ -308,15 +315,18 @@
 <div class="row p-0 container-fluid" id="roomsContainer">
     @foreach($rooms as $room)
         <div class="col-md-3 mb-4 room-item" data-status="{{ $room->status }}" data-floor="{{ $room->floor }}">
-            <div class="room-card">
-                <div class="room-card-body">
-                    <div class="room-card-content">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="room-card-title mb-0">Room {{ $room->room_num }}</h5>
-                            <span class="room-status-badge mb-0 {{ $room->status }}">
-                                {{ ucfirst($room->status) }}
-                            </span>
-                        </div>
+            <a href="{{ route('rooms.show', $room->room_id) }}" class="room-card-link">
+                <div class="room-card">
+                    <div class="room-card-body">
+                        <div class="room-card-content">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="room-card-title mb-0">
+                                    Room {{ $room->room_num }}
+                                </h5>
+                                <span class="room-status-badge mb-0 {{ $room->status }}">
+                                    {{ ucfirst($room->status) }}
+                                </span>
+                            </div>
                         <div class="room-info-item">
                             <span class="room-info-label">Tenant:</span>
                             <span>
@@ -348,17 +358,19 @@
                             <span class="room-info-label">Capacity:</span>
                             <span>{{ $room->capacity }}</span>
                         </div>
+
+
                     </div>
 
-                    <div class="room-card-actions">
+                    <div class="room-card-actions" onclick="event.stopPropagation();">
                         @if($room->status === 'maintenance')
-                            <button class="room-action-btn" type="button" title="Remove maintenance">
+                            <button class="room-action-btn" type="button" title="Remove maintenance" onclick="event.stopPropagation();">
                                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                                     <path d="M4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8z"/>
                                 </svg>
                             </button>
                         @else
-                            <button class="room-action-btn" type="button" title="More options">
+                            <button class="room-action-btn" type="button" title="More options" onclick="event.stopPropagation();">
                                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                                     <path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
                                 </svg>
@@ -367,6 +379,7 @@
                     </div>
                 </div>
             </div>
+            </a>
         </div>
     @endforeach
 </div>
@@ -420,8 +433,12 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Create Room</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Close
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Create Room
+                    </button>
                 </div>
             </form>
         </div>
@@ -431,7 +448,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const statusButtons = document.querySelectorAll('[data-filter="status"]');
-    const floorSelect = document.getElementById('floorFilter');
+    const floorButtons = document.querySelectorAll('[data-filter="floor"]');
     const roomItems = document.querySelectorAll('.room-item');
 
     let currentStatus = 'all';
@@ -463,10 +480,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Floor filter dropdown
-    floorSelect.addEventListener('change', function() {
-        currentFloor = this.value;
-        filterRooms();
+    // Floor filter buttons
+    floorButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            floorButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            currentFloor = this.getAttribute('data-value');
+            filterRooms();
+        });
     });
 });
 </script>

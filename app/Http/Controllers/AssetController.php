@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Asset;
+use Illuminate\Validation\Rule;
 
 class AssetController extends Controller
 {
@@ -27,7 +29,19 @@ class AssetController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validatedData = $request->validate([
+            'room_id' => 'required|exists:rooms,room_id',
+            'name' => 'required|string|max:255',
+            'condition' => [
+                'required',
+                Rule::in(['Good', 'Needs Repair', 'Broken', 'Missing'])
+            ],
+            'date_acquired' => 'nullable|date',
+        ]);
+
+        Asset::create($validatedData);
+
+        return redirect()->back()->with('success', 'Asset added successfully!');
     }
 
     /**
@@ -51,7 +65,21 @@ class AssetController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $asset = Asset::findOrFail($id);
+
+        $validatedData = $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'condition' => [
+                'sometimes',
+                'required',
+                Rule::in(['Good', 'Needs Repair', 'Broken', 'Missing'])
+            ],
+            'date_acquired' => 'nullable|date',
+        ]);
+
+        $asset->update($validatedData);
+
+        return redirect()->back()->with('success', 'Asset updated successfully!');
     }
 
     /**

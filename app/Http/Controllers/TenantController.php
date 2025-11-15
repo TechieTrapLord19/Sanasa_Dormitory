@@ -32,7 +32,17 @@ class TenantController extends Controller
             $query->where('status', $request->status);
         }
 
-        $tenants = $query->orderBy('last_name')->orderBy('first_name')->get();
+        // Pagination
+        $perPage = (int) $request->input('per_page', 10);
+        if (!in_array($perPage, [10, 25, 50], true)) {
+            $perPage = 10;
+        }
+        
+        $tenants = $query->withCount('bookings')
+                         ->orderBy('last_name')
+                         ->orderBy('first_name')
+                         ->paginate($perPage)
+                         ->withQueryString();
         
         // Get counts for status indicators
         $statusCounts = [
@@ -41,7 +51,10 @@ class TenantController extends Controller
             'total' => Tenant::count(),
         ];
 
-        return view('contents.tenants', compact('tenants', 'statusCounts'));
+        $activeStatus = $request->input('status', 'all');
+        $searchTerm = $request->input('search', '');
+
+        return view('contents.tenants', compact('tenants', 'statusCounts', 'activeStatus', 'searchTerm', 'perPage'));
     }
 
     /**
@@ -70,7 +83,22 @@ class TenantController extends Controller
             'status' => 'required|in:active,inactive',
         ]);
 
-        Tenant::create($validatedData);
+        $tenant = Tenant::create($validatedData);
+
+        if ($request->expectsJson()) {
+            $tenant->refresh();
+            $tenant->append('full_name');
+
+            return response()->json([
+                'tenant_id' => $tenant->tenant_id,
+                'first_name' => $tenant->first_name,
+                'last_name' => $tenant->last_name,
+                'full_name' => $tenant->full_name,
+                'email' => $tenant->email,
+                'contact_num' => $tenant->contact_num,
+                'status' => $tenant->status,
+            ], 201);
+        }
 
         return redirect()->route('tenants')->with('success', 'Tenant created successfully!');
     }
@@ -80,7 +108,11 @@ class TenantController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $tenant = Tenant::with(['bookings.room', 'bookings.rate', 'bookings.invoices.payments'])
+                        ->withCount('bookings')
+                        ->findOrFail($id);
+        
+        return view('contents.tenants-show', compact('tenant'));
     }
 
     /**
@@ -88,7 +120,8 @@ class TenantController extends Controller
      */
     public function edit(string $id)
     {
-        //
+        $tenant = Tenant::findOrFail($id);
+        return view('contents.tenants-edit', compact('tenant'));
     }
 
     /**
@@ -96,14 +129,48 @@ class TenantController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $validatedData = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'address' => 'nullable|string',
+            'birth_date' => 'nullable|date',
+            'id_document' => 'nullable|string|max:255',
+            'contact_num' => 'nullable|string|max:20',
+            'emer_contact_num' => 'nullable|string|max:20',
+            'status' => 'required|in:active,inactive',
+        ]);
+
+        $tenant = Tenant::findOrFail($id);
+        $tenant->update($validatedData);
+
+        return redirect()->route('tenants.show', $tenant->tenant_id)
+                        ->with('success', 'Tenant updated successfully!')
+                        ->withInput();
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Archive a tenant (set status to inactive)
      */
-    public function destroy(string $id)
+    public function archive(string $id)
     {
-        //
+        $tenant = Tenant::findOrFail($id);
+        $tenant->update(['status' => 'inactive']);
+
+        return redirect()->route('tenants')
+                        ->with('success', 'Tenant archived successfully!');
+    }
+
+    /**
+     * Activate a tenant (set status to active)
+     */
+    public function activate(string $id)
+    {
+        $tenant = Tenant::findOrFail($id);
+        $tenant->update(['status' => 'active']);
+
+        return redirect()->route('tenants')
+                        ->with('success', 'Tenant activated successfully!');
     }
 }

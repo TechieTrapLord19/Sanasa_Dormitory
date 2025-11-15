@@ -3,12 +3,83 @@
 @section('title', 'Edit Booking')
 
 @section('content')
+@php
+    $originalStayLength = $booking->checkin_date->diffInDays($booking->checkout_date);
+    $defaultStayLength = (int) old('stay_length', max(1, $originalStayLength));
+@endphp
 <style>
     .booking-form-container {
         background-color: white;
         border-radius: 8px;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         padding: 2rem;
+    }
+
+    .step-indicator {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+        position: relative;
+    }
+
+    .step-indicator::before {
+        content: '';
+        position: absolute;
+        top: 20px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: #e2e8f0;
+        z-index: 0;
+    }
+
+    .step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+        z-index: 1;
+    }
+
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #e2e8f0;
+        color: #4a5568;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        margin: 0 auto 0.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .step.active .step-number {
+        background-color: #03255b;
+        color: white;
+    }
+
+    .step.completed .step-number {
+        background-color: #10b981;
+        color: white;
+    }
+
+    .step-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #4a5568;
+    }
+
+    .step.active .step-title {
+        color: #03255b;
+    }
+
+    .step-content {
+        display: none;
+    }
+
+    .step-content.active {
+        display: block;
     }
 
     .form-group {
@@ -34,6 +105,36 @@
         outline: none;
         border-color: #03255b;
         box-shadow: 0 0 0 3px rgba(3, 37, 91, 0.1);
+    }
+
+    .duration-presets {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+    }
+
+    .duration-button {
+        border: 1px solid #cbd5e0;
+        background-color: #f7fafc;
+        color: #1a202c;
+        padding: 0.45rem 0.9rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .duration-button.active {
+        background-color: #03255b;
+        border-color: #021d47;
+        color: white;
+    }
+
+    .duration-button:hover {
+        border-color: #03255b;
+        color: #03255b;
     }
 
     .rooms-grid {
@@ -62,13 +163,6 @@
         background-color: #e0f2fe;
     }
 
-    .room-card.unavailable {
-        opacity: 0.5;
-        cursor: not-allowed;
-        background-color: #fee2e2;
-        border-color: #dc2626;
-    }
-
     .room-number {
         font-size: 1.25rem;
         font-weight: 700;
@@ -79,6 +173,16 @@
     .room-floor {
         font-size: 0.75rem;
         color: #718096;
+    }
+
+    .btn-primary-custom, .btn-secondary-custom {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-primary-custom i, .btn-secondary-custom i {
+        font-size: 1rem;
     }
 
     .btn-primary-custom {
@@ -106,7 +210,6 @@
         cursor: pointer;
         transition: background-color 0.3s ease;
         text-decoration: none;
-        display: inline-block;
     }
 
     .btn-secondary-custom:hover {
@@ -120,146 +223,520 @@
         padding-top: 2rem;
         border-top: 1px solid #e2e8f0;
     }
+
+    .summary-box {
+        background-color: #f7fafc;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-top: 1rem;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+
+    .summary-row.total {
+        font-weight: 700;
+        font-size: 1.125rem;
+        color: #03255b;
+        border-top: 2px solid #e2e8f0;
+        padding-top: 0.75rem;
+        margin-top: 0.75rem;
+    }
+
+    .summary-section-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-top: 1.25rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .charges-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .charges-list li {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.35rem 0;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 0.9rem;
+    }
+
+    .charges-list li:last-child {
+        border-bottom: none;
+    }
+
+    .italic-note {
+        font-style: italic;
+        color: #4a5568;
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+    }
+
+    .info-box {
+        background-color: #e0f2fe;
+        border-left: 4px solid #0369a1;
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+    }
+
+    .info-box p {
+        margin: 0.25rem 0;
+        font-size: 0.9rem;
+    }
+
+    .info-box strong {
+        color: #03255b;
+    }
 </style>
 
 <div class="booking-form-container">
     <h1 class="mb-4" style="color: #03255b; font-size: 2rem; font-weight: 700;">Edit Booking</h1>
 
-    <form action="{{ route('bookings.update', $booking->booking_id) }}" method="POST">
+    <!-- Step Indicator -->
+    <div class="step-indicator">
+        <div class="step active" data-step="1">
+            <div class="step-number">1</div>
+            <div class="step-title">Schedule & Room</div>
+        </div>
+        <div class="step" data-step="2">
+            <div class="step-number">2</div>
+            <div class="step-title">Booking Info</div>
+        </div>
+        <div class="step" data-step="3">
+            <div class="step-number">3</div>
+            <div class="step-title">Review & Update</div>
+        </div>
+    </div>
+
+    @if ($errors->any())
+        <div class="alert alert-danger mb-4">
+            <h5 class="alert-heading">Please fix the following errors:</h5>
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    @if (session('success'))
+        <div class="alert alert-success mb-4">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    <form id="editBookingForm" action="{{ route('bookings.update', $booking->booking_id) }}" method="POST">
         @csrf
         @method('PUT')
 
-        <div class="row">
-            <div class="col-md-6">
-                <div class="form-group">
-                    <label class="form-label">Check-in Date <span class="text-danger">*</span></label>
-                    <input type="date" 
-                           class="form-control @error('checkin_date') is-invalid @enderror" 
-                           name="checkin_date" 
-                           id="checkin_date" 
-                           value="{{ old('checkin_date', $booking->checkin_date->format('Y-m-d')) }}" 
-                           required>
-                    @error('checkin_date')
-                        <div class="text-danger small mt-1">{{ $message }}</div>
-                    @enderror
+        <!-- Step 1: Schedule & Room -->
+        <div class="step-content active" data-step="1">
+            <h3 class="mb-4" style="color: #2d3748;">Adjust Schedule & Select Room</h3>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label class="form-label">Check-in Date <span class="text-danger">*</span></label>
+                        <input type="date"
+                               class="form-control @error('checkin_date') is-invalid @enderror"
+                               name="checkin_date"
+                               id="checkin_date"
+                               value="{{ old('checkin_date', $booking->checkin_date->format('Y-m-d')) }}"
+                               required>
+                        @error('checkin_date')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label class="form-label">Check-out Date</label>
+                        <input type="text"
+                               class="form-control"
+                               id="checkout_display"
+                               readonly>
+                        <input type="hidden" name="checkout_date" id="checkout_date" value="{{ old('checkout_date', $booking->checkout_date->format('Y-m-d')) }}">
+
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label class="form-label">Stay Length <span class="text-danger">*</span></label>
+                        <input type="number"
+                               id="custom_stay_length"
+                               name="custom_stay_length"
+                               min="1"
+                               class="form-control @error('stay_length') is-invalid @enderror"
+                               placeholder="Enter days"
+                               value="{{ old('stay_length', $defaultStayLength) }}">
+                        <input type="hidden" name="stay_length" id="stay_length" value="{{ old('stay_length', $defaultStayLength) }}" required>
+                        @error('stay_length')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
+                    </div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="form-group">
-                    <label class="form-label">Check-out Date <span class="text-danger">*</span></label>
-                    <input type="date" 
-                           class="form-control @error('checkout_date') is-invalid @enderror" 
-                           name="checkout_date" 
-                           id="checkout_date" 
-                           value="{{ old('checkout_date', $booking->checkout_date->format('Y-m-d')) }}" 
-                           required>
-                    @error('checkout_date')
-                        <div class="text-danger small mt-1">{{ $message }}</div>
-                    @enderror
+
+            <div class="form-group">
+                <label class="form-label d-block mb-2">Quick Select</label>
+                <div class="duration-presets">
+                    <button type="button" class="duration-button" data-days="1">1 Day</button>
+                    <button type="button" class="duration-button" data-days="7">7 Days</button>
+                    <button type="button" class="duration-button" data-days="30">30 Days</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Room <span class="text-danger">*</span></label>
+                <div id="roomsContainer" class="rooms-grid">
+                    <p class="text-muted">Loading rooms...</p>
+                </div>
+                <input type="hidden" name="room_id" id="selected_room_id" value="{{ old('room_id', $booking->room_id) }}" required>
+                @error('room_id')
+                    <div class="text-danger small mt-1">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
+
+        <!-- Step 2: Booking Info -->
+        <div class="step-content" data-step="2">
+            <h3 class="mb-4" style="color: #2d3748;">Current Booking Information</h3>
+
+            <div class="info-box">
+                <p><strong>Tenant:</strong> {{ $booking->tenant->full_name }}</p>
+                <p><strong>Current Room:</strong> {{ $booking->room->room_num }} (Floor {{ $booking->room->floor }})</p>
+                <p><strong>Current Rate:</strong> {{ $booking->rate->duration_type }} - ₱{{ number_format($booking->rate->base_price, 2) }}</p>
+                <p><strong>Status:</strong> <span style="color: #10b981; font-weight: 600;">{{ $booking->status }}</span></p>
+            </div>
+
+        </div>
+
+        <!-- Step 3: Review & Update -->
+        <div class="step-content" data-step="3">
+            <h3 class="mb-4" style="color: #2d3748;">Review Changes & Confirm</h3>
+
+            <div class="summary-box">
+                <div class="summary-row">
+                    <span>Room:</span>
+                    <span id="summary_room">{{ $booking->room->room_num }}</span>
+                </div>
+                <div class="summary-row">
+                    <span>Check-in:</span>
+                    <span id="summary_checkin">{{ $booking->checkin_date->format('M d, Y') }}</span>
+                </div>
+                <div class="summary-row">
+                    <span>Check-out:</span>
+                    <span id="summary_checkout">{{ $booking->checkout_date->format('M d, Y') }}</span>
+                </div>
+                <div class="summary-row">
+                    <span>Total Nights:</span>
+                    <span id="summary_nights">{{ $defaultStayLength }}</span>
+                </div>
+                <div class="summary-row">
+                    <span>Rate Plan:</span>
+                    <span id="summary_rate_plan">{{ $booking->rate->duration_type }}</span>
+                </div>
+                <div class="summary-section-title">Updated Charges</div>
+                <ul class="charges-list">
+                    <li><span>Rate Total</span><span id="summary_rate_amount">₱0.00</span></li>
+                    <li id="summary_deposit_row" style="display:none;"><span>Security Deposit</span><span id="summary_deposit_amount">₱0.00</span></li>
+                    <li id="summary_water_row" style="display:none;"><span>Water</span><span id="summary_water_amount">₱0.00</span></li>
+                    <li id="summary_wifi_row" style="display:none;"><span>Wi-Fi</span><span id="summary_wifi_amount">₱0.00</span></li>
+                </ul>
+                <div class="italic-note" id="summary_inclusion_note" style="display:none;"></div>
+                <div class="summary-row total">
+                    <span>Total Due After Update:</span>
+                    <span id="summary_total_due">₱0.00</span>
                 </div>
             </div>
         </div>
 
-        <div class="form-group">
-            <label class="form-label">Room <span class="text-danger">*</span></label>
-            <div id="roomsContainer" class="rooms-grid">
-                <p class="text-muted">Loading rooms...</p>
-            </div>
-            <input type="hidden" name="room_id" id="selected_room_id" value="{{ old('room_id', $booking->room_id) }}" required>
-            @error('room_id')
-                <div class="text-danger small mt-1">{{ $message }}</div>
-            @enderror
-        </div>
-
-        <div class="form-group">
-            <label class="form-label">Current Booking Info</label>
-            <div class="p-3 bg-light rounded">
-                <p class="mb-1"><strong>Tenant:</strong> {{ $booking->tenant->full_name }}</p>
-                <p class="mb-1"><strong>Rate:</strong> {{ $booking->rate->duration_type }} - ₱{{ number_format($booking->rate->base_price, 2) }}</p>
-                <p class="mb-0"><strong>Status:</strong> {{ $booking->status }}</p>
-            </div>
-        </div>
-
+        <!-- Form Actions -->
         <div class="form-actions">
-            <a href="{{ route('bookings.show', $booking->booking_id) }}" class="btn-secondary-custom">Cancel</a>
-            <button type="submit" class="btn-primary-custom">Update Booking</button>
+            <button type="button" class="btn-secondary-custom" id="prevBtn" onclick="changeStep(-1)" style="display: none;">
+                <i class="bi bi-arrow-left"></i> Previous
+            </button>
+            <div style="margin-left: auto;">
+                <a href="{{ route('bookings.show', $booking->booking_id) }}" class="btn-secondary-custom">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </a>
+                <button type="button" class="btn-secondary-custom" id="nextBtn" onclick="changeStep(1)">
+                    Next <i class="bi bi-arrow-right"></i>
+                </button>
+                <button type="submit" class="btn-primary-custom" id="submitBtn" style="display: none;">
+                    <i class="bi bi-check-circle"></i> Update Booking
+                </button>
+            </div>
         </div>
     </form>
 </div>
 
 <script>
-// Check availability when dates change
-document.getElementById('checkin_date').addEventListener('change', checkAvailability);
-document.getElementById('checkout_date').addEventListener('change', checkAvailability);
+let currentStep = 1;
+const totalSteps = 3;
+const currentRoomId = {{ $booking->room_id }};
 
-function checkAvailability() {
-    const checkin = document.getElementById('checkin_date').value;
-    const checkout = document.getElementById('checkout_date').value;
-    const currentRoomId = {{ $booking->room_id }};
-    
-    if (!checkin || !checkout) {
+const ratesByDuration = {!! json_encode($ratesByDuration->mapWithKeys(function($rate) {
+    return [$rate->duration_type => [
+        'rate_id' => $rate->rate_id,
+        'duration_type' => $rate->duration_type,
+        'base_price' => $rate->base_price,
+        'inclusion' => $rate->inclusion,
+    ]];
+})->toArray()) !!};
+
+const monthlySecurityDeposit = {{ \App\Http\Controllers\BookingController::MONTHLY_SECURITY_DEPOSIT }};
+const utilityWaterFee = 350;
+const utilityWifiFee = 260;
+let missingRateAlertShown = false;
+
+function changeStep(direction) {
+    if (direction > 0 && !validateStep(currentStep)) {
         return;
     }
-    
+
+    document.querySelector(`.step-content[data-step="${currentStep}"]`).classList.remove('active');
+    document.querySelector(`.step[data-step="${currentStep}"]`).classList.remove('active');
+
+    currentStep += direction;
+
+    document.querySelector(`.step-content[data-step="${currentStep}"]`).classList.add('active');
+    document.querySelector(`.step[data-step="${currentStep}"]`).classList.add('active');
+
+    for (let i = 1; i < currentStep; i++) {
+        document.querySelector(`.step[data-step="${i}"]`).classList.add('completed');
+    }
+
+    document.getElementById('prevBtn').style.display = currentStep > 1 ? 'inline-block' : 'none';
+    document.getElementById('nextBtn').style.display = currentStep < totalSteps ? 'inline-block' : 'none';
+    document.getElementById('submitBtn').style.display = currentStep === totalSteps ? 'inline-block' : 'none';
+
+    if (currentStep === 3) {
+        updateSummary();
+    }
+}
+
+function validateStep(step) {
+    if (step === 1) {
+        const checkin = document.getElementById('checkin_date').value;
+        const checkout = document.getElementById('checkout_date').value;
+        const roomId = document.getElementById('selected_room_id').value;
+        const stayLength = document.getElementById('stay_length').value;
+
+        if (!checkin) {
+            alert('Please select a check-in date.');
+            return false;
+        }
+
+        if (!stayLength || parseInt(stayLength, 10) < 1) {
+            alert('Please set the stay length.');
+            return false;
+        }
+
+        if (!roomId || roomId === '0' || roomId === '') {
+            alert('Please select a room.');
+            return false;
+        }
+
+        if (new Date(checkout) <= new Date(checkin)) {
+            alert('Check-out date must be after check-in date.');
+            return false;
+        }
+
+        return true;
+    }
+
+    return true;
+}
+
+function updateSummary() {
+    const checkin = document.getElementById('checkin_date').value;
+    const checkout = document.getElementById('checkout_date').value;
+    const stayLength = parseInt(document.getElementById('stay_length').value || '0', 10);
+    const roomCard = document.querySelector('.room-card.selected');
+
+    document.getElementById('summary_room').textContent = roomCard ? roomCard.querySelector('.room-number').textContent : '{{ $booking->room->room_num }}';
+    document.getElementById('summary_checkin').textContent = checkin ? new Date(checkin).toLocaleDateString() : '-';
+    document.getElementById('summary_checkout').textContent = checkout ? new Date(checkout).toLocaleDateString() : '-';
+    document.getElementById('summary_nights').textContent = stayLength ? `${stayLength} night(s)` : '-';
+
+    if (stayLength) {
+        const pricing = calculatePricingSummary(stayLength);
+        if (pricing) {
+            const duration = determineRateDuration(stayLength);
+            document.getElementById('summary_rate_plan').textContent = duration;
+            document.getElementById('summary_rate_amount').textContent = '₱' + pricing.rateTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            document.getElementById('summary_total_due').textContent = '₱' + pricing.totalDue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            updateChargesDisplay(pricing);
+        }
+    }
+}
+
+function updateChargesDisplay(pricing) {
+    const depositRow = document.getElementById('summary_deposit_row');
+    const waterRow = document.getElementById('summary_water_row');
+    const wifiRow = document.getElementById('summary_wifi_row');
+    const inclusionNote = document.getElementById('summary_inclusion_note');
+
+    if (pricing.securityDeposit > 0) {
+        depositRow.style.display = '';
+        document.getElementById('summary_deposit_amount').textContent = '₱' + pricing.securityDeposit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    } else {
+        depositRow.style.display = 'none';
+    }
+
+    if (pricing.waterFee > 0) {
+        waterRow.style.display = '';
+        document.getElementById('summary_water_amount').textContent = '₱' + pricing.waterFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    } else {
+        waterRow.style.display = 'none';
+    }
+
+    if (pricing.wifiFee > 0) {
+        wifiRow.style.display = '';
+        document.getElementById('summary_wifi_amount').textContent = '₱' + pricing.wifiFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    } else {
+        wifiRow.style.display = 'none';
+    }
+
+    if (pricing.inclusionNote) {
+        inclusionNote.style.display = '';
+        inclusionNote.textContent = pricing.inclusionNote;
+    } else {
+        inclusionNote.style.display = 'none';
+    }
+}
+
+function determineRateDuration(days) {
+    if (days >= 30) return 'Monthly';
+    if (days >= 7) return 'Weekly';
+    return 'Daily';
+}
+
+function calculatePricingSummary(days) {
+    const duration = determineRateDuration(days);
+    const rate = ratesByDuration[duration];
+
+    if (!rate) {
+        if (!missingRateAlertShown) {
+            alert(`No ${duration.toLowerCase()} rate configured.`);
+            missingRateAlertShown = true;
+        }
+        return null;
+    }
+
+    let rateTotal = 0, securityDeposit = 0, waterFee = 0, wifiFee = 0, inclusionNote = '';
+
+    if (duration === 'Monthly') {
+        const months = Math.max(1, Math.ceil(days / 30));
+        rateTotal = rate.base_price * months;
+        securityDeposit = monthlySecurityDeposit;
+        waterFee = utilityWaterFee * months;
+        wifiFee = utilityWifiFee * months;
+        inclusionNote = 'Security deposit is a separate one-time payment (not included in invoice). Utilities are itemized separately for monthly stays.';
+    } else if (duration === 'Weekly') {
+        const weeks = Math.max(1, Math.ceil(days / 7));
+        rateTotal = rate.base_price * weeks;
+        inclusionNote = 'Water and Wi-Fi are included in the weekly package.';
+    } else {
+        rateTotal = rate.base_price * Math.max(1, days);
+        inclusionNote = 'Water and Wi-Fi are included in the daily package.';
+    }
+
+    return { rateTotal, securityDeposit, waterFee, wifiFee, inclusionNote, totalDue: rateTotal + securityDeposit + waterFee + wifiFee };
+}
+
+function loadRooms() {
+    const checkin = document.getElementById('checkin_date').value;
+    const checkout = document.getElementById('checkout_date').value;
+
+    if (!checkin || !checkout) {
+        document.getElementById('roomsContainer').innerHTML = '<p class="text-muted">Please select check-in date and stay length to see available rooms.</p>';
+        return;
+    }
+
     if (new Date(checkout) <= new Date(checkin)) {
         document.getElementById('roomsContainer').innerHTML = '<p class="text-danger">Check-out date must be after check-in date.</p>';
         return;
     }
-    
-    // Show loading
+
+    // Preserve the currently selected room ID before reloading
+    const roomIdInput = document.getElementById('selected_room_id');
+    const currentlySelectedRoomId = roomIdInput ? parseInt(roomIdInput.value) || currentRoomId : currentRoomId;
+
     document.getElementById('roomsContainer').innerHTML = '<p class="text-muted">Loading available rooms...</p>';
-    
-    // Fetch available rooms
-    fetch(`{{ route('bookings.check-availability') }}?checkin_date=${checkin}&checkout_date=${checkout}`)
+
+    fetch(`{{ route('bookings.check-availability') }}?checkin_date=${checkin}&checkout_date=${checkout}&exclude_booking_id={{ $booking->booking_id }}`)
         .then(response => response.json())
         .then(data => {
             const container = document.getElementById('roomsContainer');
             if (data.available_rooms && data.available_rooms.length > 0) {
+                // Check if current room is in available rooms
+                const currentRoomInAvailable = data.available_rooms.find(r => r.room_id == currentRoomId);
+                
+                // Build HTML for available rooms, marking the selected one
                 let html = data.available_rooms.map(room => {
-                    const isSelected = room.room_id == currentRoomId;
+                    const isSelected = room.room_id == currentlySelectedRoomId;
                     return `
-                        <div class="room-card ${isSelected ? 'selected' : ''}" 
-                             data-room-id="${room.room_id}" 
+                        <div class="room-card ${isSelected ? 'selected' : ''}"
+                             data-room-id="${room.room_id}"
                              onclick="selectRoom(${room.room_id})">
                             <div class="room-number">${room.room_num}</div>
                             <div class="room-floor">Floor ${room.floor}</div>
+                            ${room.room_id == currentRoomId ? '<small style="color: #f59e0b;">Current</small>' : ''}
                         </div>
                     `;
                 }).join('');
-                
-                // Also show current room if it's not in available list (might be unavailable)
-                const currentRoomInList = data.available_rooms.find(r => r.room_id == currentRoomId);
-                if (!currentRoomInList) {
+
+                // If current room is not in available rooms, add it at the beginning
+                if (!currentRoomInAvailable) {
+                    const isCurrentSelected = currentRoomId == currentlySelectedRoomId;
                     html = `
-                        <div class="room-card selected" 
+                        <div class="room-card ${isCurrentSelected ? 'selected' : ''}" 
                              data-room-id="${currentRoomId}" 
                              onclick="selectRoom(${currentRoomId})">
                             <div class="room-number">{{ $booking->room->room_num }}</div>
                             <div class="room-floor">Floor {{ $booking->room->floor }}</div>
-                            <div class="text-warning small mt-1">Current Room</div>
+                            <small style="color: #f59e0b;">Current</small>
                         </div>
                     ` + html;
                 }
-                
-                container.innerHTML = html;
-                
-                // Set selected room
-                if (currentRoomId) {
-                    document.getElementById('selected_room_id').value = currentRoomId;
+
+                // Set the room_id input to the preserved selection (or current room if nothing was selected)
+                if (roomIdInput) {
+                    if (!roomIdInput.value || roomIdInput.value === '0') {
+                        roomIdInput.value = currentlySelectedRoomId;
+                    }
                 }
+
+                container.innerHTML = html;
             } else {
-                // Show current room even if no others available
+                // No available rooms, show current room only
+                const isCurrentSelected = currentRoomId == currentlySelectedRoomId;
                 container.innerHTML = `
-                    <div class="room-card selected" 
+                    <div class="room-card ${isCurrentSelected ? 'selected' : ''}" 
                          data-room-id="${currentRoomId}" 
                          onclick="selectRoom(${currentRoomId})">
                         <div class="room-number">{{ $booking->room->room_num }}</div>
                         <div class="room-floor">Floor {{ $booking->room->floor }}</div>
-                        <div class="text-warning small mt-1">Current Room</div>
+                        <small style="color: #f59e0b;">Current</small>
                     </div>
-                    <p class="text-muted">No other rooms available for the selected dates.</p>
+                    <p class="text-muted mt-2">No other rooms available for these dates.</p>
                 `;
-                document.getElementById('selected_room_id').value = currentRoomId;
+                if (roomIdInput) {
+                    roomIdInput.value = currentRoomId;
+                }
             }
         })
         .catch(error => {
@@ -269,23 +746,231 @@ function checkAvailability() {
 }
 
 function selectRoom(roomId) {
-    // Remove previous selection
     document.querySelectorAll('.room-card').forEach(card => {
         card.classList.remove('selected');
     });
-    
-    // Select new room
+
     const card = document.querySelector(`.room-card[data-room-id="${roomId}"]`);
-    if (card && !card.classList.contains('unavailable')) {
+    if (card) {
         card.classList.add('selected');
         document.getElementById('selected_room_id').value = roomId;
+        
+        if (currentStep === 3) {
+            updateSummary();
+        }
     }
 }
 
-// Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    checkAvailability();
+    // Set up event listeners first
+    const checkinInput = document.getElementById('checkin_date');
+    const stayLengthInput = document.getElementById('custom_stay_length');
+    
+    if (checkinInput) {
+        checkinInput.addEventListener('change', calculateCheckoutDate);
+    }
+    
+    if (stayLengthInput) {
+        stayLengthInput.addEventListener('input', handleCustomStayLength);
+    }
+    
+    // Initialize duration buttons
+    initializeDurationButtons();
+    
+    // Calculate checkout date and set initial values
+    calculateCheckoutDate();
+    
+    // Highlight initial duration button
+    highlightInitialDuration();
+    
+    // Update summary
+    updateSummary();
+    
+    // Load rooms
+    loadRooms();
+    
+    // Form submission validation
+    const editForm = document.getElementById('editBookingForm');
+    if (editForm) {
+        editForm.addEventListener('submit', function(e) {
+            // Ensure checkout_date is calculated before submission
+            calculateCheckoutDate();
+            
+            const checkinDate = document.getElementById('checkin_date').value;
+            const stayLength = document.getElementById('stay_length').value;
+            const roomId = document.getElementById('selected_room_id').value;
+            const checkoutDate = document.getElementById('checkout_date').value;
+
+            console.log('Form submission validation:', {
+                checkinDate: checkinDate,
+                stayLength: stayLength,
+                roomId: roomId,
+                checkoutDate: checkoutDate,
+            });
+
+            if (!checkinDate) {
+                e.preventDefault();
+                alert('Please select a check-in date.');
+                currentStep = 1;
+                changeStep(0);
+                return false;
+            }
+
+            if (!stayLength || parseInt(stayLength, 10) < 1) {
+                e.preventDefault();
+                alert('Please set the stay length.');
+                currentStep = 1;
+                changeStep(0);
+                return false;
+            }
+
+            if (!roomId || roomId === '0' || roomId === '') {
+                e.preventDefault();
+                alert('Please select a room.');
+                currentStep = 1;
+                changeStep(0);
+                return false;
+            }
+
+            if (!checkoutDate) {
+                e.preventDefault();
+                alert('Check-out date is missing. Please check your dates.');
+                currentStep = 1;
+                changeStep(0);
+                return false;
+            }
+
+            if (new Date(checkoutDate) <= new Date(checkinDate)) {
+                e.preventDefault();
+                alert('Check-out date must be after check-in date.');
+                currentStep = 1;
+                changeStep(0);
+                return false;
+            }
+
+            console.log('All validations passed, form will submit');
+            return true;
+        });
+    }
 });
+
+function initializeDurationButtons() {
+    document.querySelectorAll('.duration-button').forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            const days = parseInt(button.dataset.days, 10);
+            setStayLength(days);
+            highlightDurationButton(button);
+        });
+    });
+}
+
+function highlightInitialDuration() {
+    const stayLength = parseInt(document.getElementById('stay_length').value || '0', 10);
+    const matching = Array.from(document.querySelectorAll('.duration-button')).find(btn => parseInt(btn.dataset.days, 10) === stayLength);
+    if (matching) {
+        highlightDurationButton(matching);
+    } else if (stayLength) {
+        document.getElementById('custom_stay_length').value = stayLength;
+    }
+}
+
+function highlightDurationButton(activeButton) {
+    document.querySelectorAll('.duration-button').forEach(btn => btn.classList.remove('active'));
+    if (activeButton) activeButton.classList.add('active');
+}
+
+function setStayLength(days) {
+    if (!days || days < 1) {
+        console.error('Invalid stay length:', days);
+        return;
+    }
+    
+    console.log('Setting stay length to:', days);
+    document.getElementById('stay_length').value = days;
+    document.getElementById('custom_stay_length').value = days;
+    calculateCheckoutDate();
+    
+    if (currentStep === 3) {
+        updateSummary();
+    }
+}
+
+function calculateCheckoutDate() {
+    const checkinValue = document.getElementById('checkin_date').value;
+    const stayLength = parseInt(document.getElementById('stay_length').value || '0', 10);
+    const checkoutDateInput = document.getElementById('checkout_date');
+    const checkoutDisplay = document.getElementById('checkout_display');
+
+    if (!checkinValue || stayLength <= 0) {
+        // If no checkin or stay length, try to use existing checkout date from booking
+        const existingCheckout = checkoutDateInput.value;
+        if (existingCheckout) {
+            try {
+                const checkoutDate = new Date(existingCheckout + 'T00:00:00');
+                if (!isNaN(checkoutDate.getTime())) {
+                    checkoutDisplay.value = checkoutDate.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    });
+                }
+            } catch (e) {
+                console.error('Error parsing existing checkout date:', e);
+                checkoutDisplay.value = '';
+            }
+        } else {
+            checkoutDisplay.value = '';
+        }
+        return;
+    }
+
+    try {
+        const checkinDate = new Date(checkinValue + 'T00:00:00'); // Add time to avoid timezone issues
+        if (isNaN(checkinDate.getTime())) {
+            console.error('Invalid check-in date:', checkinValue);
+            return;
+        }
+
+        const checkoutDate = new Date(checkinDate);
+        checkoutDate.setDate(checkoutDate.getDate() + stayLength);
+
+        // Format as YYYY-MM-DD for hidden input
+        const year = checkoutDate.getFullYear();
+        const month = String(checkoutDate.getMonth() + 1).padStart(2, '0');
+        const day = String(checkoutDate.getDate()).padStart(2, '0');
+        const isoDate = `${year}-${month}-${day}`;
+        
+        checkoutDateInput.value = isoDate;
+        checkoutDisplay.value = checkoutDate.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+
+        console.log('Checkout date calculated:', {
+            checkin: checkinValue,
+            stayLength: stayLength,
+            checkout: isoDate
+        });
+
+        // Only reload rooms if we have valid dates
+        if (checkinValue && stayLength > 0) {
+            loadRooms();
+        }
+    } catch (e) {
+        console.error('Error calculating checkout date:', e);
+    }
+}
+
+function handleCustomStayLength(event) {
+    const value = parseInt(event.target.value, 10);
+    if (!isNaN(value) && value > 0) {
+        setStayLength(value);
+        highlightDurationButton(null);
+    }
+}
+
+
 </script>
 @endsection
-

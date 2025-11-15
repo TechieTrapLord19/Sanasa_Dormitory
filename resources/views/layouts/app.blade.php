@@ -243,7 +243,7 @@
                     <li class="mb-1 {{ request()->routeIs('payments') ? 'active' : '' }}">
                         <a href="{{ route('payments') }}" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
                             <i class="bi bi-credit-card"></i>
-                            <span>Payments</span>
+                            <span>Operation Logs</span>
                         </a>
                     </li>
 

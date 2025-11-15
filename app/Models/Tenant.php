@@ -52,4 +52,15 @@ class Tenant extends Model
     {
         return $this->hasMany(Booking::class, 'tenant_id', 'tenant_id');
     }
+
+    /**
+     * Get the tenant's age
+     */
+    public function getAgeAttribute()
+    {
+        if (!$this->birth_date) {
+            return null;
+        }
+        return $this->birth_date->age;
+    }
 }

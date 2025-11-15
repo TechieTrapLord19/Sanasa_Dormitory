@@ -15,7 +15,7 @@ class RoomController extends Controller
     public function index()
     {   $tenants = Tenant::all();
         $rooms = Room::all();
-        $rooms = Room::with(['tenant', 'rate', 'activeBooking.tenant','activeBooking.tenant'])->get();
+        $rooms = Room::with(['tenant', 'rate', 'activeBooking.tenant','activeBooking.tenant', 'assets'])->get();
         $totalRooms = $rooms->count();
         $roomCounts = [
             'available' => Room::where('status', 'available')->count(),
@@ -63,7 +63,10 @@ public function store(Request $request)
      */
     public function show(string $id)
     {
-        //
+        $room = Room::with(['assets', 'activeBooking.tenant'])
+                    ->findOrFail($id);
+        
+        return view('contents.rooms-show', compact('room'));
     }
 
     /**
@@ -79,20 +82,18 @@ public function store(Request $request)
      */
     public function update(Request $request, string $id)
     {
-        // // 3. ADD THIS VALIDATION LOGIC (for updating)
-        // $validatedData = $request->validate([
-        //     'room_num' => 'required|string|unique:rooms,room_num,' . $room->room_id . ',room_id',
-        //     'floor' => 'required|string',
-        //     'capacity' => 'required|integer',
-        //     'status' => [
-        //         'required',
-        //         Rule::in(['available', 'occupied', 'maintenance']) // <-- This is the check
-        //     ]
-        // ]);
+        $room = Room::findOrFail($id);
 
-        // $room->update($validatedData);
+        $validatedData = $request->validate([
+            'status' => [
+                'required',
+                Rule::in(['available', 'occupied', 'maintenance'])
+            ]
+        ]);
 
-        // return redirect()->route('rooms.index')->with('success', 'Room updated!');
+        $room->update($validatedData);
+
+        return redirect()->back()->with('success', 'Room status updated successfully!');
     }
 
     /**

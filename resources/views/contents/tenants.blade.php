@@ -169,7 +169,7 @@
         gap: 0.5rem;
     }
 
-    .btn-edit, .btn-delete {
+    .btn-view, .btn-edit, .btn-archive, .btn-activate {
         padding: 0.5rem 1rem;
         border: none;
         border-radius: 6px;
@@ -177,6 +177,25 @@
         font-weight: 500;
         cursor: pointer;
         transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-view i, .btn-edit i, .btn-archive i, .btn-activate i,
+    .action-buttons button i, .action-buttons a i {
+        font-size: 1rem;
+    }
+
+    .btn-view {
+        background-color: #e0f2fe;
+        color: #0369a1;
+    }
+
+    .btn-view:hover {
+        background-color: #bae6fd;
+        color: #0369a1;
     }
 
     .btn-edit {
@@ -188,13 +207,22 @@
         background-color: #bae6fd;
     }
 
-    .btn-delete {
-        background-color: #fee2e2;
-        color: #dc2626;
+    .btn-archive {
+        background-color: #fef3c7;
+        color: #92400e;
     }
 
-    .btn-delete:hover {
-        background-color: #fecaca;
+    .btn-archive:hover {
+        background-color: #fde68a;
+    }
+
+    .btn-activate {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+
+    .btn-activate:hover {
+        background-color: #a7f3d0;
     }
 
     /* .contact-info-label {
@@ -203,6 +231,102 @@
         margin-bottom: 0.5rem;
         font-weight: 600;
     } */
+
+    /* Pagination Styles */
+    .pagination-wrapper {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.25rem;
+        background-color: #f8fafc;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .pagination-wrapper .form-select {
+        width: auto;
+        border-radius: 999px;
+        min-width: 70px;
+    }
+    .pagination-left {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .pagination-center {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .pagination-right {
+        display: flex;
+        align-items: center;
+    }
+    .pagination-wrapper .pagination {
+        margin: 0;
+        display: flex;
+        list-style: none;
+        gap: 0.25rem;
+    }
+    .pagination-wrapper .pagination .page-item {
+        margin: 0;
+    }
+    .pagination-wrapper .pagination .page-link {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        color: #475569;
+        text-decoration: none;
+        background-color: white;
+        font-size: 0.875rem;
+        min-width: 38px;
+        text-align: center;
+        display: inline-block;
+        transition: all 0.2s ease;
+    }
+    .pagination-wrapper .pagination .page-link:hover {
+        background-color: #f1f5f9;
+        border-color: #cbd5e1;
+        color: #03255b;
+    }
+    .pagination-wrapper .pagination .page-item.active .page-link {
+        background-color: #03255b;
+        border-color: #03255b;
+        color: white;
+        font-weight: 600;
+    }
+    .pagination-wrapper .pagination .page-item.disabled .page-link {
+        background-color: #f8fafc;
+        border-color: #e2e8f0;
+        color: #94a3b8;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+    .pagination-wrapper .pagination .page-link:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(3, 37, 91, 0.1);
+    }
+    .pagination-wrapper svg {
+        display: none !important;
+    }
+    .pagination-wrapper nav > div:first-child {
+        display: none !important;
+    }
+    .pagination-wrapper nav > div:last-child > div:first-child {
+        display: none !important;
+    }
+    .pagination-wrapper nav > div:last-child > div:last-child {
+        display: block !important;
+    }
+    .pagination-center .small {
+        font-size: 0.875rem;
+        color: #64748b;
+        margin: 0;
+    }
+    .pagination-center .fw-semibold {
+        font-weight: 600;
+        color: #0f172a;
+    }
 </style>
 
 <div class="tenants-header">
@@ -224,7 +348,19 @@
 
 <!-- Filters -->
 <div class="tenants-filters">
-        <div class="filter-group">
+    <div class="filter-group">
+        <p class="filter-label mb-0">Search Tenant:</p>
+        <form method="GET" action="{{ route('tenants') }}" class="d-flex gap-2 flex-grow-1">
+            <input type="text"
+                   class="filter-input"
+                   name="search"
+                   id="searchInput"
+                   placeholder="Search by name or contact..."
+                   value="{{ request('search') }}">
+            <input type="hidden" name="status" id="statusInput" value="{{ request('status', 'all') }}">
+        </form>
+    </div>
+    <div class="filter-group mt-3">
         <p class="filter-label mb-0">Filter by Status:</p>
         <button class="filter-btn {{ request('status', 'all') === 'all' ? 'active' : '' }}"
                 data-status="all"
@@ -242,19 +378,6 @@
             Inactive ({{ $statusCounts['inactive'] ?? 0 }})
         </button>
     </div>
-    <div class="filter-group mt-3">
-        <p class="filter-label mb-0">Search Tenant:</p>
-        <form method="GET" action="{{ route('tenants') }}" class="d-flex gap-2 flex-grow-1">
-            <input type="text"
-                   class="filter-input"
-                   name="search"
-                   id="searchInput"
-                   placeholder="Search by name or contact..."
-                   value="{{ request('search') }}">
-            <input type="hidden" name="status" id="statusInput" value="{{ request('status', 'all') }}">
-        </form>
-    </div>
-
 </div>
 
 <!-- Tenants Table -->
@@ -264,8 +387,9 @@
         <thead>
             <tr>
                 <th>Name</th>
-                <th>Contact Info</th>
+                <th>Contact Number</th>
                 <th>Emergency Contact</th>
+                <th>Age</th>
                 <th>Status</th>
                 <th>Actions</th>
             </tr>
@@ -277,10 +401,13 @@
                         <strong>{{ $tenant->full_name }}</strong>
                     </td>
                     <td>
-                        {{ $tenant->contact_info }}
+                        {{ $tenant->contact_num ?? 'N/A' }}
                     </td>
                     <td>
                         {{ $tenant->emer_contact_num ?? 'N/A' }}
+                    </td>
+                    <td>
+                        {{ $tenant->age ?? 'N/A' }}
                     </td>
                     <td>
                         <span class="status-badge {{ $tenant->status }}">
@@ -289,18 +416,65 @@
                     </td>
                     <td>
                         <div class="action-buttons">
-                            <button class="btn-edit" onclick="editTenant({{ $tenant->tenant_id }})">Edit</button>
-                            <button class="btn-delete" onclick="deleteTenant({{ $tenant->tenant_id }})">Delete</button>
+                            <a href="{{ route('tenants.show', $tenant->tenant_id) }}" class="btn-view">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                            @if($tenant->status === 'active')
+                                <form action="{{ route('tenants.archive', $tenant->tenant_id) }}" method="POST" style="display: inline;">
+                                    @csrf
+                                    <button type="submit" class="btn-archive" onclick="return confirm('Are you sure you want to archive this tenant?')">
+                                        <i class="bi bi-archive"></i> Archive
+                                    </button>
+                                </form>
+                            @else
+                                <form action="{{ route('tenants.activate', $tenant->tenant_id) }}" method="POST" style="display: inline;">
+                                    @csrf
+                                    <button type="submit" class="btn-activate">
+                                        <i class="bi bi-check-circle"></i> Activate
+                                    </button>
+                                </form>
+                            @endif
                         </div>
                     </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="5" class="text-center text-muted py-4">No tenants found</td>
+                    <td colspan="6" class="text-center text-muted py-4">No tenants found</td>
                 </tr>
             @endforelse
         </tbody>
     </table>
+
+    <div class="pagination-wrapper">
+        <div class="pagination-left">
+            <form method="GET" action="{{ route('tenants') }}" class="d-flex align-items-center gap-2">
+                <input type="hidden" name="search" value="{{ $searchTerm }}">
+                <input type="hidden" name="status" value="{{ $activeStatus }}">
+                <label for="perPage" class="text-muted small mb-0">Rows per page</label>
+                <select class="form-select form-select-sm" id="perPage" name="per_page" onchange="this.form.submit()">
+                    @foreach([10, 25, 50] as $option)
+                        <option value="{{ $option }}" {{ (int) $perPage === $option ? 'selected' : '' }}>
+                            {{ $option }}
+                        </option>
+                    @endforeach
+                </select>
+            </form>
+        </div>
+        <div class="pagination-center">
+            <p class="small text-muted mb-0">
+                Showing
+                <span class="fw-semibold">{{ $tenants->firstItem() ?? 0 }}</span>
+                to
+                <span class="fw-semibold">{{ $tenants->lastItem() ?? 0 }}</span>
+                of
+                <span class="fw-semibold">{{ $tenants->total() }}</span>
+                results
+            </p>
+        </div>
+        <div class="pagination-right">
+            {{ $tenants->appends(['status' => $activeStatus, 'search' => $searchTerm, 'per_page' => $perPage])->links() }}
+        </div>
+    </div>
 </div>
 
 <!-- Create Tenant Modal -->
