@@ -261,13 +261,15 @@
             <h1 class="room-title">Room Management</h1>
         </div>
 
-        <!-- Right: Create Button (aligned to the end) -->
+        <!-- Right: Create Button (aligned to the end) - Only for owners -->
+        @if(auth()->check() && strtolower(auth()->user()->role) === 'owner')
         <div class="col-md-4 d-flex justify-content-end">
             <button class="create-room-btn" data-bs-toggle="modal" data-bs-target="#createRoomModal">
                 <span class="create-room-btn-icon">+</span>
                 <span>Create New Room</span>
             </button>
         </div>
+        @endif
     </div>
 </div>
 

@@ -493,13 +493,9 @@
                                 <i class="bi bi-eye"></i> View Details
                             </a>
                             @if($booking->effective_status !== 'Canceled' && $booking->effective_status !== 'Completed')
-                                <form action="{{ route('bookings.destroy', $booking->booking_id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to cancel this booking?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn-cancel">
-                                        <i class="bi bi-x-circle"></i> Cancel Booking
-                                    </button>
-                                </form>
+                                <button type="button" class="btn-cancel" data-bs-toggle="modal" data-bs-target="#cancelBookingModal{{ $booking->booking_id }}">
+                                    <i class="bi bi-x-circle"></i> Cancel Booking
+                                </button>
                             @endif
                         </div>
                     </td>
@@ -543,4 +539,45 @@
         </div>
     </div>
 </div>
+
+<!-- Cancel Booking Modals -->
+@foreach($bookings as $booking)
+    @if($booking->effective_status !== 'Canceled' && $booking->effective_status !== 'Completed')
+    <div class="modal fade" id="cancelBookingModal{{ $booking->booking_id }}" tabindex="-1" aria-labelledby="cancelBookingModalLabel{{ $booking->booking_id }}" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cancelBookingModalLabel{{ $booking->booking_id }}">Cancel Booking</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('bookings.destroy', $booking->booking_id) }}" method="POST">
+                    @csrf
+                    @method('DELETE')
+                    <div class="modal-body">
+                        <div class="alert alert-warning">
+                            <strong>Warning:</strong> This action cannot be undone. The booking will be marked as canceled.
+                        </div>
+                        <div class="mb-3">
+                            <label for="cancellation_reason{{ $booking->booking_id }}" class="form-label">Cancellation Reason <span class="text-danger">*</span></label>
+                            <textarea class="form-control" 
+                                      id="cancellation_reason{{ $booking->booking_id }}" 
+                                      name="cancellation_reason" 
+                                      rows="4" 
+                                      placeholder="Enter the reason for cancelling this booking..." 
+                                      required></textarea>
+                            <small class="text-muted">Please provide a detailed reason for the cancellation.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-x-circle"></i> Cancel Booking
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
+@endforeach
 @endsection

@@ -242,8 +242,8 @@
                     </li>
                     <li class="mb-1 {{ request()->routeIs('payments') ? 'active' : '' }}">
                         <a href="{{ route('payments') }}" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
-                            <i class="bi bi-credit-card"></i>
-                            <span>Operation Logs</span>
+                            <i class="bi bi-clock-history"></i>
+                            <span>Activity Logs</span>
                         </a>
                     </li>
 
@@ -273,6 +273,7 @@
                     <hr class="my-2 border-white-10">
 
                     <!-- ADMIN -->
+                    @if(auth()->check() && strtolower(auth()->user()->role) === 'owner')
                     <li class="text-white-50 small px-3 mb-2">ADMIN</li>
                     <li class="mb-1 {{ request()->routeIs('user-management') ? 'active' : '' }}">
                         <a href="{{ route('user-management') }}" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
@@ -280,6 +281,7 @@
                             <span>User Management</span>
                         </a>
                     </li>
+                    @endif
                 </ul>
             </nav>
             @auth

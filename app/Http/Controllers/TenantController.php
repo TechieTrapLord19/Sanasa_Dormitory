@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Tenant;
+use App\Traits\LogsActivity;
 
 class TenantController extends Controller
 {
+    use LogsActivity;
     /**
      * Display a listing of the resource.
      */
@@ -85,6 +87,12 @@ class TenantController extends Controller
 
         $tenant = Tenant::create($validatedData);
 
+        $this->logActivity(
+            'Created Tenant',
+            "Created tenant {$tenant->full_name} (Email: {$tenant->email}, Status: {$tenant->status})",
+            $tenant
+        );
+
         if ($request->expectsJson()) {
             $tenant->refresh();
             $tenant->append('full_name');
@@ -143,7 +151,14 @@ class TenantController extends Controller
         ]);
 
         $tenant = Tenant::findOrFail($id);
+        $oldStatus = $tenant->status;
         $tenant->update($validatedData);
+
+        $description = "Updated tenant {$tenant->full_name}";
+        if ($oldStatus !== $tenant->status) {
+            $description .= " - Status changed from {$oldStatus} to {$tenant->status}";
+        }
+        $this->logActivity('Updated Tenant', $description, $tenant);
 
         return redirect()->route('tenants.show', $tenant->tenant_id)
                         ->with('success', 'Tenant updated successfully!')
@@ -158,6 +173,12 @@ class TenantController extends Controller
         $tenant = Tenant::findOrFail($id);
         $tenant->update(['status' => 'inactive']);
 
+        $this->logActivity(
+            'Archived Tenant',
+            "Archived tenant {$tenant->full_name}",
+            $tenant
+        );
+
         return redirect()->route('tenants')
                         ->with('success', 'Tenant archived successfully!');
     }
@@ -169,6 +190,12 @@ class TenantController extends Controller
     {
         $tenant = Tenant::findOrFail($id);
         $tenant->update(['status' => 'active']);
+
+        $this->logActivity(
+            'Activated Tenant',
+            "Activated tenant {$tenant->full_name}",
+            $tenant
+        );
 
         return redirect()->route('tenants')
                         ->with('success', 'Tenant activated successfully!');

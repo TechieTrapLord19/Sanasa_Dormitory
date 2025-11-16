@@ -212,13 +212,15 @@
             <h1 class="rates-title">Rates Management</h1>
         </div>
 
-        <!-- Right: Create Button -->
+        <!-- Right: Create Button - Only for owners -->
+        @if(auth()->check() && strtolower(auth()->user()->role) === 'owner')
         <div class="col-md-4 d-flex justify-content-end">
             <button class="create-rate-btn" data-bs-toggle="modal" data-bs-target="#createRateModal">
                 <i class="bi bi-plus-circle"></i>
                 <span>Create New Rate</span>
             </button>
         </div>
+        @endif
     </div>
 </div>
 
@@ -261,12 +263,14 @@
                     <td>{{ $rate->inclusion }}</td>
                     <td>
                         <div class="action-buttons">
+                            @if(auth()->check() && strtolower(auth()->user()->role) === 'owner')
                             <button class="btn-edit" onclick="editRate({{ $rate->rate_id }})">
                                 <i class="bi bi-pencil-square"></i> Edit
                             </button>
                             <button class="btn-delete" onclick="deleteRate({{ $rate->rate_id }})">
                                 <i class="bi bi-trash"></i> Delete
                             </button>
+                            @endif
                         </div>
                     </td>
                 </tr>
@@ -311,12 +315,14 @@
                         <td>{{ $rate->inclusion }}</td>
                         <td>
                             <div class="action-buttons">
+                                @if(auth()->check() && strtolower(auth()->user()->role) === 'owner')
                                 <button class="btn-edit" onclick="editRoomRate({{ $room->room_id }}, {{ $rate->rate_id }})">
                                     <i class="bi bi-pencil-square"></i> Edit
                                 </button>
                                 <button class="btn-delete" onclick="deleteRoomRate({{ $room->room_id }}, {{ $rate->rate_id }})">
                                     <i class="bi bi-trash"></i> Delete
                                 </button>
+                                @endif
                             </div>
                         </td>
                     </tr>

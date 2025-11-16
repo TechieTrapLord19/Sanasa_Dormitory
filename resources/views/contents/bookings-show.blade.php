@@ -578,7 +578,217 @@
             <div class="charge-note">{{ $chargeSummary['note'] }}</div>
         @endif
     </div>
+
+    <!-- Cancellation Reason (if cancelled) -->
+    @if($booking->status === 'Canceled' && $booking->cancellation_reason)
+    <div class="info-section">
+        <h2 class="info-section-title">Cancellation Information</h2>
+        <div class="info-item">
+            <span class="info-label">Cancellation Reason</span>
+            <span class="info-value">{{ $booking->cancellation_reason }}</span>
+        </div>
+    </div>
+    @endif
+
+    <!-- Refund Section (if cancelled and can be refunded) -->
+    @php
+        $refundablePayments = collect();
+        $totalRefundable = 0;
+        if ($booking->canBeRefunded() && $allPayments->where('amount', '>', 0)->isNotEmpty()) {
+            $refundablePayments = $allPayments->filter(function($payment) {
+                return $payment->canBeRefunded() && $payment->amount > 0;
+            });
+            $totalRefundable = $refundablePayments->sum('remaining_refundable_amount');
+        }
+    @endphp
+    
+    @if($booking->canBeRefunded() && $refundablePayments->isNotEmpty())
+    <div class="info-section">
+        <h2 class="info-section-title">Refunds</h2>
+
+        @if($refundablePayments->isNotEmpty())
+        <div class="alert alert-info mb-3">
+            <strong>Total Refundable Amount: ₱{{ number_format($totalRefundable, 2) }}</strong>
+            <p class="mb-0 mt-2">This booking has payments that can be refunded. Select a payment below to process a refund.</p>
+        </div>
+
+        <div class="table-responsive mb-3">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Payment Type</th>
+                        <th>Amount Paid</th>
+                        <th>Amount Refunded</th>
+                        <th>Remaining Refundable</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($refundablePayments as $payment)
+                    <tr>
+                        <td>{{ $payment->payment_type }}</td>
+                        <td>₱{{ number_format($payment->amount, 2) }}</td>
+                        <td>₱{{ number_format($payment->total_refunded, 2) }}</td>
+                        <td><strong>₱{{ number_format($payment->remaining_refundable_amount, 2) }}</strong></td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#refundModal{{ $payment->payment_id }}">
+                                <i class="bi bi-arrow-counterclockwise"></i> Process Refund
+                            </button>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        @endif
+
+        @if($booking->refunds->isNotEmpty())
+        <div class="mt-4">
+            <h3 class="info-section-title" style="font-size: 1rem;">Refund History</h3>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Payment Type</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Reference</th>
+                            <th>Status</th>
+                            <th>Processed By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($booking->refunds as $refund)
+                        <tr>
+                            <td>{{ $refund->refund_date->format('M d, Y') }}</td>
+                            <td>{{ $refund->payment->payment_type }}</td>
+                            <td>₱{{ number_format($refund->refund_amount, 2) }}</td>
+                            <td>{{ $refund->refund_method }}</td>
+                            <td>{{ $refund->reference_number ?? 'N/A' }}</td>
+                            <td>
+                                <span class="badge bg-{{ $refund->status === 'Completed' ? 'success' : ($refund->status === 'Processed' ? 'warning' : 'secondary') }}">
+                                    {{ $refund->status }}
+                                </span>
+                            </td>
+                            <td>{{ $refund->refundedBy->full_name ?? 'N/A' }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        @endif
+    </div>
+    @endif
 </div>
+
+<!-- Refund Modals -->
+@if($booking->canBeRefunded() && $refundablePayments->isNotEmpty())
+    @foreach($refundablePayments as $payment)
+    <div class="modal fade" id="refundModal{{ $payment->payment_id }}" tabindex="-1" aria-labelledby="refundModalLabel{{ $payment->payment_id }}" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="refundModalLabel{{ $payment->payment_id }}">Process Refund</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('bookings.refund', $booking->booking_id) }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="payment_id" value="{{ $payment->payment_id }}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Payment Type</label>
+                            <input type="text" class="form-control" value="{{ $payment->payment_type }}" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Original Amount</label>
+                            <input type="text" class="form-control" value="₱{{ number_format($payment->amount, 2) }}" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Already Refunded</label>
+                            <input type="text" class="form-control" value="₱{{ number_format($payment->total_refunded, 2) }}" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="refund_amount{{ $payment->payment_id }}" class="form-label">Refund Amount <span class="text-danger">*</span></label>
+                            <input type="number" 
+                                   class="form-control" 
+                                   id="refund_amount{{ $payment->payment_id }}" 
+                                   name="refund_amount" 
+                                   step="0.01"
+                                   min="0.01"
+                                   max="{{ $payment->remaining_refundable_amount }}"
+                                   value="{{ $payment->remaining_refundable_amount }}"
+                                   required>
+                            <small class="text-muted">Maximum refundable: ₱{{ number_format($payment->remaining_refundable_amount, 2) }}</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="refund_method{{ $payment->payment_id }}" class="form-label">Refund Method <span class="text-danger">*</span></label>
+                            <select class="form-select" id="refund_method{{ $payment->payment_id }}" name="refund_method" required>
+                                <option value="">Select method...</option>
+                                <option value="Cash">Cash</option>
+                                <option value="GCash">GCash</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="reference_number_container{{ $payment->payment_id }}" style="display: none;">
+                            <label for="reference_number{{ $payment->payment_id }}" class="form-label">Reference Number <span class="text-danger">*</span></label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="reference_number{{ $payment->payment_id }}" 
+                                   name="reference_number" 
+                                   placeholder="Enter GCash reference number">
+                            <small class="text-muted">Required for GCash refunds</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="refund_date{{ $payment->payment_id }}" class="form-label">Refund Date <span class="text-danger">*</span></label>
+                            <input type="date" 
+                                   class="form-control" 
+                                   id="refund_date{{ $payment->payment_id }}" 
+                                   name="refund_date" 
+                                   value="{{ now()->toDateString() }}"
+                                   required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="cancellation_reason_refund{{ $payment->payment_id }}" class="form-label">Cancellation Reason <span class="text-danger">*</span></label>
+                            <textarea class="form-control" 
+                                      id="cancellation_reason_refund{{ $payment->payment_id }}" 
+                                      name="cancellation_reason" 
+                                      rows="3" 
+                                      required>{{ $booking->cancellation_reason ?? '' }}</textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-arrow-counterclockwise"></i> Process Refund
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const refundMethodSelect = document.getElementById('refund_method{{ $payment->payment_id }}');
+            const referenceContainer = document.getElementById('reference_number_container{{ $payment->payment_id }}');
+            const referenceInput = document.getElementById('reference_number{{ $payment->payment_id }}');
+            
+            if (refundMethodSelect) {
+                refundMethodSelect.addEventListener('change', function() {
+                    if (this.value === 'GCash') {
+                        referenceContainer.style.display = 'block';
+                        referenceInput.setAttribute('required', 'required');
+                    } else {
+                        referenceContainer.style.display = 'none';
+                        referenceInput.removeAttribute('required');
+                        referenceInput.value = '';
+                    }
+                });
+            }
+        });
+    </script>
+    @endforeach
+@endif
 
 <!-- Renewal Invoice Modal -->
 @if($booking->effective_status === 'Active')

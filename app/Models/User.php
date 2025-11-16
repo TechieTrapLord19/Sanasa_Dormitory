@@ -22,6 +22,8 @@ class User extends Authenticatable
         'middle_name',
         'last_name',
         'email',
+        'birth_date',
+        'address',
         'role',
         'password',
     ];
@@ -52,7 +54,31 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'birth_date' => 'date',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Get the user's full name
+     */
+    public function getFullNameAttribute()
+    {
+        $name = $this->last_name . ', ' . $this->first_name;
+        if ($this->middle_name) {
+            $name .= ' ' . $this->middle_name;
+        }
+        return $name;
+    }
+
+    /**
+     * Get the user's age
+     */
+    public function getAgeAttribute()
+    {
+        if (!$this->birth_date) {
+            return null;
+        }
+        return $this->birth_date->age;
     }
 }

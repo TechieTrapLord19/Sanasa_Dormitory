@@ -11,6 +11,9 @@ use App\Http\Controllers\BookingController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\AssetController;
+use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\RefundController;
 
 //default page to login
 Route::get('/', [IndexController::class, 'index'])->name('home');
@@ -39,6 +42,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/bookings/{id}/checkout', [BookingController::class, 'checkout'])->name('bookings.checkout');
     Route::post('/bookings/{id}/renew', [BookingController::class, 'generateRenewalInvoice'])->name('bookings.renew');
     Route::post('/bookings/{id}/electricity', [BookingController::class, 'generateElectricityInvoice'])->name('bookings.electricity');
+    Route::post('/bookings/{id}/refund', [RefundController::class, 'store'])->name('bookings.refund');
     Route::get('/api/bookings/check-availability', [BookingController::class, 'checkAvailability'])->name('bookings.check-availability');
 
     Route::get('/tenants', [TenantController::class, 'index'])->name('tenants');
@@ -50,7 +54,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/tenants/{id}/activate', [TenantController::class, 'activate'])->name('tenants.activate');
     Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices');
     Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
-    Route::view('/payments', 'contents.payments')->name('payments');
+    Route::get('/payments', [ActivityLogController::class, 'index'])->name('payments');
     Route::resource('rooms', RoomController::class);
     Route::resource('rates', RateController::class);
     Route::post('/assets', [AssetController::class, 'store'])->name('assets.store');
@@ -58,6 +62,9 @@ Route::middleware('auth')->group(function () {
     Route::view('/electric-readings', 'contents.electric-readings')->name('electric-readings');
     Route::view('/maintenance-logs', 'contents.maintenance-logs')->name('maintenance-logs');
     Route::view('/asset-inventory', 'contents.asset-inventory')->name('asset-inventory');
-    Route::view('/user-management', 'contents.user-management')->name('user-management');
+    Route::get('/user-management', [UserController::class, 'index'])->name('user-management');
+    Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::put('/users/{id}', [UserController::class, 'update'])->name('users.update');
+    Route::delete('/users/{id}', [UserController::class, 'destroy'])->name('users.destroy');
 
 });

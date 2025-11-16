@@ -13,9 +13,11 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Models\Payment;
+use App\Traits\LogsActivity;
 
 class BookingController extends Controller
 {
+    use LogsActivity;
     public const MONTHLY_SECURITY_DEPOSIT = 5000.00;
 
     /**
@@ -243,6 +245,15 @@ public function store(Request $request)
 
         DB::commit();
 
+        $booking->load('tenant', 'room');
+        $tenant = $booking->tenant;
+        $room = $booking->room;
+        $this->logActivity(
+            'Created Booking',
+            "Created booking #{$booking->booking_id} for tenant {$tenant->full_name} in room {$room->room_num} (Check-in: {$booking->checkin_date}, Check-out: {$booking->checkout_date})",
+            $booking
+        );
+
         return redirect()->route('invoices')
                         ->with('success', 'Booking created successfully! Invoices have been generated. Record payments to enable check-in.');
     } catch (\Exception $e) {
@@ -256,13 +267,18 @@ public function store(Request $request)
      */
     public function show(string $id)
     {
-        $booking = Booking::with(['tenant', 'room', 'rate', 'recordedBy', 'invoices.payments'])
+        $booking = Booking::with(['tenant', 'room', 'rate', 'recordedBy', 'invoices.payments', 'refunds.payment', 'refunds.refundedBy'])
                           ->findOrFail($id);
 
         $stayLengthDays = max(1, $booking->checkin_date->diffInDays($booking->checkout_date));
         $chargeSummary = $this->buildChargeSummary($booking->rate, $stayLengthDays);
 
-        return view('contents.bookings-show', compact('booking', 'chargeSummary', 'stayLengthDays'));
+        // Get all payments for this booking (directly from payments table)
+        $allPayments = Payment::where('booking_id', $booking->booking_id)
+            ->with('refunds')
+            ->get();
+
+        return view('contents.bookings-show', compact('booking', 'chargeSummary', 'stayLengthDays', 'allPayments'));
     }
 
     /**
@@ -425,6 +441,19 @@ public function store(Request $request)
 
             DB::commit();
 
+            $tenant = $booking->tenant;
+            $room = $booking->room;
+            $description = "Updated booking #{$booking->booking_id} for tenant {$tenant->full_name}";
+            if ($roomChanged) {
+                $oldRoom = Room::find($originalRoomId);
+                $newRoom = Room::find($validatedData['room_id']);
+                $description .= " - Room changed from {$oldRoom->room_num} to {$newRoom->room_num}";
+            }
+            if ($extensionDays > 0 && $booking->status === 'Active') {
+                $description .= " - Extended by {$extensionDays} days";
+            }
+            $this->logActivity('Updated Booking', $description, $booking);
+
             $successMessage = 'Booking updated successfully!';
             if ($roomChanged) {
                 $successMessage .= ' Room changed from ' . Room::find($originalRoomId)->room_num . ' to ' . Room::find($validatedData['room_id'])->room_num . '.';
@@ -444,22 +473,35 @@ public function store(Request $request)
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
+        $request->validate([
+            'cancellation_reason' => 'required|string|max:1000',
+        ]);
+
         $booking = Booking::findOrFail($id);
 
         DB::beginTransaction();
         try {
-            // Update booking status
-            $booking->update(['status' => 'Canceled']);
+            // Update booking status and cancellation reason
+            $booking->update([
+                'status' => 'Canceled',
+                'cancellation_reason' => $request->cancellation_reason,
+            ]);
 
             // Update room status back to available
             $room = $booking->room;
             $room->update(['status' => 'available']);
 
-            // Note: Deposit refund logic would go here if needed
-
             DB::commit();
+
+            $tenant = $booking->tenant;
+            $room = $booking->room;
+            $this->logActivity(
+                'Canceled Booking',
+                "Canceled booking #{$booking->booking_id} for tenant {$tenant->full_name} in room {$room->room_num}. Reason: {$request->cancellation_reason}",
+                $booking
+            );
 
             return redirect()->route('bookings.index')
                             ->with('success', 'Booking canceled successfully!');
@@ -526,6 +568,14 @@ public function checkin(string $id)
 
         DB::commit();
 
+        $tenant = $booking->tenant;
+        $room = $booking->room;
+        $this->logActivity(
+            'Checked In Tenant',
+            "Checked in tenant {$tenant->full_name} for booking #{$booking->booking_id} in room {$room->room_num}",
+            $booking
+        );
+
         return redirect()->route('bookings.show', $booking->booking_id)
                         ->with('success', 'Tenant checked in successfully!');
     } catch (\Exception $e) {
@@ -590,6 +640,14 @@ public function checkin(string $id)
             ]);
 
             DB::commit();
+
+            $tenant = $booking->tenant;
+            $room = $booking->room;
+            $this->logActivity(
+                'Generated Electricity Invoice',
+                "Generated electricity invoice for booking #{$booking->booking_id} (Tenant: {$tenant->full_name}, Room: {$room->room_num}, Amount: ₱" . number_format($electricityFee, 2) . ")",
+                $booking
+            );
 
             return redirect()->route('bookings.show', $booking->booking_id)
                 ->with('success', 'Electricity invoice generated successfully! Amount: ₱' . number_format($electricityFee, 2));
@@ -683,6 +741,15 @@ public function checkin(string $id)
 
             DB::commit();
 
+            $tenant = $booking->tenant;
+            $room = $booking->room;
+            $description = "Generated renewal invoice for booking #{$booking->booking_id} (Tenant: {$tenant->full_name}, Room: {$room->room_num}, Extended by {$actualExtensionDays} days";
+            if ($daysPastDue > 0) {
+                $description .= ", {$daysPastDue} days past due deducted";
+            }
+            $description .= ", Amount: ₱" . number_format($totalDue, 2) . ")";
+            $this->logActivity('Generated Renewal Invoice', $description, $booking);
+
             $successMessage = 'Renewal invoice generated successfully! Booking extended by ' . $actualExtensionDays . ' days.';
             if ($daysPastDue > 0) {
                 $successMessage .= ' (' . $daysPastDue . ' days past due were deducted from the extension period.)';
@@ -719,6 +786,14 @@ public function checkin(string $id)
             $booking->room->update(['status' => 'maintenance']); // Using 'maintenance' as closest to 'Cleaning'
 
             DB::commit();
+
+            $tenant = $booking->tenant;
+            $room = $booking->room;
+            $this->logActivity(
+                'Checked Out Tenant',
+                "Checked out tenant {$tenant->full_name} from booking #{$booking->booking_id} in room {$room->room_num}",
+                $booking
+            );
 
             return redirect()->route('bookings.show', $booking->booking_id)
                             ->with('success', 'Tenant checked out successfully!');

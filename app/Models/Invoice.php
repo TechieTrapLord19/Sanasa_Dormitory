@@ -62,4 +62,37 @@ class Invoice extends Model
     {
         return max(0, $this->total_due - $this->total_paid);
     }
+
+    /**
+     * Get all refunds for this invoice
+     */
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class, 'invoice_id', 'invoice_id');
+    }
+
+    /**
+     * Get the total amount refunded for this invoice
+     */
+    public function getTotalRefundedAttribute()
+    {
+        return $this->refunds()->sum('refund_amount');
+    }
+
+    /**
+     * Check if invoice can be refunded
+     * An invoice can be refunded if:
+     * - Booking is cancelled
+     * - Booking hasn't been checked in
+     * - Invoice has payments
+     */
+    public function canBeRefunded(): bool
+    {
+        $booking = $this->booking;
+        if (!$booking) {
+            return false;
+        }
+
+        return $booking->canBeRefunded() && $this->payments()->exists();
+    }
 }

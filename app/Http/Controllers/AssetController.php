@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Asset;
 use Illuminate\Validation\Rule;
+use App\Traits\LogsActivity;
 
 class AssetController extends Controller
 {
+    use LogsActivity;
     /**
      * Display a listing of the resource.
      */
@@ -39,7 +41,14 @@ class AssetController extends Controller
             'date_acquired' => 'nullable|date',
         ]);
 
-        Asset::create($validatedData);
+        $asset = Asset::create($validatedData);
+        $room = $asset->room;
+
+        $this->logActivity(
+            'Created Asset',
+            "Added asset '{$asset->name}' to room {$room->room_num} (Condition: {$asset->condition})",
+            $asset
+        );
 
         return redirect()->back()->with('success', 'Asset added successfully!');
     }
@@ -77,7 +86,15 @@ class AssetController extends Controller
             'date_acquired' => 'nullable|date',
         ]);
 
+        $oldCondition = $asset->condition;
         $asset->update($validatedData);
+        $room = $asset->room;
+
+        $description = "Updated asset '{$asset->name}' in room {$room->room_num}";
+        if (isset($validatedData['condition']) && $oldCondition !== $asset->condition) {
+            $description .= " - Condition changed from {$oldCondition} to {$asset->condition}";
+        }
+        $this->logActivity('Updated Asset', $description, $asset);
 
         return redirect()->back()->with('success', 'Asset updated successfully!');
     }

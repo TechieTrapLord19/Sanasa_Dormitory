@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Rate;
 use App\Models\Room;
+use App\Traits\LogsActivity;
+use App\Traits\ChecksRole;
 
 class RateController extends Controller
 {
+    use LogsActivity, ChecksRole;
     /**
      * Display a listing of the resource.
      */
@@ -34,13 +37,22 @@ class RateController extends Controller
      */
     public function store(Request $request)
     {
+        // Only owners can create rates
+        $this->requireOwner();
+
         $validatedData = $request->validate([
             'duration_type' => 'required|string|in:Daily,Weekly,Monthly',
             'base_price' => 'required|numeric|min:0',
             'inclusion' => 'required|string',
         ]);
 
-        Rate::create($validatedData);
+        $rate = Rate::create($validatedData);
+
+        $this->logActivity(
+            'Created Rate',
+            "Created {$rate->duration_type} rate - Base Price: ₱" . number_format($rate->base_price, 2) . " (Inclusion: {$rate->inclusion})",
+            $rate
+        );
 
         return redirect()->route('rates.index')->with('success', 'Rate created successfully!');
     }
@@ -66,6 +78,8 @@ class RateController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        // Only owners can update rates
+        $this->requireOwner();
         //
     }
 
@@ -74,6 +88,8 @@ class RateController extends Controller
      */
     public function destroy(string $id)
     {
+        // Only owners can delete rates
+        $this->requireOwner();
         //
     }
 }

@@ -10,9 +10,11 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use App\Traits\LogsActivity;
 
 class PaymentController extends Controller
 {
+    use LogsActivity;
     /**
      * Display a listing of the resource.
      */
@@ -68,7 +70,7 @@ class PaymentController extends Controller
 
         // Use database transaction to ensure data consistency
         DB::beginTransaction();
-
+        try {
             // Create and save the payment
             $payment = Payment::create([
                 'booking_id' => $validated['booking_id'],
@@ -80,9 +82,9 @@ class PaymentController extends Controller
                 'reference_number' => $validated['reference_number'] ?? null,
                 'date_received' => $validated['date_received'],
             ]);
-        try {
+
             // Get the booking
-            $booking = Booking::findOrFail($validated['booking_id']);
+            $booking = Booking::with('tenant', 'room')->findOrFail($validated['booking_id']);
             $invoice = null;
             $invoicePaid = false;
 
@@ -115,6 +117,13 @@ class PaymentController extends Controller
             // Partial payments are allowed for check-in (handled in check-in process)
 
             DB::commit();
+
+            $description = "Recorded payment of ₱" . number_format($validated['amount'], 2) . " for booking #{$booking->booking_id}";
+            $description .= " (Tenant: {$booking->tenant->full_name}, Room: {$booking->room->room_num}, Method: {$validated['payment_method']})";
+            if ($invoicePaid) {
+                $description .= " - Invoice marked as paid";
+            }
+            $this->logActivity('Recorded Payment', $description, $payment);
 
             // Determine success message based on what was updated
             $successMessage = 'Payment recorded successfully.';

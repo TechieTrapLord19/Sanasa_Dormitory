@@ -24,7 +24,9 @@ class UserSeeder extends Seeder
             'first_name' => 'Admin',
             'last_name' => 'Owner',
             'email' => 'owner@app.com',
-            'role' => 'Owner',
+            'birth_date' => '1980-01-15',
+            'address' => '123 Admin Street, Metro Manila',
+            'role' => 'owner',
             'password' => Hash::make('password')
         ]);
 
@@ -33,7 +35,9 @@ class UserSeeder extends Seeder
             'first_name' => 'Caretaker',
             'last_name' => 'One',
             'email' => 'caretaker1@app.com',
-            'role' => 'Caretaker',
+            'birth_date' => '1990-05-20',
+            'address' => '456 Caretaker Avenue, Quezon City',
+            'role' => 'caretaker',
             'password' => Hash::make('password')
         ]);
 
@@ -43,7 +47,9 @@ class UserSeeder extends Seeder
             'first_name' => 'Dev',
             'last_name' => 'Account',
             'email' => 'dev@app.com',
-            'role' => 'Owner',
+            'birth_date' => '1995-03-10',
+            'address' => '789 Developer Road, Makati City',
+            'role' => 'owner',
             'password' => Hash::make('password')
         ]);
     }

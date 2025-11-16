@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Payment extends Model
 {
@@ -47,5 +48,37 @@ class Payment extends Model
     public function collectedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'collected_by_user_id', 'user_id');
+    }
+
+    /**
+     * Get all refunds for this payment
+     */
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class, 'payment_id', 'payment_id');
+    }
+
+    /**
+     * Get the total amount refunded for this payment
+     */
+    public function getTotalRefundedAttribute()
+    {
+        return $this->refunds()->sum('refund_amount');
+    }
+
+    /**
+     * Check if payment can be refunded (not fully refunded yet)
+     */
+    public function canBeRefunded(): bool
+    {
+        return $this->total_refunded < $this->amount;
+    }
+
+    /**
+     * Get the remaining refundable amount
+     */
+    public function getRemainingRefundableAmountAttribute()
+    {
+        return max(0, $this->amount - $this->total_refunded);
     }
 }

@@ -19,6 +19,7 @@ class Booking extends Model
         'checkout_date',
         'total_calculated_fee',
         'status',
+        'cancellation_reason',
     ];
 
     protected $casts = [
@@ -65,6 +66,30 @@ class Booking extends Model
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class, 'booking_id', 'booking_id');
+    }
+
+    /**
+     * Get all refunds for this booking
+     */
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class, 'booking_id', 'booking_id');
+    }
+
+    /**
+     * Check if booking can be refunded (cancelled and not checked in)
+     */
+    public function canBeRefunded(): bool
+    {
+        return $this->status === 'Canceled' && !$this->isCheckedIn();
+    }
+
+    /**
+     * Check if booking has been checked in
+     */
+    public function isCheckedIn(): bool
+    {
+        return $this->status === 'Active' && $this->checkin_date !== null;
     }
 
     /**

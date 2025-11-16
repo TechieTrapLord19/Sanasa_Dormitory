@@ -6,9 +6,12 @@ use Illuminate\Http\Request;
 use App\Models\Room;
 use Illuminate\Validation\Rule;
 use App\Models\Tenant;
+use App\Traits\LogsActivity;
+use App\Traits\ChecksRole;
 
 class RoomController extends Controller
 {
+    use LogsActivity, ChecksRole;
     /**
      * Display a listing of the resource.
      */
@@ -38,8 +41,11 @@ class RoomController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-public function store(Request $request)
+    public function store(Request $request)
     {
+        // Only owners can create rooms
+        $this->requireOwner();
+
         // 2. ADD THIS VALIDATION LOGIC
         $validatedData = $request->validate([
             'room_num' => 'required|string|unique:rooms',
@@ -53,7 +59,13 @@ public function store(Request $request)
 
         ]);
 
-        Room::create($validatedData);
+        $room = Room::create($validatedData);
+
+        $this->logActivity(
+            'Created Room',
+            "Created room {$room->room_num} on floor {$room->floor} (Capacity: {$room->capacity}, Status: {$room->status})",
+            $room
+        );
 
         return redirect()->route('rooms.index')->with('success', 'Room created!');
     }
@@ -83,6 +95,7 @@ public function store(Request $request)
     public function update(Request $request, string $id)
     {
         $room = Room::findOrFail($id);
+        $oldStatus = $room->status;
 
         $validatedData = $request->validate([
             'status' => [
@@ -92,6 +105,12 @@ public function store(Request $request)
         ]);
 
         $room->update($validatedData);
+
+        $this->logActivity(
+            'Updated Room',
+            "Updated room {$room->room_num} - Status changed from {$oldStatus} to {$room->status}",
+            $room
+        );
 
         return redirect()->back()->with('success', 'Room status updated successfully!');
     }
