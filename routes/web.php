@@ -14,6 +14,8 @@ use App\Http\Controllers\AssetController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\RefundController;
+use App\Http\Controllers\ElectricReadingController;
+use App\Http\Controllers\MaintenanceLogController;
 
 //default page to login
 Route::get('/', [IndexController::class, 'index'])->name('home');
@@ -54,14 +56,18 @@ Route::middleware('auth')->group(function () {
     Route::post('/tenants/{id}/activate', [TenantController::class, 'activate'])->name('tenants.activate');
     Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices');
     Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
-    Route::get('/payments', [ActivityLogController::class, 'index'])->name('payments');
+    Route::get('/payments/{id}/receipt', [PaymentController::class, 'showReceipt'])->name('payments.receipt');
+    Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs');
     Route::resource('rooms', RoomController::class);
     Route::resource('rates', RateController::class);
     Route::post('/assets', [AssetController::class, 'store'])->name('assets.store');
     Route::put('/assets/{id}', [AssetController::class, 'update'])->name('assets.update');
-    Route::view('/electric-readings', 'contents.electric-readings')->name('electric-readings');
-    Route::view('/maintenance-logs', 'contents.maintenance-logs')->name('maintenance-logs');
-    Route::view('/asset-inventory', 'contents.asset-inventory')->name('asset-inventory');
+    Route::get('/electric-readings', [ElectricReadingController::class, 'index'])->name('electric-readings');
+    Route::post('/electric-readings', [ElectricReadingController::class, 'store'])->name('electric-readings.store');
+    Route::get('/maintenance-logs', [MaintenanceLogController::class, 'index'])->name('maintenance-logs');
+    Route::post('/maintenance-logs', [MaintenanceLogController::class, 'store'])->name('maintenance-logs.store');
+    Route::put('/maintenance-logs/{id}', [MaintenanceLogController::class, 'update'])->name('maintenance-logs.update');
+    Route::get('/asset-inventory', [AssetController::class, 'index'])->name('asset-inventory');
     Route::get('/user-management', [UserController::class, 'index'])->name('user-management');
     Route::post('/users', [UserController::class, 'store'])->name('users.store');
     Route::put('/users/{id}', [UserController::class, 'update'])->name('users.update');

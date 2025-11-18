@@ -27,4 +27,15 @@ class Asset extends Model
     {
         return $this->belongsTo(Room::class, 'room_id', 'room_id');
     }
+
+    /**
+     * Get the location display string
+     */
+    public function getLocationAttribute(): string
+    {
+        if ($this->room_id && $this->room) {
+            return "Room {$this->room->room_num}";
+        }
+        return "Storage";
+    }
 }

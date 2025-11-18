@@ -56,9 +56,7 @@ class RefundController extends Controller
 
             // Create refund record
             $refund = Refund::create([
-                'booking_id' => $booking->booking_id,
                 'payment_id' => $payment->payment_id,
-                'invoice_id' => $invoice ? $invoice->invoice_id : null,
                 'refunded_by_user_id' => Auth::id(),
                 'refund_amount' => $request->refund_amount,
                 'refund_method' => $request->refund_method,

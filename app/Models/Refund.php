@@ -10,9 +10,7 @@ class Refund extends Model
     protected $primaryKey = 'refund_id';
 
     protected $fillable = [
-        'booking_id',
         'payment_id',
-        'invoice_id',
         'refunded_by_user_id',
         'refund_amount',
         'refund_method',
@@ -28,11 +26,15 @@ class Refund extends Model
     ];
 
     /**
-     * Get the booking this refund belongs to
+     * Get the booking this refund belongs to (through payment)
+     * Uses accessor since hasOneThrough doesn't work in reverse direction
      */
-    public function booking(): BelongsTo
+    public function getBookingAttribute()
     {
-        return $this->belongsTo(Booking::class, 'booking_id', 'booking_id');
+        if (!$this->relationLoaded('payment')) {
+            $this->load('payment');
+        }
+        return $this->payment->booking ?? null;
     }
 
     /**
@@ -44,11 +46,15 @@ class Refund extends Model
     }
 
     /**
-     * Get the invoice this refund is for
+     * Get the invoice this refund is for (through payment)
+     * Uses accessor since hasOneThrough doesn't work in reverse direction
      */
-    public function invoice(): BelongsTo
+    public function getInvoiceAttribute()
     {
-        return $this->belongsTo(Invoice::class, 'invoice_id', 'invoice_id');
+        if (!$this->relationLoaded('payment')) {
+            $this->load('payment');
+        }
+        return $this->payment->invoice ?? null;
     }
 
     /**

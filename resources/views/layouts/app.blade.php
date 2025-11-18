@@ -240,17 +240,17 @@
                             <span>Invoices</span>
                         </a>
                     </li>
-                    <li class="mb-1 {{ request()->routeIs('payments') ? 'active' : '' }}">
-                        <a href="{{ route('payments') }}" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
-                            <i class="bi bi-clock-history"></i>
-                            <span>Activity Logs</span>
-                        </a>
-                    </li>
 
                     <hr class="my-2 border-white-10">
 
                     <!-- UTILITIES -->
                     <li class="text-white-50 small px-3 mb-2">UTILITIES</li>
+                    <li class="mb-1 {{ request()->routeIs('activity-logs') ? 'active' : '' }}">
+                        <a href="{{ route('activity-logs') }}" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
+                            <i class="bi bi-clock-history"></i>
+                            <span>Activity Logs</span>
+                        </a>
+                    </li>
                     <li class="mb-1 {{ request()->routeIs('electric-readings') ? 'active' : '' }}">
                         <a href="{{ route('electric-readings') }}" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
                             <i class="bi bi-lightning-charge"></i>

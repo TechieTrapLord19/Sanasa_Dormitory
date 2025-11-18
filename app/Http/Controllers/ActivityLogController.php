@@ -23,9 +23,9 @@ class ActivityLogController extends Controller
         if ($this->isCaretaker()) {
             $query->where('user_id', Auth::id());
         } else {
-            // Owners can filter by caretaker
-            if ($request->filled('caretaker')) {
-                $query->where('user_id', $request->caretaker);
+            // Owners, admins, and developers can filter by any user
+            if ($request->filled('user_id')) {
+                $query->where('user_id', $request->user_id);
             }
         }
 
@@ -56,17 +56,16 @@ class ActivityLogController extends Controller
             ->orderBy('action')
             ->pluck('action');
 
-        // Get all caretakers for filter dropdown (only for owners)
-        $caretakers = collect();
-        if ($this->isOwner()) {
-            $caretakers = User::where('role', 'caretaker')
-                ->orderBy('last_name')
+        // Get all users for filter dropdown (for owners, admins, and developers)
+        $users = collect();
+        if (!$this->isCaretaker()) {
+            $users = User::orderBy('last_name')
                 ->orderBy('first_name')
                 ->get();
         }
 
         // Get filter values
-        $selectedCaretaker = $request->input('caretaker', '');
+        $selectedUserId = $request->input('user_id', '');
         $selectedAction = $request->input('action', '');
         $dateFrom = $request->input('date_from', '');
         $dateTo = $request->input('date_to', '');
@@ -74,8 +73,8 @@ class ActivityLogController extends Controller
         return view('contents.payments', compact(
             'logs',
             'actions',
-            'caretakers',
-            'selectedCaretaker',
+            'users',
+            'selectedUserId',
             'selectedAction',
             'dateFrom',
             'dateTo',

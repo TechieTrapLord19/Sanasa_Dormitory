@@ -119,6 +119,15 @@
         background-color: #f7fafc;
     }
 
+    .logs-table tbody tr.clickable {
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+
+    .logs-table tbody tr.clickable:hover {
+        background-color: #edf2f7;
+    }
+
     .logs-table tbody tr:last-child td {
         border-bottom: none;
     }
@@ -179,9 +188,115 @@
     }
 
     .pagination-wrapper {
-        padding: 1.5rem;
-        background-color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.25rem;
+        background-color: #f8fafc;
         border-top: 1px solid #e2e8f0;
+    }
+
+    .pagination-wrapper .form-select {
+        width: auto;
+        border-radius: 999px;
+        min-width: 70px;
+    }
+
+    .pagination-left {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .pagination-center {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .pagination-right {
+        display: flex;
+        align-items: center;
+    }
+
+    /* Fix pagination styling */
+    .pagination-wrapper .pagination {
+        margin: 0;
+        display: flex;
+        list-style: none;
+        gap: 0.25rem;
+    }
+
+    .pagination-wrapper .pagination .page-item {
+        margin: 0;
+    }
+
+    .pagination-wrapper .pagination .page-link {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        color: #475569;
+        text-decoration: none;
+        background-color: white;
+        transition: all 0.2s ease;
+    }
+
+    .pagination-wrapper .pagination .page-link:hover {
+        background-color: #f1f5f9;
+        border-color: #cbd5e1;
+        color: #03255b;
+    }
+
+    .pagination-wrapper .pagination .page-item.active .page-link {
+        background-color: #03255b;
+        border-color: #03255b;
+        color: white;
+        font-weight: 600;
+    }
+
+    .pagination-wrapper .pagination .page-item.disabled .page-link {
+        background-color: #f8fafc;
+        border-color: #e2e8f0;
+        color: #94a3b8;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .pagination-wrapper .pagination .page-link:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(3, 37, 91, 0.1);
+    }
+
+    /* Hide the large chevron icons if they exist */
+    .pagination-wrapper svg {
+        display: none !important;
+    }
+
+    /* Hide the "Showing X to Y" text from Laravel pagination since we display it manually */
+    .pagination-wrapper nav > div:first-child {
+        display: none !important; /* Hide mobile pagination */
+    }
+
+    .pagination-wrapper nav > div:last-child > div:first-child {
+        display: none !important; /* Hide the "Showing X to Y" text div */
+    }
+
+    /* Show only the pagination controls (ul.pagination) */
+    .pagination-wrapper nav > div:last-child > div:last-child {
+        display: block !important;
+    }
+
+    /* Style our custom "Showing X to Y" text */
+    .pagination-center .small {
+        font-size: 0.875rem;
+        color: #64748b;
+        margin: 0;
+    }
+
+    .pagination-center .fw-semibold {
+        font-weight: 600;
+        color: #0f172a;
     }
 </style>
 
@@ -192,15 +307,15 @@
 
     <!-- Filters -->
     <div class="logs-filters">
-        <form method="GET" action="{{ route('payments') }}" id="filterForm" class="d-flex flex-wrap align-items-end gap-3">
-            @if(auth()->check() && strtolower(auth()->user()->role) === 'owner')
+        <form method="GET" action="{{ route('activity-logs') }}" id="filterForm" class="d-flex flex-wrap align-items-end gap-3">
+            @if(auth()->check() && strtolower(auth()->user()->role) !== 'caretaker')
             <div class="filter-group">
-                <label class="filter-label">Caretaker:</label>
-                <select name="caretaker" class="filter-select">
-                    <option value="">All Caretakers</option>
-                    @foreach($caretakers as $caretaker)
-                        <option value="{{ $caretaker->user_id }}" {{ $selectedCaretaker == $caretaker->user_id ? 'selected' : '' }}>
-                            {{ $caretaker->last_name }}, {{ $caretaker->first_name }}
+                <label class="filter-label">User:</label>
+                <select name="user_id" class="filter-select">
+                    <option value="">All Users</option>
+                    @foreach($users as $user)
+                        <option value="{{ $user->user_id }}" {{ $selectedUserId == $user->user_id ? 'selected' : '' }}>
+                            {{ $user->last_name }}, {{ $user->first_name }} ({{ ucfirst($user->role) }})
                         </option>
                     @endforeach
                 </select>
@@ -230,18 +345,8 @@
             </div>
 
             <div class="filter-group">
-                <label class="filter-label">Per Page:</label>
-                <select name="per_page" class="filter-select" onchange="document.getElementById('filterForm').submit()">
-                    <option value="10" {{ $perPage == 10 ? 'selected' : '' }}>10</option>
-                    <option value="25" {{ $perPage == 25 ? 'selected' : '' }}>25</option>
-                    <option value="50" {{ $perPage == 50 ? 'selected' : '' }}>50</option>
-                    <option value="100" {{ $perPage == 100 ? 'selected' : '' }}>100</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
                 <button type="submit" class="filter-btn">Apply Filters</button>
-                <a href="{{ route('payments') }}" class="filter-btn filter-btn-clear" style="text-decoration: none; display: inline-block;">Clear</a>
+                <a href="{{ route('activity-logs') }}" class="filter-btn filter-btn-clear" style="text-decoration: none; display: inline-block;">Clear</a>
             </div>
         </form>
     </div>
@@ -260,7 +365,7 @@
                 </thead>
                 <tbody>
                     @foreach($logs as $log)
-                        <tr>
+                        <tr @if($log->resource_url) class="clickable" onclick="window.location.href='{{ $log->resource_url }}'" @endif>
                             <td>
                                 <div>{{ $log->created_at->format('M d, Y') }}</div>
                                 <div style="font-size: 0.75rem; color: #718096;">{{ $log->created_at->format('h:i A') }}</div>
@@ -294,7 +399,36 @@
 
             <!-- Pagination -->
             <div class="pagination-wrapper">
-                {{ $logs->links() }}
+                <div class="pagination-left">
+                    <form method="GET" action="{{ route('activity-logs') }}" class="d-flex align-items-center gap-2">
+                        <input type="hidden" name="user_id" value="{{ $selectedUserId }}">
+                        <input type="hidden" name="action" value="{{ $selectedAction }}">
+                        <input type="hidden" name="date_from" value="{{ $dateFrom }}">
+                        <input type="hidden" name="date_to" value="{{ $dateTo }}">
+                        <label for="perPage" class="text-muted small mb-0">Rows per page</label>
+                        <select class="form-select form-select-sm" id="perPage" name="per_page" onchange="this.form.submit()">
+                            @foreach([10, 25, 50, 100] as $option)
+                                <option value="{{ $option }}" {{ (int) $perPage === $option ? 'selected' : '' }}>
+                                    {{ $option }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </form>
+                </div>
+                <div class="pagination-center">
+                    <p class="small text-muted mb-0">
+                        Showing
+                        <span class="fw-semibold">{{ $logs->firstItem() ?? 0 }}</span>
+                        to
+                        <span class="fw-semibold">{{ $logs->lastItem() ?? 0 }}</span>
+                        of
+                        <span class="fw-semibold">{{ $logs->total() }}</span>
+                        results
+                    </p>
+                </div>
+                <div class="pagination-right">
+                    {{ $logs->appends(['user_id' => $selectedUserId, 'action' => $selectedAction, 'date_from' => $dateFrom, 'date_to' => $dateTo, 'per_page' => $perPage])->links() }}
+                </div>
             </div>
         @else
             <div class="empty-state">

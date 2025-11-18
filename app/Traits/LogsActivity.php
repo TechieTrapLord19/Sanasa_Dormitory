@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 trait LogsActivity
 {
     /**
-     * Log an activity performed by a caretaker
+     * Log an activity performed by any authenticated user
      * 
      * @param string $action The action performed (e.g., "Created Booking", "Updated Tenant")
      * @param string $description Detailed description of what was done
@@ -19,8 +19,8 @@ trait LogsActivity
     {
         $user = Auth::user();
         
-        // Only log if user is authenticated and is a caretaker
-        if (!$user || strtolower($user->role) !== 'caretaker') {
+        // Only log if user is authenticated (all roles: owner, admin, developer, caretaker)
+        if (!$user) {
             return;
         }
 

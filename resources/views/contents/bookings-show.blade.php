@@ -339,12 +339,11 @@
                     });
                     
                     if ($rentUtilitiesPaid < $rentUtilitiesDue) {
-                        $checkInMessage = 'Monthly Rent + Utilities must be fully paid (₱' . number_format($rentUtilitiesDue, 2) . ') to check in. Current: ₱' . number_format($rentUtilitiesPaid, 2);
+                        $checkInMessage = 'Rent + Utilities must be fully paid (₱' . number_format($rentUtilitiesDue, 2) . ') to check in. Current: ₱' . number_format($rentUtilitiesPaid, 2);
                     } else {
-                        // Monthly Rent + Utilities is fully paid, check Security Deposit
-                        if (!$securityDepositInvoice) {
-                            $checkInMessage = 'Security Deposit invoice not found';
-                        } else {
+                        // Rent + Utilities is fully paid, check Security Deposit (only if it exists)
+                        // Note: Daily/Weekly bookings don't have security deposit invoices
+                        if ($securityDepositInvoice) {
                             $securityDepositDue = $securityDepositInvoice->total_due;
                             $securityDepositPaid = $securityDepositInvoice->payments->sum('amount');
                             $requiredMinimum = $securityDepositDue / 2; // Half of security deposit
@@ -355,6 +354,9 @@
                                 // Both conditions met
                                 $canCheckIn = true;
                             }
+                        } else {
+                            // No security deposit invoice (Daily/Weekly bookings) - allow check-in if rent is fully paid
+                            $canCheckIn = true;
                         }
                     }
                 }
@@ -606,7 +608,6 @@
     <div class="info-section">
         <h2 class="info-section-title">Refunds</h2>
 
-        @if($refundablePayments->isNotEmpty())
         <div class="alert alert-info mb-3">
             <strong>Total Refundable Amount: ₱{{ number_format($totalRefundable, 2) }}</strong>
             <p class="mb-0 mt-2">This booking has payments that can be refunded. Select a payment below to process a refund.</p>
@@ -640,45 +641,45 @@
                 </tbody>
             </table>
         </div>
-        @endif
+    </div>
+    @endif
 
-        @if($booking->refunds->isNotEmpty())
-        <div class="mt-4">
-            <h3 class="info-section-title" style="font-size: 1rem;">Refund History</h3>
-            <div class="table-responsive">
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Payment Type</th>
-                            <th>Amount</th>
-                            <th>Method</th>
-                            <th>Reference</th>
-                            <th>Status</th>
-                            <th>Processed By</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($booking->refunds as $refund)
-                        <tr>
-                            <td>{{ $refund->refund_date->format('M d, Y') }}</td>
-                            <td>{{ $refund->payment->payment_type }}</td>
-                            <td>₱{{ number_format($refund->refund_amount, 2) }}</td>
-                            <td>{{ $refund->refund_method }}</td>
-                            <td>{{ $refund->reference_number ?? 'N/A' }}</td>
-                            <td>
-                                <span class="badge bg-{{ $refund->status === 'Completed' ? 'success' : ($refund->status === 'Processed' ? 'warning' : 'secondary') }}">
-                                    {{ $refund->status }}
-                                </span>
-                            </td>
-                            <td>{{ $refund->refundedBy->full_name ?? 'N/A' }}</td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+    <!-- Refund History (always show if there are refunds) -->
+    @if($booking->refunds->isNotEmpty())
+    <div class="info-section">
+        <h2 class="info-section-title">Refund History</h2>
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Payment Type</th>
+                        <th>Amount</th>
+                        <th>Method</th>
+                        <th>Reference Number</th>
+                        <th>Status</th>
+                        <th>Processed By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($booking->refunds as $refund)
+                    <tr>
+                        <td>{{ $refund->refund_date->format('M d, Y') }}</td>
+                        <td>{{ $refund->payment->payment_type }}</td>
+                        <td>₱{{ number_format($refund->refund_amount, 2) }}</td>
+                        <td>{{ $refund->refund_method }}</td>
+                        <td>{{ $refund->reference_number ?? 'N/A' }}</td>
+                        <td>
+                            <span class="badge bg-{{ $refund->status === 'Completed' ? 'success' : ($refund->status === 'Processed' ? 'warning' : 'secondary') }}">
+                                {{ $refund->status }}
+                            </span>
+                        </td>
+                        <td>{{ $refund->refundedBy->full_name ?? 'N/A' }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
-        @endif
     </div>
     @endif
 </div>
@@ -845,103 +846,130 @@
                 <h5 class="modal-title" id="electricityInvoiceModalLabel">Generate Electricity Invoice</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('bookings.electricity', $booking->booking_id) }}" method="POST" id="electricityInvoiceForm">
-                @csrf
+            @if($lastReading && $currentReading && !$currentReading->is_billed)
+                <form action="{{ route('bookings.electricity', $booking->booking_id) }}" method="POST" id="electricityInvoiceForm">
+                    @csrf
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="elec_last_meter_reading" class="form-label">Last Meter Reading (kWh)</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="elec_last_meter_reading" 
+                                   value="{{ number_format($lastReading->meter_value_kwh, 2) }} kWh on {{ $lastReading->reading_date->format('M d, Y') }}"
+                                   readonly
+                                   style="background-color: #f8fafc;">
+                            <small class="text-muted">Automatically retrieved from Electric Readings logbook</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="elec_current_meter_reading" class="form-label">Current Meter Reading (kWh)</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="elec_current_meter_reading" 
+                                   value="{{ number_format($currentReading->meter_value_kwh, 2) }} kWh on {{ $currentReading->reading_date->format('M d, Y') }}"
+                                   readonly
+                                   style="background-color: #f8fafc;">
+                            <small class="text-muted">Automatically retrieved from Electric Readings logbook</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="elec_electricity_rate_per_kwh" class="form-label">Electricity Rate per kWh (₱) <span class="text-danger">*</span></label>
+                            <input type="number" 
+                                   class="form-control" 
+                                   id="elec_electricity_rate_per_kwh" 
+                                   name="electricity_rate_per_kwh" 
+                                   step="0.01"
+                                   min="0" 
+                                   required>
+                            <small class="text-muted">Enter the current electricity rate per kilowatt-hour</small>
+                        </div>
+
+                        <div class="alert alert-info" id="electricityCalculation">
+                            <strong>Electricity Calculation:</strong>
+                            <div id="electricityDetails">Enter electricity rate to see calculation</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="submitElectricityBtn">
+                            <i class="bi bi-lightning-charge"></i> <span id="submitBtnText">Generate Electricity Invoice</span>
+                        </button>
+                    </div>
+                </form>
+            @else
                 <div class="modal-body">
-                    @php
-                        $latestReading = \App\Models\ElectricReading::getLatestReading($booking->room_id);
-                        $lastReadingValue = $latestReading ? $latestReading->meter_value_kwh : 0;
-                    @endphp
-                    <div class="mb-3">
-                        <label for="elec_last_meter_reading" class="form-label">Last Meter Reading (kWh) <span class="text-danger">*</span></label>
-                        <input type="number" 
-                               class="form-control" 
-                               id="elec_last_meter_reading" 
-                               name="last_meter_reading" 
-                               value="{{ $lastReadingValue }}"
-                               step="0.01"
-                               min="0" 
-                               required>
-                        <small class="text-muted">Enter the previous meter reading (from last billing period)</small>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="elec_current_meter_reading" class="form-label">Current Meter Reading (kWh) <span class="text-danger">*</span></label>
-                        <input type="number" 
-                               class="form-control" 
-                               id="elec_current_meter_reading" 
-                               name="current_meter_reading" 
-                               step="0.01"
-                               min="0" 
-                               required>
-                        <small class="text-muted">Enter the current meter reading</small>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="elec_electricity_rate_per_kwh" class="form-label">Electricity Rate per kWh (₱) <span class="text-danger">*</span></label>
-                        <input type="number" 
-                               class="form-control" 
-                               id="elec_electricity_rate_per_kwh" 
-                               name="electricity_rate_per_kwh" 
-                               step="0.01"
-                               min="0" 
-                               required>
-                        <small class="text-muted">Enter the current electricity rate per kilowatt-hour</small>
-                    </div>
-
-                    <div class="alert alert-info" id="electricityCalculation">
-                        <strong>Electricity Calculation:</strong>
-                        <div id="electricityDetails">Enter meter readings and rate to see calculation</div>
-                    </div>
+                    @if(!$lastReading || !$currentReading)
+                        <div class="alert alert-warning">
+                            <strong>No Meter Readings Found</strong>
+                            <p class="mb-0">At least two meter readings are required to generate an electricity invoice. Please record readings on the <a href="{{ route('electric-readings') }}">Electric Readings</a> page first.</p>
+                        </div>
+                    @elseif($currentReading->is_billed)
+                        <div class="alert alert-warning">
+                            <strong>Reading Already Billed</strong>
+                            <p class="mb-0">The current meter reading has already been billed. Please record a new reading on the <a href="{{ route('electric-readings') }}">Electric Readings</a> page first.</p>
+                        </div>
+                    @endif
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="bi bi-x-circle"></i> Cancel
+                        <i class="bi bi-x-circle"></i> Close
                     </button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-lightning-charge"></i> Generate Electricity Invoice
-                    </button>
+                    <a href="{{ route('electric-readings') }}" class="btn btn-primary">
+                        <i class="bi bi-clipboard-data"></i> Go to Electric Readings
+                    </a>
                 </div>
-            </form>
+            @endif
         </div>
     </div>
 </div>
 
+@if($lastReading && $currentReading && !$currentReading->is_billed)
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const lastReadingInput = document.getElementById('elec_last_meter_reading');
-    const currentReadingInput = document.getElementById('elec_current_meter_reading');
+    const lastReadingValue = {{ $lastReading->meter_value_kwh }};
+    const currentReadingValue = {{ $currentReading->meter_value_kwh }};
     const rateInput = document.getElementById('elec_electricity_rate_per_kwh');
     const calculationDiv = document.getElementById('electricityCalculation');
     const detailsDiv = document.getElementById('electricityDetails');
+    const submitBtn = document.getElementById('submitElectricityBtn');
+    const submitBtnText = document.getElementById('submitBtnText');
 
     function calculateElectricity() {
-        const lastReading = parseFloat(lastReadingInput.value) || 0;
-        const currentReading = parseFloat(currentReadingInput.value) || 0;
         const rate = parseFloat(rateInput.value) || 0;
+        const kwhUsed = Math.max(0, currentReadingValue - lastReadingValue);
 
-        if (lastReading > 0 && currentReading > 0 && rate > 0) {
-            const kwhUsed = Math.max(0, currentReading - lastReading);
+        if (rate > 0) {
             const totalFee = kwhUsed * rate;
 
             detailsDiv.innerHTML = `
-                <div>Last Reading: ${lastReading.toFixed(2)} kWh</div>
-                <div>Current Reading: ${currentReading.toFixed(2)} kWh</div>
-                <div>Usage: ${kwhUsed.toFixed(2)} kWh</div>
-                <div>Rate: ₱${rate.toFixed(2)} per kWh</div>
-                <div><strong>Total Electricity Fee: ₱${totalFee.toFixed(2)}</strong></div>
+                <div class="mt-2">
+                    <div><strong>Last Reading:</strong> ${lastReadingValue.toFixed(2)} kWh ({{ $lastReading->reading_date->format('M d, Y') }})</div>
+                    <div><strong>Current Reading:</strong> ${currentReadingValue.toFixed(2)} kWh ({{ $currentReading->reading_date->format('M d, Y') }})</div>
+                    <div><strong>Usage:</strong> ${kwhUsed.toFixed(2)} kWh</div>
+                    <div><strong>Rate:</strong> ₱${rate.toFixed(2)} per kWh</div>
+                    <div class="mt-2"><strong>Total Electricity Fee: ₱${totalFee.toFixed(2)}</strong></div>
+                </div>
             `;
             calculationDiv.style.display = 'block';
+            
+            // Update button text
+            submitBtnText.textContent = `Add ₱${totalFee.toFixed(2)} to Invoice`;
         } else {
-            detailsDiv.innerHTML = 'Enter meter readings and rate to see calculation';
+            detailsDiv.innerHTML = 'Enter electricity rate to see calculation';
+            submitBtnText.textContent = 'Generate Electricity Invoice';
         }
     }
 
-    if (lastReadingInput) lastReadingInput.addEventListener('input', calculateElectricity);
-    if (currentReadingInput) currentReadingInput.addEventListener('input', calculateElectricity);
-    if (rateInput) rateInput.addEventListener('input', calculateElectricity);
+    // Calculate on page load if rate is pre-filled
+    if (rateInput) {
+        calculateElectricity();
+        rateInput.addEventListener('input', calculateElectricity);
+    }
 });
 </script>
+@endif
 @endif
 
 <!-- Security Deposit Payment Modal -->

@@ -20,7 +20,7 @@ class ActivityLog extends Model
     ];
 
     /**
-     * Get the user (caretaker) who performed the action
+     * Get the user who performed the action
      */
     public function user()
     {
@@ -28,9 +28,9 @@ class ActivityLog extends Model
     }
 
     /**
-     * Get the caretaker's full name
+     * Get the user's full name
      */
-    public function getCaretakerNameAttribute()
+    public function getUserNameAttribute()
     {
         if (!$this->user) {
             return 'Unknown';
@@ -41,6 +41,71 @@ class ActivityLog extends Model
             $name .= ' ' . $this->user->middle_name;
         }
         return $name;
+    }
+
+    /**
+     * Get the caretaker's full name (alias for backward compatibility)
+     */
+    public function getCaretakerNameAttribute()
+    {
+        return $this->user_name;
+    }
+
+    /**
+     * Get the URL to the resource that was affected by this activity
+     * Returns null if no valid route exists
+     */
+    public function getResourceUrlAttribute()
+    {
+        if (!$this->model_type || !$this->model_id) {
+            return null;
+        }
+
+        try {
+            switch ($this->model_type) {
+                case 'App\Models\Booking':
+                    return route('bookings.show', $this->model_id);
+                
+                case 'App\Models\Tenant':
+                    return route('tenants.show', $this->model_id);
+                
+                case 'App\Models\Room':
+                    return route('rooms.show', $this->model_id);
+                
+                case 'App\Models\Rate':
+                    return route('rates.show', $this->model_id);
+                
+                case 'App\Models\Invoice':
+                    // No show route, redirect to index
+                    return route('invoices');
+                
+                case 'App\Models\Payment':
+                    // No show route, redirect to invoices index
+                    return route('invoices');
+                
+                case 'App\Models\Refund':
+                    // Need to get booking_id through payment relationship
+                    $refund = Refund::with('payment')->find($this->model_id);
+                    if ($refund && $refund->payment && $refund->payment->booking_id) {
+                        return route('bookings.show', $refund->payment->booking_id);
+                    }
+                    return null;
+                
+                case 'App\Models\Asset':
+                    // No show route, redirect to asset inventory index
+                    return route('asset-inventory');
+                
+                case 'App\Models\MaintenanceLog':
+                    // No show route, redirect to maintenance logs index
+                    return route('maintenance-logs');
+                
+                default:
+                    return null;
+            }
+        } catch (\Exception $e) {
+            // If route generation fails, return null
+            return null;
+        }
     }
 }
 

@@ -250,6 +250,7 @@
                 <th>Rate Name</th>
                 <th>Duration</th>
                 <th>Base Price</th>
+                <th>Utilities</th>
                 <th>Inclusions</th>
                 <th>Actions</th>
             </tr>
@@ -257,9 +258,20 @@
         <tbody id="generalRatesTable">
             @forelse($rates as $rate)
                 <tr>
-                    <td>{{ $rate->duration_type }} Rate</td>
+                    <td>{{ $rate->rate_name ?? $rate->duration_type . ' Rate' }}</td>
                     <td>Per {{ $rate->duration_type === 'Daily' ? 'Day' : ($rate->duration_type === 'Weekly' ? 'Week' : 'Month') }}</td>
                     <td class="price-display">₱{{ number_format($rate->base_price, 2) }}</td>
+                    <td>
+                        @if($rate->utilities && $rate->utilities->count() > 0)
+                            <ul style="margin: 0; padding-left: 1.25rem; list-style-type: disc;">
+                                @foreach($rate->utilities as $utility)
+                                    <li>{{ $utility->name }} - ₱{{ number_format($utility->price, 2) }}</li>
+                                @endforeach
+                            </ul>
+                        @else
+                            <span class="text-muted">None</span>
+                        @endif
+                    </td>
                     <td>{{ $rate->inclusion }}</td>
                     <td>
                         <div class="action-buttons">
@@ -276,69 +288,14 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="5" class="text-center text-muted py-4">No rates found</td>
+                    <td colspan="6" class="text-center text-muted py-4">No rates found</td>
                 </tr>
             @endforelse
         </tbody>
     </table>
 </div>
 
-<!-- Active Room Rates Section -->
-<div class="section-title">Active Room Rates</div>
-@forelse($occupiedRooms as $room)
-    <div class="rates-table-container">
-        <div class="room-rates-header">
-            <h5 class="room-rates-title mb-0">Room {{ $room->room_num }}</h5>
-        </div>
-        <table class="rates-table">
-            <thead>
-                <tr>
-                    <th>Rate Name</th>
-                    <th>Duration</th>
-                    <th>Base Price</th>
-                    <th>Inclusions</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @php
-                    // Show all available rates for this occupied room
-                    // In the future, when bookings are fully implemented, 
-                    // this will show only the rate assigned to the booking
-                    $roomRates = $rates;
-                @endphp
-                @forelse($roomRates as $rate)
-                    <tr>
-                        <td>{{ $rate->duration_type }} Rate</td>
-                        <td>Per {{ $rate->duration_type === 'Daily' ? 'Day' : ($rate->duration_type === 'Weekly' ? 'Week' : 'Month') }}</td>
-                        <td class="price-display">₱{{ number_format($rate->base_price, 2) }}</td>
-                        <td>{{ $rate->inclusion }}</td>
-                        <td>
-                            <div class="action-buttons">
-                                @if(auth()->check() && strtolower(auth()->user()->role) === 'owner')
-                                <button class="btn-edit" onclick="editRoomRate({{ $room->room_id }}, {{ $rate->rate_id }})">
-                                    <i class="bi bi-pencil-square"></i> Edit
-                                </button>
-                                <button class="btn-delete" onclick="deleteRoomRate({{ $room->room_id }}, {{ $rate->rate_id }})">
-                                    <i class="bi bi-trash"></i> Delete
-                                </button>
-                                @endif
-                            </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="5" class="text-center text-muted py-4">No rates assigned to this room</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-@empty
-    <div class="rates-table-container">
-        <div class="text-center text-muted py-4">No occupied rooms at the moment. Active room rates will appear here when rooms are booked.</div>
-    </div>
-@endforelse
+
 
 <!-- Create Rate Modal -->
 <div class="modal fade" id="createRateModal" tabindex="-1" aria-labelledby="createRateModalLabel" aria-hidden="true">
@@ -348,9 +305,17 @@
                 <h5 class="modal-title" id="createRateModalLabel">Create New Rate</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('rates.store') }}" method="POST">
+            <form action="{{ route('rates.store') }}" method="POST" id="createRateForm">
                 @csrf
                 <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="rate_name" class="form-label">Rate Name <span class="text-muted">(Optional)</span></label>
+                        <input type="text" class="form-control @error('rate_name') is-invalid @enderror"
+                               id="rate_name" name="rate_name" placeholder="e.g., 6-Month Package, Annual Plan">
+                        @error('rate_name')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
                     <div class="mb-3">
                         <label for="duration_type" class="form-label">Duration Type</label>
                         <select class="form-select @error('duration_type') is-invalid @enderror"
@@ -371,6 +336,42 @@
                         @error('base_price')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Utilities <span class="text-muted">(Optional - Electricity not included)</span></label>
+                        <div class="border rounded p-3 bg-light">
+                            <div class="mb-3">
+                                <h6 class="mb-2">Predefined Utilities:</h6>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input utility-checkbox" type="checkbox" value="Water" id="utility_water" data-utility-name="Water">
+                                    <label class="form-check-label" for="utility_water">Water</label>
+                                    <input type="number" step="0.01" class="form-control form-control-sm d-inline-block ms-2" style="width: 120px;" 
+                                           id="utility_water_price" name="utilities[water][price]" placeholder="Price" disabled>
+                                    <input type="hidden" name="utilities[water][name]" value="Water">
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input utility-checkbox" type="checkbox" value="Wi-Fi" id="utility_wifi" data-utility-name="Wi-Fi">
+                                    <label class="form-check-label" for="utility_wifi">Wi-Fi</label>
+                                    <input type="number" step="0.01" class="form-control form-control-sm d-inline-block ms-2" style="width: 120px;" 
+                                           id="utility_wifi_price" name="utilities[wifi][price]" placeholder="Price" disabled>
+                                    <input type="hidden" name="utilities[wifi][name]" value="Wi-Fi">
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input utility-checkbox" type="checkbox" value="Garbage" id="utility_garbage" data-utility-name="Garbage">
+                                    <label class="form-check-label" for="utility_garbage">Garbage</label>
+                                    <input type="number" step="0.01" class="form-control form-control-sm d-inline-block ms-2" style="width: 120px;" 
+                                           id="utility_garbage_price" name="utilities[garbage][price]" placeholder="Price" disabled>
+                                    <input type="hidden" name="utilities[garbage][name]" value="Garbage">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <h6 class="mb-2">Custom Utilities:</h6>
+                                <div id="customUtilitiesContainer"></div>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="addCustomUtilityBtn">
+                                    <i class="bi bi-plus-circle"></i> Add Custom Utility
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="inclusion" class="form-label">Inclusions</label>
@@ -461,6 +462,129 @@ document.addEventListener('DOMContentLoaded', function() {
 
     rateNameFilter.addEventListener('input', filterRates);
     floorFilter.addEventListener('change', filterRates);
+
+    // Utilities management
+    let customUtilityIndex = 0;
+
+    // Handle predefined utility checkboxes
+    document.querySelectorAll('.utility-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const priceInput = document.getElementById(this.id + '_price');
+            if (this.checked) {
+                priceInput.disabled = false;
+                priceInput.required = true;
+            } else {
+                priceInput.disabled = true;
+                priceInput.required = false;
+                priceInput.value = '';
+            }
+        });
+    });
+
+    // Add custom utility
+    const addCustomUtilityBtn = document.getElementById('addCustomUtilityBtn');
+    const customUtilitiesContainer = document.getElementById('customUtilitiesContainer');
+    
+    if (addCustomUtilityBtn) {
+        addCustomUtilityBtn.addEventListener('click', function() {
+            const utilityDiv = document.createElement('div');
+            utilityDiv.className = 'custom-utility-item mb-2 d-flex align-items-center gap-2';
+            utilityDiv.innerHTML = `
+                <input type="text" class="form-control form-control-sm" style="width: 150px;" 
+                       name="utilities[custom][${customUtilityIndex}][name]" 
+                       placeholder="Utility name" required>
+                <input type="number" step="0.01" class="form-control form-control-sm" style="width: 120px;" 
+                       name="utilities[custom][${customUtilityIndex}][price]" 
+                       placeholder="Price" required>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-custom-utility">
+                    <i class="bi bi-x-circle"></i>
+                </button>
+            `;
+            customUtilitiesContainer.appendChild(utilityDiv);
+            customUtilityIndex++;
+
+            // Add remove functionality
+            utilityDiv.querySelector('.remove-custom-utility').addEventListener('click', function() {
+                utilityDiv.remove();
+            });
+        });
+    }
+
+    // Process form before submission to format utilities array correctly
+    const createRateForm = document.getElementById('createRateForm');
+    if (createRateForm) {
+        createRateForm.addEventListener('submit', function(e) {
+            const utilities = [];
+            
+            // Process predefined utilities
+            document.querySelectorAll('.utility-checkbox:checked').forEach(checkbox => {
+                const priceInput = document.getElementById(checkbox.id + '_price');
+                if (priceInput && priceInput.value) {
+                    utilities.push({
+                        name: checkbox.dataset.utilityName,
+                        price: priceInput.value
+                    });
+                }
+            });
+
+            // Process custom utilities
+            document.querySelectorAll('.custom-utility-item').forEach(item => {
+                const nameInput = item.querySelector('input[placeholder="Utility name"]');
+                const priceInput = item.querySelector('input[placeholder="Price"]');
+                if (nameInput && nameInput.value && priceInput && priceInput.value) {
+                    utilities.push({
+                        name: nameInput.value,
+                        price: priceInput.value
+                    });
+                }
+            });
+
+            // Remove old utility inputs and add hidden inputs with correct format
+            document.querySelectorAll('input[name^="utilities["]').forEach(input => {
+                if (!input.classList.contains('utility-hidden')) {
+                    input.remove();
+                }
+            });
+
+            // Add utilities as hidden inputs in correct format
+            utilities.forEach((utility, index) => {
+                const nameInput = document.createElement('input');
+                nameInput.type = 'hidden';
+                nameInput.name = `utilities[${index}][name]`;
+                nameInput.value = utility.name;
+                nameInput.classList.add('utility-hidden');
+                
+                const priceInput = document.createElement('input');
+                priceInput.type = 'hidden';
+                priceInput.name = `utilities[${index}][price]`;
+                priceInput.value = utility.price;
+                priceInput.classList.add('utility-hidden');
+                
+                createRateForm.appendChild(nameInput);
+                createRateForm.appendChild(priceInput);
+            });
+        });
+    }
+
+    // Reset form when modal is closed
+    const createRateModal = document.getElementById('createRateModal');
+    if (createRateModal) {
+        createRateModal.addEventListener('hidden.bs.modal', function() {
+            if (createRateForm) {
+                createRateForm.reset();
+                customUtilitiesContainer.innerHTML = '';
+                customUtilityIndex = 0;
+                document.querySelectorAll('.utility-checkbox').forEach(checkbox => {
+                    const priceInput = document.getElementById(checkbox.id + '_price');
+                    if (priceInput) {
+                        priceInput.disabled = true;
+                        priceInput.required = false;
+                        priceInput.value = '';
+                    }
+                });
+            }
+        });
+    }
 });
 
 function editRate(rateId) {
@@ -470,8 +594,27 @@ function editRate(rateId) {
 
 function deleteRate(rateId) {
     if (confirm('Are you sure you want to delete this rate?')) {
-        // TODO: Implement delete functionality
-        alert('Delete rate ' + rateId);
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/rates/${rateId}`;
+        
+        const csrfToken = document.querySelector('meta[name="csrf-token"]');
+        if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = '_token';
+            csrfInput.value = csrfToken.getAttribute('content');
+            form.appendChild(csrfInput);
+        }
+        
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = 'DELETE';
+        form.appendChild(methodInput);
+        
+        document.body.appendChild(form);
+        form.submit();
     }
 }
 

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Invoice extends Model
 {
@@ -64,11 +65,18 @@ class Invoice extends Model
     }
 
     /**
-     * Get all refunds for this invoice
+     * Get all refunds for this invoice (through payments)
      */
-    public function refunds(): HasMany
+    public function refunds(): HasManyThrough
     {
-        return $this->hasMany(Refund::class, 'invoice_id', 'invoice_id');
+        return $this->hasManyThrough(
+            Refund::class,
+            Payment::class,
+            'invoice_id', // Foreign key on payments table (links to invoices)
+            'payment_id', // Foreign key on refunds table (links to payments)
+            'invoice_id', // Local key on invoices table
+            'payment_id'  // Local key on payments table
+        );
     }
 
     /**

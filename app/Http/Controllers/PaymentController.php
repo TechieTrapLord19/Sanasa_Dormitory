@@ -131,9 +131,10 @@ class PaymentController extends Controller
                 $successMessage .= ' Invoice marked as paid.';
             }
 
-            // Redirect back to invoices page with success message
+            // Redirect back to invoices page with success message and payment ID for receipt
             return redirect()->route('invoices')
-                ->with('success', $successMessage);
+                ->with('success', $successMessage)
+                ->with('payment_id', $payment->payment_id);
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -173,5 +174,86 @@ class PaymentController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    /**
+     * Show receipt for a payment
+     */
+    public function showReceipt(string $id)
+    {
+        $payment = Payment::with([
+            'booking.tenant',
+            'booking.room',
+            'booking.rate',
+            'invoice',
+            'collectedBy'
+        ])->findOrFail($id);
+
+        $booking = $payment->booking;
+        $tenant = $booking->tenant;
+        $room = $booking->room;
+        $collectedBy = $payment->collectedBy;
+        $invoice = $payment->invoice;
+
+        // Determine payment type based on invoice (similar to InvoiceController logic)
+        $paymentType = 'Rent/Utility'; // Default
+        if ($invoice) {
+            $durationType = optional($booking->rate)->duration_type ?? 'Monthly';
+            
+            // Check if this is a security deposit invoice
+            $hasOnlyElectricityFee = ($invoice->rent_subtotal == 0 && 
+                                     $invoice->utility_water_fee == 0 && 
+                                     $invoice->utility_wifi_fee == 0 && 
+                                     $invoice->utility_electricity_fee > 0);
+            
+            // Get invoice position for this booking
+            $invoiceCount = \App\Models\Invoice::where('booking_id', $booking->booking_id)
+                ->where('invoice_id', '<=', $invoice->invoice_id)
+                ->count();
+            
+            $isEarlyInvoice = $invoiceCount <= 2;
+            
+            // Security deposit is typically the 2nd invoice for monthly bookings
+            $isSecurityDepositInvoice = $hasOnlyElectricityFee && 
+                                       ($isEarlyInvoice || abs($invoice->utility_electricity_fee - 5000.00) < 0.01);
+            
+            if ($isSecurityDepositInvoice) {
+                $paymentType = 'Security Deposit';
+            } elseif ($hasOnlyElectricityFee) {
+                $paymentType = 'Electricity';
+            } else {
+                // Regular rent/utility invoice
+                $isFirstInvoice = $invoiceCount == 1;
+                if ($isFirstInvoice) {
+                    $paymentType = match($durationType) {
+                        'Daily' => 'Daily Rate',
+                        'Weekly' => 'Weekly Rate',
+                        'Monthly' => 'Monthly Rent + Utilities',
+                        default => 'Monthly Rent + Utilities'
+                    };
+                } else {
+                    $paymentType = match($durationType) {
+                        'Daily' => 'Daily Rate',
+                        'Weekly' => 'Weekly Rate',
+                        'Monthly' => 'Monthly Rent + Utilities + Electricity',
+                        default => 'Monthly Rent + Utilities + Electricity'
+                    };
+                }
+            }
+        }
+
+        // Generate receipt number: REC-YYYYMMDD-XXXXX
+        $receiptNumber = 'REC-' . $payment->date_received->format('Ymd') . '-' . str_pad($payment->payment_id, 5, '0', STR_PAD_LEFT);
+
+        return view('receipts.payment-receipt', compact(
+            'payment',
+            'booking',
+            'tenant',
+            'room',
+            'collectedBy',
+            'receiptNumber',
+            'paymentType',
+            'invoice'
+        ));
     }
 }

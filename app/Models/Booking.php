@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Booking extends Model
 {
@@ -69,11 +70,18 @@ class Booking extends Model
     }
 
     /**
-     * Get all refunds for this booking
+     * Get all refunds for this booking (through payments)
      */
-    public function refunds(): HasMany
+    public function refunds(): HasManyThrough
     {
-        return $this->hasMany(Refund::class, 'booking_id', 'booking_id');
+        return $this->hasManyThrough(
+            Refund::class,
+            Payment::class,
+            'booking_id', // Foreign key on payments table (links to bookings)
+            'payment_id', // Foreign key on refunds table (links to payments)
+            'booking_id', // Local key on bookings table
+            'payment_id'  // Local key on payments table
+        );
     }
 
     /**

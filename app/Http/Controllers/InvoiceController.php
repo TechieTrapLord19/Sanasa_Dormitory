@@ -45,6 +45,9 @@ public function index(Request $request): View
             'booking.room',
             'booking.rate',
             'booking', // Ensure booking is loaded for status check
+            'payments' => function($query) {
+                $query->orderByDesc('created_at');
+            }
         ])
         ->withSum('payments as payments_sum', 'amount')
         ->orderByDesc('date_generated')
@@ -55,10 +58,32 @@ public function index(Request $request): View
         $invoiceQuery->where('booking_id', $bookingId);
     }
 
+    // Filter by status
     if ($activeStatus === 'paid') {
         $invoiceQuery->where('is_paid', true);
     } elseif ($activeStatus === 'pending') {
-        $invoiceQuery->where('is_paid', false);
+        // Pending: not paid, no payments, and booking not canceled
+        $invoiceQuery->where('is_paid', false)
+            ->whereDoesntHave('payments', function ($query) {
+                $query->where('amount', '>', 0);
+            })
+            ->whereHas('booking', function ($query) {
+                $query->where('status', '!=', 'Canceled');
+            });
+    } elseif ($activeStatus === 'partial') {
+        // Partial: not paid, has payments, and booking not canceled
+        $invoiceQuery->where('is_paid', false)
+            ->whereHas('payments', function ($query) {
+                $query->where('amount', '>', 0);
+            })
+            ->whereHas('booking', function ($query) {
+                $query->where('status', '!=', 'Canceled');
+            });
+    } elseif ($activeStatus === 'cancelled') {
+        // Cancelled: booking is canceled
+        $invoiceQuery->whereHas('booking', function ($query) {
+            $query->where('status', 'Canceled');
+        });
     }
 
     if ($searchTerm !== '') {
@@ -159,10 +184,34 @@ public function index(Request $request): View
             return $invoice;
         });
 
+    // Calculate status counts accurately
+    $allInvoices = Invoice::with(['booking', 'payments'])
+        ->withSum('payments as payments_sum', 'amount')
+        ->get();
+    
     $statusCounts = [
-        'total' => Invoice::count(),
-        'paid' => Invoice::where('is_paid', true)->count(),
-        'pending' => Invoice::where('is_paid', false)->count(),
+        'total' => $allInvoices->count(),
+        'paid' => $allInvoices->filter(function ($invoice) {
+            $paymentsSum = (float) ($invoice->payments_sum ?? 0);
+            $totalDue = (float) $invoice->total_due;
+            $isCanceled = optional($invoice->booking)->status === 'Canceled';
+            return !$isCanceled && $paymentsSum >= $totalDue && $totalDue > 0;
+        })->count(),
+        'pending' => $allInvoices->filter(function ($invoice) {
+            $paymentsSum = (float) ($invoice->payments_sum ?? 0);
+            $totalDue = (float) $invoice->total_due;
+            $isCanceled = optional($invoice->booking)->status === 'Canceled';
+            return !$isCanceled && $paymentsSum < $totalDue && $paymentsSum == 0;
+        })->count(),
+        'partial' => $allInvoices->filter(function ($invoice) {
+            $paymentsSum = (float) ($invoice->payments_sum ?? 0);
+            $totalDue = (float) $invoice->total_due;
+            $isCanceled = optional($invoice->booking)->status === 'Canceled';
+            return !$isCanceled && $paymentsSum > 0 && $paymentsSum < $totalDue;
+        })->count(),
+        'cancelled' => $allInvoices->filter(function ($invoice) {
+            return optional($invoice->booking)->status === 'Canceled';
+        })->count(),
     ];
 
     $financialSnapshot = $this->buildFinancialSnapshot();

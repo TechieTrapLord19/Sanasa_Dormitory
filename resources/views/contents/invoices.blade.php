@@ -262,6 +262,7 @@
     }
     .action-buttons {
         display: flex;
+        flex-direction: column;
         gap: 0.5rem;
     }
     .btn-add-payment {
@@ -516,6 +517,18 @@
                     class="status-chip {{ $activeStatus === 'paid' ? 'active' : '' }}">
                 Paid ({{ $statusCounts['paid'] ?? 0 }})
             </button>
+            <button type="submit"
+                    name="status"
+                    value="partial"
+                    class="status-chip {{ $activeStatus === 'partial' ? 'active' : '' }}">
+                Partial ({{ $statusCounts['partial'] ?? 0 }})
+            </button>
+            <button type="submit"
+                    name="status"
+                    value="cancelled"
+                    class="status-chip {{ $activeStatus === 'cancelled' ? 'active' : '' }}">
+                Cancelled ({{ $statusCounts['cancelled'] ?? 0 }})
+            </button>
             <div class="legend">
                 <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f97316;"></span>
                 Pending
@@ -523,7 +536,8 @@
                 Partial
                 <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;"></span>
                 Paid
-
+                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#991b1b;"></span>
+                Cancelled
             </div>
         </div>
         <div class="filter-search">
@@ -632,6 +646,16 @@
                                             data-amount="{{ number_format($invoice->remaining_balance, 2) }}">
                                         <i class="bi bi-credit-card"></i> Add Payment
                                     </button>
+                                @endif
+                                @if($invoice->payments && $invoice->payments->isNotEmpty())
+                                    @php
+                                        $latestPayment = $invoice->payments->first();
+                                    @endphp
+                                    <a href="{{ route('payments.receipt', $latestPayment->payment_id) }}" 
+                                       class="btn-add-payment" 
+                                       style="text-decoration: none;">
+                                        <i class="bi bi-printer"></i> Print Receipt
+                                    </a>
                                 @endif
                             </div>
                         </td>

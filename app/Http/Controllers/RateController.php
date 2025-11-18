@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Rate;
 use App\Models\Room;
+use App\Models\Utility;
 use App\Traits\LogsActivity;
 use App\Traits\ChecksRole;
 
@@ -16,7 +17,7 @@ class RateController extends Controller
      */
     public function index()
     {
-        $rates = Rate::all();
+        $rates = Rate::with('utilities')->get();
         // Only show occupied rooms in the active room rates section
         $occupiedRooms = Room::where('status', 'occupied')->get();
         $floors = Room::select('floor')->distinct()->orderBy('floor')->pluck('floor');
@@ -41,16 +42,39 @@ class RateController extends Controller
         $this->requireOwner();
 
         $validatedData = $request->validate([
+            'rate_name' => 'nullable|string|max:255',
             'duration_type' => 'required|string|in:Daily,Weekly,Monthly',
             'base_price' => 'required|numeric|min:0',
             'inclusion' => 'required|string',
+            'utilities' => 'nullable|array',
+            'utilities.*.name' => 'required_with:utilities|string|max:255',
+            'utilities.*.price' => 'required_with:utilities|numeric|min:0',
         ]);
 
-        $rate = Rate::create($validatedData);
+        $rate = Rate::create([
+            'rate_name' => $validatedData['rate_name'] ?? null,
+            'duration_type' => $validatedData['duration_type'],
+            'base_price' => $validatedData['base_price'],
+            'inclusion' => $validatedData['inclusion'],
+        ]);
 
+        // Create utilities if provided
+        if (isset($validatedData['utilities']) && is_array($validatedData['utilities'])) {
+            foreach ($validatedData['utilities'] as $utilityData) {
+                if (!empty($utilityData['name'])) {
+                    Utility::create([
+                        'rate_id' => $rate->rate_id,
+                        'name' => $utilityData['name'],
+                        'price' => $utilityData['price'] ?? 0.00,
+                    ]);
+                }
+            }
+        }
+
+        $rateName = $rate->rate_name ?? $rate->duration_type . ' Rate';
         $this->logActivity(
             'Created Rate',
-            "Created {$rate->duration_type} rate - Base Price: ₱" . number_format($rate->base_price, 2) . " (Inclusion: {$rate->inclusion})",
+            "Created {$rateName} - Base Price: ₱" . number_format($rate->base_price, 2) . " (Inclusion: {$rate->inclusion})",
             $rate
         );
 
@@ -80,7 +104,48 @@ class RateController extends Controller
     {
         // Only owners can update rates
         $this->requireOwner();
-        //
+
+        $rate = Rate::findOrFail($id);
+
+        $validatedData = $request->validate([
+            'rate_name' => 'nullable|string|max:255',
+            'duration_type' => 'required|string|in:Daily,Weekly,Monthly',
+            'base_price' => 'required|numeric|min:0',
+            'inclusion' => 'required|string',
+            'utilities' => 'nullable|array',
+            'utilities.*.name' => 'required_with:utilities|string|max:255',
+            'utilities.*.price' => 'required_with:utilities|numeric|min:0',
+        ]);
+
+        $rate->update([
+            'rate_name' => $validatedData['rate_name'] ?? null,
+            'duration_type' => $validatedData['duration_type'],
+            'base_price' => $validatedData['base_price'],
+            'inclusion' => $validatedData['inclusion'],
+        ]);
+
+        // Delete existing utilities and create new ones
+        $rate->utilities()->delete();
+        if (isset($validatedData['utilities']) && is_array($validatedData['utilities'])) {
+            foreach ($validatedData['utilities'] as $utilityData) {
+                if (!empty($utilityData['name'])) {
+                    Utility::create([
+                        'rate_id' => $rate->rate_id,
+                        'name' => $utilityData['name'],
+                        'price' => $utilityData['price'] ?? 0.00,
+                    ]);
+                }
+            }
+        }
+
+        $rateName = $rate->rate_name ?? $rate->duration_type . ' Rate';
+        $this->logActivity(
+            'Updated Rate',
+            "Updated {$rateName} - Base Price: ₱" . number_format($rate->base_price, 2) . " (Inclusion: {$rate->inclusion})",
+            $rate
+        );
+
+        return redirect()->route('rates.index')->with('success', 'Rate updated successfully!');
     }
 
     /**
@@ -90,6 +155,22 @@ class RateController extends Controller
     {
         // Only owners can delete rates
         $this->requireOwner();
-        //
+
+        $rate = Rate::findOrFail($id);
+        $rateName = $rate->rate_name ?? $rate->duration_type . ' Rate';
+
+        // Delete associated utilities
+        $rate->utilities()->delete();
+        
+        // Delete the rate
+        $rate->delete();
+
+        $this->logActivity(
+            'Deleted Rate',
+            "Deleted {$rateName}",
+            null
+        );
+
+        return redirect()->route('rates.index')->with('success', 'Rate deleted successfully!');
     }
 }
