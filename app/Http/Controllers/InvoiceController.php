@@ -42,9 +42,11 @@ public function index(Request $request): View
     $invoiceQuery = Invoice::query()
         ->with([
             'booking.tenant',
+            'booking.secondaryTenant',
             'booking.room',
             'booking.rate',
             'booking', // Ensure booking is loaded for status check
+            'invoiceUtilities', // Load utilities dynamically
             'payments' => function($query) {
                 $query->orderByDesc('created_at');
             }
@@ -88,8 +90,13 @@ public function index(Request $request): View
 
     if ($searchTerm !== '') {
         $invoiceQuery->where(function ($query) use ($searchTerm) {
-            $query->where('invoice_id', 'like', '%' . $searchTerm . '%')
+                $query->where('invoice_id', 'like', '%' . $searchTerm . '%')
                 ->orWhereHas('booking.tenant', function ($tenantQuery) use ($searchTerm) {
+                    $tenantQuery->where('first_name', 'like', '%' . $searchTerm . '%')
+                        ->orWhere('last_name', 'like', '%' . $searchTerm . '%')
+                        ->orWhere('middle_name', 'like', '%' . $searchTerm . '%');
+                })
+                ->orWhereHas('booking.secondaryTenant', function ($tenantQuery) use ($searchTerm) {
                     $tenantQuery->where('first_name', 'like', '%' . $searchTerm . '%')
                         ->orWhere('last_name', 'like', '%' . $searchTerm . '%')
                         ->orWhere('middle_name', 'like', '%' . $searchTerm . '%');
@@ -122,7 +129,7 @@ public function index(Request $request): View
                         ? 'Paid'
                         : ($paymentsSum > 0 ? 'Partial' : 'Pending'))
             );
-            $invoice->setAttribute('tenant_name', optional($invoice->booking?->tenant)->full_name ?? '—');
+            $invoice->setAttribute('tenant_name', $invoice->booking ? $invoice->booking->tenant_summary : '—');
             $invoice->setAttribute('room_number', optional($invoice->booking?->room)->room_num ?? '—');
             
             // Determine invoice type and billing label
@@ -130,12 +137,13 @@ public function index(Request $request): View
             
             // Check if this is a security deposit invoice
             // Security deposit invoices:
-            // 1. Have only electricity fee (no rent, water, wifi)
+            // 1. Have only electricity fee (no rent, no utilities from invoice_utilities)
             // 2. Are one of the first 2 invoices for the booking (created during booking creation)
             // 3. Typically have a fixed amount (MONTHLY_SECURITY_DEPOSIT = 5000.00)
+            // Use loaded relationship (property) instead of method call to avoid N+1 queries
+            $hasUtilities = $invoice->invoiceUtilities && $invoice->invoiceUtilities->count() > 0;
             $hasOnlyElectricityFee = ($invoice->rent_subtotal == 0 && 
-                                     $invoice->utility_water_fee == 0 && 
-                                     $invoice->utility_wifi_fee == 0 && 
+                                     !$hasUtilities && 
                                      $invoice->utility_electricity_fee > 0);
             
             // Get invoice position for this booking (security deposit is typically 2nd invoice)
@@ -174,7 +182,13 @@ public function index(Request $request): View
                         default => 'Monthly Rent + Utilities + Electricity'
                     };
                 }
-                $invoiceType = $billingLabel;
+                // TYPE should be simpler - just the category
+                $invoiceType = match($durationType) {
+                    'Daily' => 'Daily Rate',
+                    'Weekly' => 'Weekly Rate',
+                    'Monthly' => 'Monthly Rent + Utilities',
+                    default => 'Monthly Rent + Utilities'
+                };
             }
             
             $invoice->setAttribute('billing_label', $billingLabel);

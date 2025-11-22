@@ -52,4 +52,5 @@ class ElectricReading extends Model
             ->orderBy('reading_id', 'asc')
             ->get();
     }
+
 }

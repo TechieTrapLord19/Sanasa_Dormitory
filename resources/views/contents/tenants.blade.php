@@ -126,7 +126,6 @@
         font-weight: 600;
         color: #2d3748;
         font-size: 0.875rem;
-        border-bottom: 2px solid #e2e8f0;
     }
 
     .tenants-table td {
@@ -142,6 +141,34 @@
 
     .tenants-table tbody tr:last-child td {
         border-bottom: none;
+    }
+
+    .tenants-table thead th {
+        padding: 1rem;
+        font-weight: 600;
+        background-color: #f8fafc;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    /* Age column - center */
+    .tenants-table th:nth-child(4),
+    .tenants-table td:nth-child(4) {
+        text-align: center;
+    }
+
+    /* Status column - center */
+    .tenants-table th:nth-child(5),
+    .tenants-table td:nth-child(5) {
+        text-align: center;
+    }
+
+    /* Actions column - center and fit content */
+    .tenants-table th:nth-child(6),
+    .tenants-table td:nth-child(6) {
+        text-align: center;
+        width: 1%;
+        white-space: nowrap;
+        padding: 1rem 0.75rem;
     }
 
     .status-badge {
@@ -167,6 +194,8 @@
     .action-buttons {
         display: flex;
         gap: 0.5rem;
+        justify-content: center;
+        align-items: center;
     }
 
     .btn-view, .btn-edit, .btn-archive, .btn-activate {

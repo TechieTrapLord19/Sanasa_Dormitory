@@ -447,11 +447,10 @@
                     <span id="summary_rate_plan">{{ $booking->rate->duration_type }}</span>
                 </div>
                 <div class="summary-section-title">Updated Charges</div>
-                <ul class="charges-list">
+                <ul class="charges-list" id="charges_list">
                     <li><span>Rate Total</span><span id="summary_rate_amount">₱0.00</span></li>
                     <li id="summary_deposit_row" style="display:none;"><span>Security Deposit</span><span id="summary_deposit_amount">₱0.00</span></li>
-                    <li id="summary_water_row" style="display:none;"><span>Water</span><span id="summary_water_amount">₱0.00</span></li>
-                    <li id="summary_wifi_row" style="display:none;"><span>Wi-Fi</span><span id="summary_wifi_amount">₱0.00</span></li>
+                    <!-- Utility rows will be dynamically added here -->
                 </ul>
                 <div class="italic-note" id="summary_inclusion_note" style="display:none;"></div>
                 <div class="summary-row total">
@@ -491,13 +490,17 @@ const ratesByDuration = {!! json_encode($ratesByDuration->mapWithKeys(function($
         'rate_id' => $rate->rate_id,
         'duration_type' => $rate->duration_type,
         'base_price' => $rate->base_price,
-        'inclusion' => $rate->inclusion,
+        'description' => $rate->description,
+        'utilities' => $rate->utilities->map(function($utility) {
+            return [
+                'name' => $utility->name,
+                'price' => $utility->price,
+            ];
+        })->values()->toArray(),
     ]];
 })->toArray()) !!};
 
 const monthlySecurityDeposit = {{ \App\Http\Controllers\BookingController::MONTHLY_SECURITY_DEPOSIT }};
-const utilityWaterFee = 350;
-const utilityWifiFee = 260;
 let missingRateAlertShown = false;
 
 function changeStep(direction) {
@@ -584,11 +587,15 @@ function updateSummary() {
 }
 
 function updateChargesDisplay(pricing) {
+    const chargesList = document.getElementById('charges_list');
     const depositRow = document.getElementById('summary_deposit_row');
-    const waterRow = document.getElementById('summary_water_row');
-    const wifiRow = document.getElementById('summary_wifi_row');
     const inclusionNote = document.getElementById('summary_inclusion_note');
 
+    // Remove existing utility rows (keep Rate Total and Security Deposit)
+    const existingUtilityRows = chargesList.querySelectorAll('.utility-row');
+    existingUtilityRows.forEach(row => row.remove());
+
+    // Display Security Deposit
     if (pricing.securityDeposit > 0) {
         depositRow.style.display = '';
         document.getElementById('summary_deposit_amount').textContent = '₱' + pricing.securityDeposit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -596,18 +603,25 @@ function updateChargesDisplay(pricing) {
         depositRow.style.display = 'none';
     }
 
-    if (pricing.waterFee > 0) {
-        waterRow.style.display = '';
-        document.getElementById('summary_water_amount').textContent = '₱' + pricing.waterFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    } else {
-        waterRow.style.display = 'none';
-    }
-
-    if (pricing.wifiFee > 0) {
-        wifiRow.style.display = '';
-        document.getElementById('summary_wifi_amount').textContent = '₱' + pricing.wifiFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    } else {
-        wifiRow.style.display = 'none';
+    // Dynamically add utility rows for ALL utilities
+    if (pricing.utilityFees) {
+        Object.keys(pricing.utilityFees).forEach(utilityName => {
+            const utilityFee = pricing.utilityFees[utilityName];
+            if (utilityFee > 0) {
+                const li = document.createElement('li');
+                li.className = 'utility-row';
+                li.innerHTML = `<span>${utilityName}</span><span>₱${utilityFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
+                // Insert before Security Deposit if it exists, or after Rate Total
+                const depositRowElement = chargesList.querySelector('#summary_deposit_row');
+                if (depositRowElement && depositRowElement.style.display !== 'none') {
+                    chargesList.insertBefore(li, depositRowElement.nextSibling);
+                } else {
+                    // Insert after Rate Total
+                    const rateTotalRow = chargesList.querySelector('li:first-child');
+                    chargesList.insertBefore(li, rateTotalRow.nextSibling);
+                }
+            }
+        });
     }
 
     if (pricing.inclusionNote) {
@@ -636,14 +650,71 @@ function calculatePricingSummary(days) {
         return null;
     }
 
-    let rateTotal = 0, securityDeposit = 0, waterFee = 0, wifiFee = 0, inclusionNote = '';
+    let rateTotal = 0, securityDeposit = 0, inclusionNote = '';
+    const utilityFees = {}; // Store all utilities dynamically
+
+    // Get utilities from rate
+    const utilities = {};
+    if (rate.utilities) {
+        rate.utilities.forEach(utility => {
+            utilities[utility.name] = utility.price;
+        });
+    }
 
     if (duration === 'Monthly') {
-        const months = Math.max(1, Math.ceil(days / 30));
-        rateTotal = rate.base_price * months;
+        // Calculate full months and remaining days
+        const fullMonths = Math.floor(days / 30);
+        const remainingDays = days % 30;
+        
+        // Calculate rate total: full months at monthly rate
+        rateTotal = rate.base_price * fullMonths;
+        
+        // IMPORTANT: Utilities are charged ONLY for full months, NOT for partial months
+        // Calculate fees for ALL utilities
+        Object.keys(utilities).forEach(utilityName => {
+            if (fullMonths > 0) {
+                utilityFees[utilityName] = utilities[utilityName] * fullMonths;
+            } else if (days > 0 && fullMonths === 0) {
+                // For stays less than 30 days, charge 1 month
+                utilityFees[utilityName] = utilities[utilityName];
+            } else {
+                utilityFees[utilityName] = 0;
+            }
+        });
+        
+        // For remaining days, use daily rate base_price (rent only)
+        // NOTE: If daily rate includes utilities in base_price, extract rent-only portion
+        // Utilities are NOT included in rateTotal
+        if (remainingDays > 0) {
+            const dailyRate = ratesByDuration['Daily'];
+            if (dailyRate) {
+                // Calculate daily rent-only amount
+                // If daily rate has utilities, subtract them from base_price to get rent-only
+                let dailyRentOnly = dailyRate.base_price;
+                if (dailyRate.utilities && dailyRate.utilities.length > 0) {
+                    const dailyUtilities = {};
+                    dailyRate.utilities.forEach(utility => {
+                        dailyUtilities[utility.name] = utility.price;
+                    });
+                    // Subtract ALL utilities from daily rate to get rent-only
+                    Object.keys(dailyUtilities).forEach(utilityName => {
+                        dailyRentOnly -= (dailyUtilities[utilityName] / 30); // Convert monthly utility to daily
+                    });
+                }
+                rateTotal += dailyRentOnly * remainingDays;
+            } else {
+                // Fallback: prorate monthly rate (rent only)
+                const dailyPrice = rate.base_price / 30;
+                rateTotal += dailyPrice * remainingDays;
+            }
+        }
+        
+        // Ensure at least 1 month if days > 0 but less than 30
+        if (days > 0 && fullMonths === 0) {
+            rateTotal = rate.base_price;
+        }
+        
         securityDeposit = monthlySecurityDeposit;
-        waterFee = utilityWaterFee * months;
-        wifiFee = utilityWifiFee * months;
         inclusionNote = 'Security deposit is a separate one-time payment (not included in invoice). Utilities are itemized separately for monthly stays.';
     } else if (duration === 'Weekly') {
         const weeks = Math.max(1, Math.ceil(days / 7));
@@ -654,7 +725,11 @@ function calculatePricingSummary(days) {
         inclusionNote = 'Water and Wi-Fi are included in the daily package.';
     }
 
-    return { rateTotal, securityDeposit, waterFee, wifiFee, inclusionNote, totalDue: rateTotal + securityDeposit + waterFee + wifiFee };
+    // Calculate total due
+    const utilitiesTotal = Object.values(utilityFees).reduce((sum, fee) => sum + fee, 0);
+    const totalDue = rateTotal + securityDeposit + utilitiesTotal;
+    
+    return { rateTotal, securityDeposit, utilityFees, totalDue, inclusionNote };
 }
 
 function loadRooms() {

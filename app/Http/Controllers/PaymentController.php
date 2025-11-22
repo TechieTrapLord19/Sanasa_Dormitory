@@ -83,14 +83,14 @@ class PaymentController extends Controller
                 'date_received' => $validated['date_received'],
             ]);
 
-            // Get the booking
-            $booking = Booking::with('tenant', 'room')->findOrFail($validated['booking_id']);
+            // Get the booking with tenant context
+            $booking = Booking::with(['tenant', 'secondaryTenant', 'room'])->findOrFail($validated['booking_id']);
             $invoice = null;
             $invoicePaid = false;
 
             // CRITICAL: Update the invoice if this is a Rent/Utility payment
             if ($validated['payment_type'] === 'Rent/Utility' && $validated['invoice_id']) {
-                $invoice = Invoice::with('booking')->findOrFail($validated['invoice_id']);
+                $invoice = Invoice::with(['booking', 'invoiceUtilities'])->findOrFail($validated['invoice_id']);
 
                 // Prevent payment on canceled bookings
                 if (optional($invoice->booking)->status === 'Canceled') {
@@ -119,7 +119,7 @@ class PaymentController extends Controller
             DB::commit();
 
             $description = "Recorded payment of ₱" . number_format($validated['amount'], 2) . " for booking #{$booking->booking_id}";
-            $description .= " (Tenant: {$booking->tenant->full_name}, Room: {$booking->room->room_num}, Method: {$validated['payment_method']})";
+            $description .= " (Tenant(s): {$booking->tenant_summary}, Room: {$booking->room->room_num}, Method: {$validated['payment_method']})";
             if ($invoicePaid) {
                 $description .= " - Invoice marked as paid";
             }
@@ -183,6 +183,7 @@ class PaymentController extends Controller
     {
         $payment = Payment::with([
             'booking.tenant',
+            'booking.secondaryTenant',
             'booking.room',
             'booking.rate',
             'invoice',
@@ -194,29 +195,36 @@ class PaymentController extends Controller
         $room = $booking->room;
         $collectedBy = $payment->collectedBy;
         $invoice = $payment->invoice;
+        $occupants = collect([$booking->tenant, $booking->secondaryTenant])->filter();
+
+        // Load invoice utilities if invoice exists
+        if ($invoice) {
+            $invoice->load('invoiceUtilities');
+        }
 
         // Determine payment type based on invoice (similar to InvoiceController logic)
         $paymentType = 'Rent/Utility'; // Default
         if ($invoice) {
             $durationType = optional($booking->rate)->duration_type ?? 'Monthly';
-            
+
             // Check if this is a security deposit invoice
-            $hasOnlyElectricityFee = ($invoice->rent_subtotal == 0 && 
-                                     $invoice->utility_water_fee == 0 && 
-                                     $invoice->utility_wifi_fee == 0 && 
+            // Use loaded relationship (property) instead of method call
+            $hasUtilities = $invoice->invoiceUtilities && $invoice->invoiceUtilities->count() > 0;
+            $hasOnlyElectricityFee = ($invoice->rent_subtotal == 0 &&
+                                     !$hasUtilities &&
                                      $invoice->utility_electricity_fee > 0);
-            
+
             // Get invoice position for this booking
             $invoiceCount = \App\Models\Invoice::where('booking_id', $booking->booking_id)
                 ->where('invoice_id', '<=', $invoice->invoice_id)
                 ->count();
-            
+
             $isEarlyInvoice = $invoiceCount <= 2;
-            
+
             // Security deposit is typically the 2nd invoice for monthly bookings
-            $isSecurityDepositInvoice = $hasOnlyElectricityFee && 
+            $isSecurityDepositInvoice = $hasOnlyElectricityFee &&
                                        ($isEarlyInvoice || abs($invoice->utility_electricity_fee - 5000.00) < 0.01);
-            
+
             if ($isSecurityDepositInvoice) {
                 $paymentType = 'Security Deposit';
             } elseif ($hasOnlyElectricityFee) {
@@ -235,8 +243,8 @@ class PaymentController extends Controller
                     $paymentType = match($durationType) {
                         'Daily' => 'Daily Rate',
                         'Weekly' => 'Weekly Rate',
-                        'Monthly' => 'Monthly Rent + Utilities + Electricity',
-                        default => 'Monthly Rent + Utilities + Electricity'
+                        'Monthly' => 'Monthly Rent + Utilities',
+                        default => 'Monthly Rent + Utilities'
                     };
                 }
             }
@@ -253,7 +261,8 @@ class PaymentController extends Controller
             'collectedBy',
             'receiptNumber',
             'paymentType',
-            'invoice'
+            'invoice',
+            'occupants'
         ));
     }
 }

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Rate;
 use App\Models\Room;
 use App\Models\Utility;
+use App\Models\Booking;
 use App\Traits\LogsActivity;
 use App\Traits\ChecksRole;
 
@@ -45,7 +46,7 @@ class RateController extends Controller
             'rate_name' => 'nullable|string|max:255',
             'duration_type' => 'required|string|in:Daily,Weekly,Monthly',
             'base_price' => 'required|numeric|min:0',
-            'inclusion' => 'required|string',
+            'description' => 'required|string',
             'utilities' => 'nullable|array',
             'utilities.*.name' => 'required_with:utilities|string|max:255',
             'utilities.*.price' => 'required_with:utilities|numeric|min:0',
@@ -55,7 +56,7 @@ class RateController extends Controller
             'rate_name' => $validatedData['rate_name'] ?? null,
             'duration_type' => $validatedData['duration_type'],
             'base_price' => $validatedData['base_price'],
-            'inclusion' => $validatedData['inclusion'],
+            'description' => $validatedData['description'],
         ]);
 
         // Create utilities if provided
@@ -74,7 +75,7 @@ class RateController extends Controller
         $rateName = $rate->rate_name ?? $rate->duration_type . ' Rate';
         $this->logActivity(
             'Created Rate',
-            "Created {$rateName} - Base Price: ₱" . number_format($rate->base_price, 2) . " (Inclusion: {$rate->inclusion})",
+            "Created {$rateName} - Base Price: ₱" . number_format($rate->base_price, 2) . " (Description: {$rate->description})",
             $rate
         );
 
@@ -94,7 +95,8 @@ class RateController extends Controller
      */
     public function edit(string $id)
     {
-        //
+        $rate = Rate::with('utilities')->findOrFail($id);
+        return response()->json($rate);
     }
 
     /**
@@ -111,7 +113,7 @@ class RateController extends Controller
             'rate_name' => 'nullable|string|max:255',
             'duration_type' => 'required|string|in:Daily,Weekly,Monthly',
             'base_price' => 'required|numeric|min:0',
-            'inclusion' => 'required|string',
+            'description' => 'required|string',
             'utilities' => 'nullable|array',
             'utilities.*.name' => 'required_with:utilities|string|max:255',
             'utilities.*.price' => 'required_with:utilities|numeric|min:0',
@@ -121,7 +123,7 @@ class RateController extends Controller
             'rate_name' => $validatedData['rate_name'] ?? null,
             'duration_type' => $validatedData['duration_type'],
             'base_price' => $validatedData['base_price'],
-            'inclusion' => $validatedData['inclusion'],
+            'description' => $validatedData['description'],
         ]);
 
         // Delete existing utilities and create new ones
@@ -141,7 +143,7 @@ class RateController extends Controller
         $rateName = $rate->rate_name ?? $rate->duration_type . ' Rate';
         $this->logActivity(
             'Updated Rate',
-            "Updated {$rateName} - Base Price: ₱" . number_format($rate->base_price, 2) . " (Inclusion: {$rate->inclusion})",
+            "Updated {$rateName} - Base Price: ₱" . number_format($rate->base_price, 2) . " (Description: {$rate->description})",
             $rate
         );
 
@@ -158,6 +160,14 @@ class RateController extends Controller
 
         $rate = Rate::findOrFail($id);
         $rateName = $rate->rate_name ?? $rate->duration_type . ' Rate';
+
+        // Check if there are any bookings using this rate
+        $bookingsCount = Booking::where('rate_id', $rate->rate_id)->count();
+        
+        if ($bookingsCount > 0) {
+            return redirect()->route('rates.index')
+                ->with('error', "Cannot delete {$rateName}. This rate is currently being used by {$bookingsCount} booking(s). Please remove or update the bookings first.");
+        }
 
         // Delete associated utilities
         $rate->utilities()->delete();

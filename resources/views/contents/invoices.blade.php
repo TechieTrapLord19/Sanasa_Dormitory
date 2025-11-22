@@ -498,6 +498,9 @@
 
 
     <form method="GET" action="{{ route('invoices') }}" class="filters-card">
+        @if(request('booking_id'))
+            <input type="hidden" name="booking_id" value="{{ request('booking_id') }}">
+        @endif
         <div class="status-filters">
             <button type="submit"
                     name="status"
@@ -551,6 +554,9 @@
             </svg>
         </div>
         <input type="hidden" name="per_page" value="{{ $perPage }}">
+        @if(request('booking_id'))
+            <input type="hidden" name="booking_id" value="{{ request('booking_id') }}">
+        @endif
     </form>
 
     <div class="invoices-table-card">
@@ -572,21 +578,21 @@
                 @forelse($invoices as $invoice)
                     @php
                         // Check if this is a security deposit invoice
-                        $isSecurityDepositInvoice = ($invoice->rent_subtotal == 0 && 
-                                                    $invoice->utility_water_fee == 0 && 
-                                                    $invoice->utility_wifi_fee == 0 && 
+                        // Use loaded relationship (property) instead of method call
+                        $hasUtilities = $invoice->invoiceUtilities && $invoice->invoiceUtilities->count() > 0;
+                        $isSecurityDepositInvoice = ($invoice->rent_subtotal == 0 &&
+                                                    !$hasUtilities &&
                                                     $invoice->utility_electricity_fee > 0);
-                        
+
                         if ($isSecurityDepositInvoice) {
                             $utilitiesTotal = 0; // Security deposit is shown separately
                             $securityDeposit = $invoice->utility_electricity_fee ?? 0;
                         } else {
-                            $utilitiesTotal = ($invoice->utility_water_fee ?? 0)
-                                + ($invoice->utility_wifi_fee ?? 0)
-                                + ($invoice->utility_electricity_fee ?? 0);
+                            // Calculate utilities total from invoice_utilities table
+                            $utilitiesTotal = ($invoice->invoiceUtilities ? $invoice->invoiceUtilities->sum('amount') : 0) + ($invoice->utility_electricity_fee ?? 0);
                             $securityDeposit = 0;
                         }
-                        
+
                         $statusLabel = $invoice->status_label;
                         $badgeClass = $statusLabel === 'Paid'
                             ? 'paid'
@@ -605,7 +611,13 @@
                         </td>
                         <td>
                             <div class="tenant-meta">
-                                <span class="tenant-name">{{ $invoice->tenant_name }}</span>
+                                <span class="tenant-name">
+                                    @if($invoice->booking)
+                                        {!! $invoice->booking->tenant_summary !!}
+                                    @else
+                                        {{ $invoice->tenant_name }}
+                                    @endif
+                                </span>
                                 <span class="tenant-room">
                                     Room {{ $invoice->room_number ?? '—' }}
                                 </span>
@@ -619,7 +631,7 @@
                                 </span>
                             </div>
                         </td>
-                        <td class="amount-col">{{ $invoice->billing_label ?? '—' }}</td>
+                        <td class="amount-col">{{ $invoice->invoice_type ?? '—' }}</td>
                         <td class="amount-col">
                             @if($isSecurityDepositInvoice)
                                 ₱{{ number_format($securityDeposit, 2) }}
@@ -644,17 +656,17 @@
                                             data-booking="{{ $invoice->booking_id }}"
                                             data-tenant="{{ $invoice->tenant_name }}"
                                             data-amount="{{ number_format($invoice->remaining_balance, 2) }}">
-                                        <i class="bi bi-credit-card"></i> Add Payment
+                                        <i class="bi bi-credit-card"></i>Payment
                                     </button>
                                 @endif
                                 @if($invoice->payments && $invoice->payments->isNotEmpty())
                                     @php
                                         $latestPayment = $invoice->payments->first();
                                     @endphp
-                                    <a href="{{ route('payments.receipt', $latestPayment->payment_id) }}" 
-                                       class="btn-add-payment" 
+                                    <a href="{{ route('payments.receipt', $latestPayment->payment_id) }}"
+                                       class="btn-add-payment"
                                        style="text-decoration: none;">
-                                        <i class="bi bi-printer"></i> Print Receipt
+                                        <i class="bi bi-printer"></i>Receipt
                                     </a>
                                 @endif
                             </div>
@@ -678,6 +690,9 @@
                 <form method="GET" action="{{ route('invoices') }}" class="d-flex align-items-center gap-2">
                     <input type="hidden" name="search" value="{{ $searchTerm }}">
                     <input type="hidden" name="status" value="{{ $activeStatus }}">
+                    @if(request('booking_id'))
+                        <input type="hidden" name="booking_id" value="{{ request('booking_id') }}">
+                    @endif
                     <label for="perPage" class="text-muted small mb-0">Rows per page</label>
                     <select class="form-select form-select-sm" id="perPage" name="per_page" onchange="this.form.submit()">
                         @foreach([10, 25, 50] as $option)

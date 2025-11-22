@@ -39,7 +39,6 @@
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        white-space: nowrap;
     }
 
     .status-badge.available {
@@ -53,6 +52,11 @@
     }
 
     .status-badge.maintenance {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+
+    .status-badge.pending {
         background-color: #fef3c7;
         color: #92400e;
     }
@@ -254,6 +258,84 @@
     .btn-edit-status i {
         font-size: 0.875rem;
     }
+
+    .btn-edit-status:disabled {
+        background-color: #e5e7eb;
+        color: #9ca3af;
+        border-color: #d1d5db;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .btn-edit-status:disabled:hover {
+        background-color: #e5e7eb;
+        color: #9ca3af;
+        border-color: #d1d5db;
+    }
+
+
+    .tenants-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .tenant-card {
+        background-color: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 1.25rem;
+        transition: all 0.2s ease;
+    }
+
+    .tenant-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border-color: #cbd5e0;
+    }
+
+    .tenant-header {
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .tenant-name {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #03255b;
+        margin: 0;
+    }
+
+    .tenant-details {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .detail-row {
+        display: flex;
+        gap: 0.75rem;
+        font-size: 0.9rem;
+    }
+
+    .detail-label {
+        color: #718096;
+        font-weight: 600;
+        min-width: 120px;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .detail-label i {
+        color: #03255b;
+        font-size: 0.9rem;
+    }
+
+    .detail-value {
+        color: #2d3748;
+        word-break: break-word;
+    }
 </style>
 
 <div class="room-details-container">
@@ -285,7 +367,7 @@
         </div>
     @endif
 
-    <!-- Room Information -->
+   <!-- Room Information -->
     <div class="info-section">
         <h2 class="info-section-title">Room Information</h2>
         <div class="info-grid">
@@ -298,32 +380,71 @@
                 <span class="info-value">Floor {{ $room->floor }}</span>
             </div>
             <div class="info-item">
+                <span class="info-label">Capacity</span>
+                <span class="info-value">{{ $room->capacity }} person(s)</span>
+            </div>
+            <div class="info-item">
                 <span class="info-label">Status</span>
                 <span class="info-value" style="display: flex; align-items: center; gap: 0.5rem;">
                     <span class="status-badge {{ $room->status }}">{{ ucfirst($room->status) }}</span>
-                    <button type="button" 
-                            class="btn-edit-status" 
-                            data-bs-toggle="modal" 
+                    <button type="button"
+                            class="btn-edit-status"
+                            data-bs-toggle="modal"
                             data-bs-target="#editStatusModal"
-                            title="Edit Status">
+                            title="Edit Status"
+                            @if($room->activeBooking) disabled @endif>
                         <i class="bi bi-pencil-square"></i>
                     </button>
                 </span>
             </div>
             <div class="info-item">
-                <span class="info-label">Capacity</span>
-                <span class="info-value">{{ $room->capacity }} person(s)</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Current Tenant</span>
+                <span class="info-label">Current Rate</span>
                 <span class="info-value">
-                    @if($room->activeBooking && $room->activeBooking->tenant)
-                        <strong>{{ $room->activeBooking->tenant->full_name }}</strong>
+                    @if($room->activeBooking && $room->activeBooking->rate)
+                        @php
+                            $rate = $room->activeBooking->rate;
+                            $rateLabel = $rate->rate_name ?? $rate->duration_type;
+                        @endphp
+                        <strong>{{ $rateLabel }}</strong> &middot; ₱{{ number_format($rate->base_price, 2) }}
                     @else
-                        <span style="color: #94a3b8;">No tenant assigned</span>
+                        <span style="color: #94a3b8;">No rate assigned</span>
                     @endif
                 </span>
             </div>
+        </div>
+    </div>
+    <!-- Current Tenant(s) -->
+    <div class="info-section">
+        <h2 class="info-section-title">Current Tenant(s)</h2>
+        <div class="tenants-grid">
+            @php
+                $occupants = collect([$room->activeBooking?->tenant, $room->activeBooking?->secondaryTenant])->filter();
+            @endphp
+            @if($occupants->isNotEmpty())
+                @foreach($occupants as $index => $occupant)
+                    <div class="tenant-card">
+                        <div class="tenant-header">
+                            <h4 class="tenant-name">{{ $occupant->full_name }}</h4>
+                        </div>
+                        <div class="tenant-details">
+                            <div class="detail-row">
+                                <span class="detail-label"><i class="bi bi-envelope"></i> Email:</span>
+                                <span class="detail-value">{{ $occupant->email ?? 'N/A' }}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label"><i class="bi bi-telephone"></i> Contact:</span>
+                                <span class="detail-value">{{ $occupant->contact_num ?? 'N/A' }}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label"><i class="bi bi-exclamation-circle"></i> Emergency:</span>
+                                <span class="detail-value">{{ $occupant->emer_contact_num ?? 'N/A' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            @else
+                <p class="text-muted">No tenant assigned</p>
+            @endif
         </div>
     </div>
 
@@ -524,33 +645,43 @@
                 <h5 class="modal-title" id="editStatusModalLabel">Update Room Status</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('rooms.update', $room->room_id) }}" method="POST">
+            <form action="{{ route('rooms.update', $room->room_id) }}" method="POST" id="editStatusForm">
                 @csrf
                 @method('PUT')
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="room_status" class="form-label">Room Status <span class="text-danger">*</span></label>
-                        <select class="form-select @error('status') is-invalid @enderror" 
-                                id="room_status" 
-                                name="status" 
-                                required>
-                            <option value="available" {{ old('status', $room->status) === 'available' ? 'selected' : '' }}>Available</option>
-                            <option value="occupied" {{ old('status', $room->status) === 'occupied' ? 'selected' : '' }}>Occupied</option>
-                            <option value="maintenance" {{ old('status', $room->status) === 'maintenance' ? 'selected' : '' }}>Maintenance</option>
-                        </select>
-                        @error('status')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                        <small class="text-muted">Select "Maintenance" if the room needs repair (e.g., broken aircon, damage, etc.)</small>
-                    </div>
+                    @if($room->activeBooking)
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> <strong>Room is Occupied</strong><br>
+                            Cannot change room status while occupied by an active booking. Please check out the tenant first.
+                        </div>
+                    @else
+                        <div class="mb-3">
+                            <label for="room_status" class="form-label">Room Status <span class="text-danger">*</span></label>
+                            <select class="form-select @error('status') is-invalid @enderror"
+                                    id="room_status"
+                                    name="status"
+                                    required>
+                                <option value="available" {{ old('status', $room->status) === 'available' ? 'selected' : '' }}>Available</option>
+                                <option value="pending" {{ old('status', $room->status) === 'pending' ? 'selected' : '' }}>Pending</option>
+                                <option value="occupied" {{ old('status', $room->status) === 'occupied' ? 'selected' : '' }}>Occupied</option>
+                                <option value="maintenance" {{ old('status', $room->status) === 'maintenance' ? 'selected' : '' }}>Maintenance</option>
+                            </select>
+                            @error('status')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <small class="text-muted">Select "Maintenance" if the room needs repair (e.g., broken aircon, damage, etc.)</small>
+                        </div>
+                    @endif
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="bi bi-x-circle"></i> Cancel
                     </button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check-circle"></i> Update Status
-                    </button>
+                    @if(!$room->activeBooking)
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Update Status
+                        </button>
+                    @endif
                 </div>
             </form>
         </div>

@@ -16,11 +16,13 @@ class Room extends Model
         'capacity',
         'status',
     ];
-       public function activeBooking(): HasOne
+    public function activeBooking(): HasOne
     {
         return $this->hasOne(Booking::class, 'room_id', 'room_id')
-                    ->where('status', 'Active')
-                    ->latest();
+                    ->whereIn('status', ['Active', 'Pending Payment'])
+                    ->with(['tenant', 'secondaryTenant', 'rate'])
+                    ->orderByRaw("CASE WHEN status = 'Active' THEN 0 ELSE 1 END")
+                    ->latest('checkin_date');
     }
 
     /**
@@ -62,5 +64,9 @@ class Room extends Model
     public function assets(): HasMany
     {
         return $this->hasMany(Asset::class, 'room_id', 'room_id');
+    }
+    public function electricReadings()
+    {
+        return $this->hasMany(ElectricReading::class, 'room_id');
     }
 }

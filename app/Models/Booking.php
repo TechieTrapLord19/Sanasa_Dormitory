@@ -21,6 +21,7 @@ class Booking extends Model
         'total_calculated_fee',
         'status',
         'cancellation_reason',
+        'secondary_tenant_id',
     ];
 
     protected $casts = [
@@ -38,11 +39,19 @@ class Booking extends Model
     }
 
     /**
-     * Get the tenant for this booking
+     * Get the primary tenant for this booking
      */
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class, 'tenant_id', 'tenant_id');
+    }
+
+    /**
+     * Get the secondary tenant for this booking
+     */
+    public function secondaryTenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class, 'secondary_tenant_id', 'tenant_id');
     }
 
     /**
@@ -132,47 +141,117 @@ class Booking extends Model
      * Returns: 'Pending Payment', 'Partial Payment', 'Paid', 'Active', 'Completed', or 'Canceled'
      * Note: Even if booking is Active, it can still show Pending/Partial Payment if invoices are not fully paid
      */
-    public function getEffectiveStatusAttribute(): string
+public function getEffectiveStatusAttribute(): string
+{
+    // If booking is in a final state, return it
+    if (in_array($this->status, ['Completed', 'Canceled'])) {
+        return $this->status;
+    }
+
+    // If booking has been checked in, treat it as Active regardless of invoice aggregation
+    if ($this->status === 'Active') {
+        return 'Active';
+    }
+
+    // Load invoices with payments
+    $invoices = $this->invoices()->with('payments')->get();
+
+    // If no invoices, return booking status
+    if ($invoices->isEmpty()) {
+        return $this->status === 'Active' ? 'Active' : 'Pending Payment';
+    }
+
+    $totalDue = $invoices->sum('total_due');
+    $totalPaid = 0;
+
+    foreach ($invoices as $invoice) {
+        $invoicePaid = $invoice->payments->sum('amount');
+        $totalPaid += $invoicePaid;
+    }
+
+    // No payments made yet
+    if ($totalPaid == 0) {
+        return 'Pending Payment';
+    }
+
+    // Fully paid
+    if ($totalPaid >= $totalDue) {
+        return 'Paid Payment';
+    }
+
+    // Partially paid
+    return 'Partial Payment';
+}
+
+    /**
+     * Get all tenant full names associated with the booking
+     */
+    public function getTenantNamesAttribute(): array
     {
-        // If booking is in a final state (Completed or Canceled), return it
-        if (in_array($this->status, ['Completed', 'Canceled'])) {
-            return $this->status;
+        return collect([
+            optional($this->tenant)->full_name,
+            optional($this->secondaryTenant)->full_name,
+        ])->filter()->values()->toArray();
+    }
+
+    /**
+     * Get tenant names as a single string
+     */
+    public function getTenantSummaryAttribute()
+    {
+        $tenants = collect();
+
+        // Add primary tenant
+        if ($this->tenant) {
+            $tenants->push($this->tenant->full_name);
         }
 
-        // Load invoices with payments
-        $invoices = $this->invoices()->with('payments')->get();
-        
-        if ($invoices->isEmpty()) {
-            // If booking is Active but no invoices, still show Active
-            return $this->status === 'Active' ? 'Active' : 'Pending Payment';
+        // Add secondary tenant
+        if ($this->secondaryTenant) {
+            $tenants->push($this->secondaryTenant->full_name);
         }
 
-        $totalDue = $invoices->sum('total_due');
-        $totalPaid = 0;
-        $hasAnyPayment = false;
+        if ($tenants->isEmpty()) {
+            return 'No tenants';
+        } elseif ($tenants->count() === 1) {
+            return $tenants->first();
+        } else {
+            return $tenants->implode("<br>");
+        }
+    }
 
-        foreach ($invoices as $invoice) {
-            $invoicePaid = $invoice->payments->sum('amount');
-            $totalPaid += $invoicePaid;
-            if ($invoicePaid > 0) {
-                $hasAnyPayment = true;
+    /**
+     * List conflicting tenant names who already have active/pending bookings
+     */
+    public static function conflictingTenantNames(array $tenantIds, ?int $excludeBookingId = null): array
+    {
+        if (empty($tenantIds)) {
+            return [];
+        }
+
+        $tenantIds = array_filter(array_unique($tenantIds));
+
+        $conflicts = static::query()
+            ->whereIn('status', ['Pending Payment', 'Active'])
+            ->when($excludeBookingId, function ($query) use ($excludeBookingId) {
+                $query->where('booking_id', '!=', $excludeBookingId);
+            })
+            ->where(function ($query) use ($tenantIds) {
+                $query->whereIn('tenant_id', $tenantIds)
+                      ->orWhereIn('secondary_tenant_id', $tenantIds);
+            })
+            ->with(['tenant', 'secondaryTenant', 'room'])
+            ->get();
+
+        return $conflicts->flatMap(function ($booking) use ($tenantIds) {
+            $names = collect();
+            if ($booking->tenant && in_array($booking->tenant_id, $tenantIds, true)) {
+                $names->push($booking->tenant->full_name);
             }
-        }
-
-        // If no payments at all
-        if (!$hasAnyPayment) {
-            // If booking is Active but no payments, show Pending Payment
-            return 'Pending Payment';
-        }
-
-        // If all invoices are fully paid
-        if ($totalPaid >= $totalDue) {
-            // If booking is Active and fully paid, show Active
-            return $this->status === 'Active' ? 'Active' : 'Paid';
-        }
-
-        // If partial payment (some payments but not fully paid)
-        // Show Partial Payment even if booking is Active
-        return 'Partial Payment';
+            if ($booking->secondaryTenant && in_array($booking->secondary_tenant_id, $tenantIds, true)) {
+                $names->push($booking->secondaryTenant->full_name);
+            }
+            return $names;
+        })->unique()->values()->toArray();
     }
 }

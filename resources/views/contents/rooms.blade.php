@@ -3,6 +3,7 @@
 @section('title', 'Rooms')
 
 @section('content')
+
 <style>
     .room-header {
         background-color: white;
@@ -24,20 +25,29 @@
         gap: 0.5rem;
         font-size: 0.80rem;
     }
+    /* Status Dots */
     .status-dot {
         width: 12px;
         height: 12px;
         border-radius: 50%;
+        display: inline-block;
     }
+
     .status-dot.available {
         background-color: #10b981;
     }
+
     .status-dot.occupied {
         background-color: #ef4444;
     }
+
     .status-dot.maintenance {
         background-color: #f59e0b;
     }
+
+    .status-dot.pending {
+        background-color: #fbbf24;
+}
     .create-room-btn {
         background-color: #03255b;
         color: white;
@@ -126,6 +136,10 @@
     }
 
     .room-status-badge.maintenance {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+    .room-status-badge.pending {
         background-color: #fef3c7;
         color: #92400e;
     }
@@ -252,6 +266,10 @@
     .room-item.hidden {
         display: none;
     }
+    .tenant-names {
+    font-size: 0.85rem;
+    line-height: 1.4;
+    }
 </style>
 
 <div class="room-header">
@@ -289,6 +307,7 @@
                 <p class="filter-label mb-0">Filter by Status:</p>
                 <button class="filter-btn active" data-filter="status" data-value="all">All</button>
                 <button class="filter-btn" data-filter="status" data-value="available">Available</button>
+                <button class="filter-btn" data-filter="status" data-value="pending">Pending</button>
                 <button class="filter-btn" data-filter="status" data-value="occupied">Occupied</button>
                 <button class="filter-btn" data-filter="status" data-value="maintenance">Maintenance</button>
             </div>
@@ -300,6 +319,10 @@
                 <div class="room-status-item">
                     <span class="status-dot available"></span>
                     <span>Available <strong>{{ $roomCounts['available'] ?? 0 }}/{{ $totalRooms ?? 0 }}</strong></span>
+                </div>
+                <div class="room-status-item">
+                    <span class="status-dot pending"></span>
+                    <span>Pending <strong>{{ $roomCounts['pending'] ?? 0 }}/{{ $totalRooms ?? 0 }}</strong></span>
                 </div>
                 <div class="room-status-item">
                     <span class="status-dot occupied"></span>
@@ -329,22 +352,39 @@
                                     {{ ucfirst($room->status) }}
                                 </span>
                             </div>
-                        <div class="room-info-item">
-                            <span class="room-info-label">Tenant:</span>
-                            <span>
-                                @if($room->activeBooking && $room->activeBooking->tenant)
-                                    {{ $room->activeBooking->tenant->full_name }}
-                                @else
-                                    N/A
-                                @endif
-                            </span>
-                        </div>
+                            <div class="room-info-item">
+                                <span class="room-info-label">Tenant(s):</span>
+                                <span class="tenant-names">
+                                    @if($room->activeBooking)
+                                        @php
+                                            $tenants = [];
+                                            if ($room->activeBooking->tenant) {
+                                                $firstName = explode(' ', $room->activeBooking->tenant->full_name)[0];
+                                                $lastName = explode(' ', $room->activeBooking->tenant->full_name);
+                                                $tenants[] = $firstName . ' ' . end($lastName);
+                                            }
+                                            if ($room->activeBooking->secondaryTenant) {
+                                                $firstName = explode(' ', $room->activeBooking->secondaryTenant->full_name)[0];
+                                                $lastName = explode(' ', $room->activeBooking->secondaryTenant->full_name);
+                                                $tenants[] = $firstName . ' ' . end($lastName);
+                                            }
+                                        @endphp
+                                        {!! implode('<br>', $tenants) !!}
+                                    @else
+                                        N/A
+                                    @endif
+                                </span>
+                            </div>
 
                         <div class="room-info-item">
                             <span class="room-info-label">Rate:</span>
                             <span>
                                 @if($room->activeBooking && $room->activeBooking->rate)
-                                    {{ $room->activeBooking->rate->duration_type }} - ₱{{ number_format($room->activeBooking->rate->base_price, 2) }}
+                                    @php
+                                        $rate = $room->activeBooking->rate;
+                                        $rateLabel = $rate->rate_name ?? $rate->duration_type;
+                                    @endphp
+                                    {{ $rateLabel }} - ₱{{ number_format($rate->base_price, 2) }}
                                 @else
                                     N/A
                                 @endif
@@ -426,6 +466,7 @@
                                 id="status" name="status" required>
                             <option value="">Select status...</option>
                             <option value="available" selected>Available</option>
+                            <option value="pending">Pending</option>
                             <option value="occupied">Occupied</option>
                             <option value="maintenance">Maintenance</option>
                         </select>

@@ -64,6 +64,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/assets/{id}', [AssetController::class, 'update'])->name('assets.update');
     Route::get('/electric-readings', [ElectricReadingController::class, 'index'])->name('electric-readings');
     Route::post('/electric-readings', [ElectricReadingController::class, 'store'])->name('electric-readings.store');
+    Route::post('/electric-readings/rate', [ElectricReadingController::class, 'storeRate'])->name('electric-readings.rate');
     Route::get('/maintenance-logs', [MaintenanceLogController::class, 'index'])->name('maintenance-logs');
     Route::post('/maintenance-logs', [MaintenanceLogController::class, 'store'])->name('maintenance-logs.store');
     Route::put('/maintenance-logs/{id}', [MaintenanceLogController::class, 'update'])->name('maintenance-logs.update');

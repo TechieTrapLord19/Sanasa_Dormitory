@@ -93,7 +93,7 @@
     .bookings-table-container {
         background-color: white;
         border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.1);
         overflow: hidden;
     }
 
@@ -126,23 +126,65 @@
         background-color: #f7fafc;
     }
 
+    .booking-row-clickable {
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+
+    .booking-row-clickable:hover {
+        background-color: #e2e8f0 !important;
+    }
+
+    .action-column {
+        cursor: default !important;
+    }
+
+    .action-column:hover {
+        background-color: transparent !important;
+    }
+
     .bookings-table tbody tr:last-child td {
         border-bottom: none;
+    }
+    .bookings-table thead th {
+    padding: 1rem;
+    font-weight: 600;
+    background-color: #f8fafc;
+    border-bottom: 2px solid #e2e8f0;
+    }
+
+    /* Status column - center */
+    .bookings-table th:nth-child(6),
+    .bookings-table td:nth-child(6) {
+        text-align: center;
+    }
+
+    /* Actions column - center */
+    .bookings-table th:nth-child(7),
+    .bookings-table td:nth-child(7) {
+        text-align: center;
+    }
+        /* Room Number column - center */
+    .bookings-table th:nth-child(2),
+    .bookings-table td:nth-child(2) {
+        text-align: center;
     }
 
     .status-badge {
         display: inline-block;
-        padding: 0.375rem 0.875rem;
+        padding: 0.35rem 0.75rem;
         border-radius: 20px;
         font-size: 0.75rem;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        white-space: nowrap;
+
     }
 
     .status-badge.Reserved {
         background-color: #dbeafe;
-        color: #1e40af;
+        color: #0369a1;
     }
 
     .status-badge.Active {
@@ -167,10 +209,10 @@
 
     .status-badge.Partial-Payment {
         background-color: #dbeafe;
-        color: #1e40af;
+        color: #0369a1;
     }
 
-    .status-badge.Paid {
+    .status-badge.Paid-Payment {
         background-color: #d1fae5;
         color: #065f46;
     }
@@ -383,7 +425,7 @@
                    name="search"
                    placeholder="Search by tenant name or room number..."
                    value="{{ request('search') }}">
-           <input type="hidden" name="status" id="statusInput" value="{{ request('status', 'Upcoming') }}">
+           <input type="hidden" name="status" id="statusInput" value="{{ request('status', 'All') }}">
         </form>
     </div>
 
@@ -392,10 +434,10 @@
         <p class="filter-label mb-0 align-self-center">Filter by Status:</p>
 
         <form method="GET" action="{{ route('bookings.index') }}" class="d-inline-block" style="display:inline-block;">
-            <input type="hidden" name="status" value="Upcoming">
+            <input type="hidden" name="status" value="All">
             <input type="hidden" name="search" value="{{ request('search') }}">
-            <button type="submit" class="filter-btn {{ ($statusFilter ?? 'Upcoming') === 'Upcoming' ? 'active' : '' }}">
-                Upcoming ({{ $statusCounts['Upcoming'] ?? 0 }})
+            <button type="submit" class="filter-btn {{ ($statusFilter ?? 'All') === 'All' ? 'active' : '' }}">
+                All ({{ $statusCounts['All'] ?? 0 }})
             </button>
         </form>
 
@@ -403,7 +445,7 @@
             <input type="hidden" name="status" value="Pending Payment">
             <input type="hidden" name="search" value="{{ request('search') }}">
             <button type="submit" class="filter-btn {{ ($statusFilter ?? '') === 'Pending Payment' ? 'active' : '' }}">
-                Pending Payment ({{ $statusCounts['Pending Payment'] ?? 0 }})
+                Pending ({{ $statusCounts['Pending Payment'] ?? 0 }})
             </button>
         </form>
 
@@ -411,15 +453,15 @@
             <input type="hidden" name="status" value="Partial Payment">
             <input type="hidden" name="search" value="{{ request('search') }}">
             <button type="submit" class="filter-btn {{ ($statusFilter ?? '') === 'Partial Payment' ? 'active' : '' }}">
-                Partial Payment ({{ $statusCounts['Partial Payment'] ?? 0 }})
+                Partial ({{ $statusCounts['Partial Payment'] ?? 0 }})
             </button>
         </form>
 
         <form method="GET" action="{{ route('bookings.index') }}" class="d-inline-block" style="display:inline-block;">
-            <input type="hidden" name="status" value="Paid">
+            <input type="hidden" name="status" value="Paid Payment">
             <input type="hidden" name="search" value="{{ request('search') }}">
-            <button type="submit" class="filter-btn {{ ($statusFilter ?? '') === 'Paid' ? 'active' : '' }}">
-                Paid ({{ $statusCounts['Paid'] ?? 0 }})
+            <button type="submit" class="filter-btn {{ ($statusFilter ?? '') === 'Paid Payment' ? 'active' : '' }}">
+                Paid ({{ $statusCounts['Paid Payment'] ?? 0 }})
             </button>
         </form>
 
@@ -454,7 +496,7 @@
     <table class="bookings-table">
         <thead>
             <tr>
-                <th>Tenant Name</th>
+                <th>Tenant(s)</th>
                 <th>Room Number</th>
                 <th>Check-in Date</th>
                 <th>Check-out Date</th>
@@ -465,9 +507,9 @@
         </thead>
         <tbody>
             @forelse($bookings as $booking)
-                <tr>
+                <tr class="booking-row-clickable" data-booking-id="{{ $booking->booking_id }}" style="cursor: pointer;">
                     <td>
-                        <strong>{{ $booking->tenant->full_name }}</strong>
+                        <strong>{!! $booking->tenant_summary !!}</strong>
                     </td>
                     <td>
                         {{ $booking->room->room_num }}
@@ -483,18 +525,21 @@
                     </td>
 
                     <td>
-                        <span class="status-badge {{ str_replace(' ', '-', $booking->effective_status) }}">
-                            {{ $booking->effective_status }}
+                        @php
+                            $status = $booking->effective_status;
+                        @endphp
+                        <span class="status-badge {{ str_replace(' ', '-', $status) }}">
+                            {{ $status }}
                         </span>
                     </td>
-                    <td>
+                    <td class="action-column" onclick="event.stopPropagation();">
                         <div class="action-buttons">
                             <a href="{{ route('bookings.show', $booking->booking_id) }}" class="btn-view">
-                                <i class="bi bi-eye"></i> View Details
+                                <i class="bi bi-eye"></i> View
                             </a>
                             @if($booking->effective_status !== 'Canceled' && $booking->effective_status !== 'Completed')
                                 <button type="button" class="btn-cancel" data-bs-toggle="modal" data-bs-target="#cancelBookingModal{{ $booking->booking_id }}">
-                                    <i class="bi bi-x-circle"></i> Cancel Booking
+                                    <i class="bi bi-x-circle"></i> Cancel
                                 </button>
                             @endif
                         </div>
@@ -559,11 +604,11 @@
                         </div>
                         <div class="mb-3">
                             <label for="cancellation_reason{{ $booking->booking_id }}" class="form-label">Cancellation Reason <span class="text-danger">*</span></label>
-                            <textarea class="form-control" 
-                                      id="cancellation_reason{{ $booking->booking_id }}" 
-                                      name="cancellation_reason" 
-                                      rows="4" 
-                                      placeholder="Enter the reason for cancelling this booking..." 
+                            <textarea class="form-control"
+                                      id="cancellation_reason{{ $booking->booking_id }}"
+                                      name="cancellation_reason"
+                                      rows="4"
+                                      placeholder="Enter the reason for cancelling this booking..."
                                       required></textarea>
                             <small class="text-muted">Please provide a detailed reason for the cancellation.</small>
                         </div>
@@ -580,4 +625,31 @@
     </div>
     @endif
 @endforeach
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Make booking rows clickable to navigate to invoices
+    const bookingRows = document.querySelectorAll('.booking-row-clickable');
+    
+    bookingRows.forEach(row => {
+        row.addEventListener('click', function(e) {
+            // Don't navigate if clicking on action buttons or links
+            if (e.target.closest('.action-column') || 
+                e.target.closest('.btn-view') || 
+                e.target.closest('.btn-cancel') ||
+                e.target.closest('button') ||
+                e.target.closest('a')) {
+                return;
+            }
+            
+            const bookingId = this.getAttribute('data-booking-id');
+            if (bookingId) {
+                // Navigate to invoices page filtered by booking_id
+                window.location.href = '{{ route("invoices") }}?booking_id=' + bookingId;
+            }
+        });
+    });
+});
+</script>
+
 @endsection

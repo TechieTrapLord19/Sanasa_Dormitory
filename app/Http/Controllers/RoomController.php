@@ -16,13 +16,21 @@ class RoomController extends Controller
      * Display a listing of the resource.
      */
     public function index()
-    {   $tenants = Tenant::all();
-        $rooms = Room::all();
-        $rooms = Room::with(['tenant', 'rate', 'activeBooking.tenant','activeBooking.tenant', 'assets'])->get();
+    {
+        $tenants = Tenant::all();
+        // Use fresh query to get latest data with proper relationships
+        $rooms = Room::with([
+            'activeBooking' => function($query) {
+                $query->with(['tenant', 'secondaryTenant', 'rate']);
+            },
+            'assets'
+        ])->get();
+
         $totalRooms = $rooms->count();
         $roomCounts = [
             'available' => Room::where('status', 'available')->count(),
             'occupied' => Room::where('status', 'occupied')->count(),
+            'pending' => Room::where('status', 'pending')->count(),
             'maintenance' => Room::where('status', 'maintenance')->count(),
         ];
         $floors = Room::select('floor')->distinct()->orderBy('floor')->pluck('floor');
@@ -46,17 +54,14 @@ class RoomController extends Controller
         // Only owners can create rooms
         $this->requireOwner();
 
-        // 2. ADD THIS VALIDATION LOGIC
         $validatedData = $request->validate([
             'room_num' => 'required|string|unique:rooms',
             'floor' => 'required|string',
             'capacity' => 'required|integer',
             'status' => [
                 'required',
-                Rule::in(['available', 'occupied', 'maintenance']) // <-- This is the check
-            ],
-            'rate_id' => 'required|exists:rates,rate_id'
-
+                Rule::in(['available', 'pending', 'occupied', 'maintenance'])
+            ]
         ]);
 
         $room = Room::create($validatedData);
@@ -75,9 +80,13 @@ class RoomController extends Controller
      */
     public function show(string $id)
     {
-        $room = Room::with(['assets', 'activeBooking.tenant'])
-                    ->findOrFail($id);
-        
+        $room = Room::with([
+            'assets',
+            'activeBooking' => function($query) {
+                $query->with(['tenant', 'secondaryTenant', 'rate']);
+            }
+        ])->findOrFail($id);
+
         return view('contents.rooms-show', compact('room'));
     }
 
@@ -94,13 +103,18 @@ class RoomController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $room = Room::findOrFail($id);
+        $room = Room::with('activeBooking')->findOrFail($id);
         $oldStatus = $room->status;
+
+        // Prevent status changes when room has an active booking
+        if ($room->activeBooking) {
+            return redirect()->back()->with('error', 'Cannot change room status while occupied by an active booking. Please check out the tenant first.');
+        }
 
         $validatedData = $request->validate([
             'status' => [
                 'required',
-                Rule::in(['available', 'occupied', 'maintenance'])
+                Rule::in(['available', 'pending', 'occupied', 'maintenance'])
             ]
         ]);
 

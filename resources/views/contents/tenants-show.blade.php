@@ -303,7 +303,7 @@
     <form action="{{ route('tenants.update', $tenant->tenant_id) }}" method="POST" id="tenantForm">
         @csrf
         @method('PUT')
-        
+
         <!-- Tenant Information -->
         <div class="info-section">
             <h2 class="info-section-title">Personal Information</h2>
@@ -339,7 +339,7 @@
                         @enderror
                     </div>
                 </div>
-                
+
                 <!-- Column 2: Contact Info (Stacked) -->
                 <div style="display: flex; flex-direction: column; gap: 1rem;">
                     <div class="info-item">
@@ -368,7 +368,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Column 3: Additional Info (Stacked) -->
                 <div style="display: flex; flex-direction: column; gap: 1rem;">
                     <div class="info-item">
@@ -400,7 +400,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Address (Full Width) -->
             <div class="info-item" style="margin-top: 1rem;">
                 <span class="info-label">Address</span>
@@ -412,7 +412,7 @@
                 @enderror
             </div>
         </div>
-        
+
         <!-- Status Field (Hidden in view, shown in edit mode) -->
         <div class="info-section" id="statusSection" style="display: none;">
             <h2 class="info-section-title">Account Status</h2>
@@ -484,7 +484,7 @@ function toggleEditMode() {
     const container = document.getElementById('tenantContainer');
     const statusSection = document.getElementById('statusSection');
     isEditMode = !isEditMode;
-    
+
     if (isEditMode) {
         container.classList.add('edit-mode');
         // Show status section in edit mode

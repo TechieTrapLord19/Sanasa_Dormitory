@@ -313,6 +313,126 @@
         font-size: 0.8rem;
         margin-top: 0.25rem;
     }
+    .tenant-dropdown-wrapper {
+        position: relative;
+        width: 100%;
+    }
+
+    .tenant-dropdown-btn {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        background-color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.2s ease;
+    }
+
+    .tenant-dropdown-btn:hover {
+        border-color: #03255b;
+        box-shadow: 0 0 0 3px rgba(3, 37, 91, 0.1);
+    }
+
+    .tenant-search-input-inline {
+        flex: 1;
+        border: none;
+        outline: none;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.9rem;
+        background: transparent;
+    }
+
+    .tenant-search-input-inline::placeholder {
+        color: #a0aec0;
+    }
+
+    .tenant-search-input-inline:focus {
+        outline: none;
+    }
+
+    .tenant-dropdown-btn i {
+        font-size: 0.875rem;
+        transition: transform 0.2s ease;
+        color: #718096;
+        margin-left: 0.5rem;
+        flex-shrink: 0;
+    }
+
+    .tenant-dropdown-btn.open i {
+        transform: rotate(180deg);
+    }
+
+    .tenant-dropdown-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background-color: white;
+        border: 1px solid #e2e8f0;
+        border-top: none;
+        border-radius: 0 0 6px 6px;
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 1000;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .tenant-list-container {
+        max-height: 250px;
+        overflow-y: auto;
+    }
+
+    .tenant-dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.65rem 1rem;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background-color 0.2s ease;
+    }
+
+    .tenant-dropdown-item:last-child {
+        border-bottom: none;
+    }
+
+    .tenant-dropdown-item:hover {
+        background-color: #f7fafc;
+    }
+
+    .tenant-dropdown-item.selected {
+        background-color: #e0f2fe;
+    }
+
+    .tenant-dropdown-item .tenant-checkbox {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: #03255b;
+        flex-shrink: 0;
+    }
+
+    .tenant-dropdown-item .tenant-label {
+        margin: 0;
+        cursor: pointer;
+        font-weight: 500;
+        color: #2d3748;
+        flex: 1;
+        font-size: 0.9rem;
+    }
+
+    .tenant-dropdown-item input:checked + .tenant-label {
+        color: #03255b;
+        font-weight: 600;
+    }
+
+    .tenant-no-results {
+        padding: 1rem;
+        text-align: center;
+        color: #718096;
+        font-size: 0.875rem;
+    }
 </style>
 
 <div class="booking-form-container">
@@ -409,22 +529,43 @@
 
         <!-- Step 2: Tenant -->
         <div class="step-content" data-step="2">
-            <h3 class="mb-3" style="color: #2d3748;">Select Tenant</h3>
+            <h3 class="mb-3" style="color: #2d3748;">Select Tenant(s)</h3>
 
             <div class="form-group">
-                <label class="form-label">Tenant <span class="text-danger">*</span></label>
-                <select class="form-select @error('tenant_id') is-invalid @enderror"
-                        name="tenant_id"
-                        id="tenant_id"
-                        required>
-                    <option value="">Select a tenant...</option>
-                    @foreach($tenants as $tenant)
-                        <option value="{{ $tenant->tenant_id }}" {{ old('tenant_id') == $tenant->tenant_id ? 'selected' : '' }}>
-                            {{ $tenant->full_name }}
-                        </option>
-                    @endforeach
-                </select>
-                @error('tenant_id')
+                <label class="form-label">Tenant(s) <span class="text-danger">*</span></label>
+                <div class="tenant-dropdown-wrapper">
+                    <div class="tenant-dropdown-btn" id="tenantDropdownBtn">
+                        <input type="text"
+                               id="tenantSearchInput"
+                               class="tenant-search-input-inline"
+                               placeholder="Search or select tenants..."
+                               autocomplete="off">
+                        <i class="bi bi-chevron-down"></i>
+                    </div>
+                    <div id="tenantDropdownMenu" class="tenant-dropdown-menu" style="display: none;">
+                        <div id="tenantListContainer" class="tenant-list-container">
+                            @if($tenants->isEmpty())
+                                <p class="text-muted p-3">No available tenants</p>
+                            @else
+                                @foreach($tenants as $tenant)
+                                    <div class="tenant-dropdown-item" data-tenant-name="{{ strtolower($tenant->full_name) }}">
+                                        <input type="checkbox"
+                                               class="tenant-checkbox"
+                                               name="tenant_ids[]"
+                                               value="{{ $tenant->tenant_id }}"
+                                               id="tenant_{{ $tenant->tenant_id }}"
+                                               {{ in_array($tenant->tenant_id, old('tenant_ids', [])) ? 'checked' : '' }}>
+                                        <label for="tenant_{{ $tenant->tenant_id }}" class="tenant-label">
+                                            {{ $tenant->full_name }}
+                                        </label>
+                                    </div>
+                                @endforeach
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                <small class="text-muted d-block mt-2">Select up to 2 tenants per booking (limited by room capacity).</small>
+                @error('tenant_ids')
                     <div class="text-danger small mt-1">{{ $message }}</div>
                 @enderror
                 <button type="button" class="add-tenant-btn" id="openTenantModal" data-bs-toggle="modal" data-bs-target="#tenantModal">
@@ -455,7 +596,7 @@
                     <span id="summary_nights">-</span>
                 </div>
                 <div class="summary-row">
-                    <span>Tenant:</span>
+                    <span>Tenant(s):</span>
                     <span id="summary_tenant">-</span>
                 </div>
                 <div class="summary-row">
@@ -466,8 +607,7 @@
                 <ul class="charges-list" id="charges_list">
                     <li><span>Rate Total</span><span id="summary_rate_amount">₱0.00</span></li>
                     <li id="summary_deposit_row" style="display:none;"><span>Security Deposit</span><span id="summary_deposit_amount">₱0.00</span></li>
-                    <li id="summary_water_row" style="display:none;"><span>Water</span><span id="summary_water_amount">₱0.00</span></li>
-                    <li id="summary_wifi_row" style="display:none;"><span>Wi-Fi</span><span id="summary_wifi_amount">₱0.00</span></li>
+                    <!-- Utility rows will be dynamically added here -->
                 </ul>
                 <div class="italic-note" id="summary_inclusion_note" style="display:none;"></div>
                 <div class="summary-row total">
@@ -575,18 +715,60 @@
 let currentStep = 1;
 const totalSteps = 3;
 const ratesByDuration = {!! json_encode($ratesByDuration->mapWithKeys(function($rate) {
+    $utilities = $rate->utilities->keyBy('name');
     return [$rate->duration_type => [
         'rate_id' => $rate->rate_id,
         'duration_type' => $rate->duration_type,
         'base_price' => $rate->base_price,
-        'inclusion' => $rate->inclusion,
+        'description' => $rate->description,
+        'utilities' => $rate->utilities->map(function($utility) {
+            return [
+                'name' => $utility->name,
+                'price' => $utility->price,
+            ];
+        })->values()->toArray(),
     ]];
 })->toArray()) !!};
 
 const monthlySecurityDeposit = {{ \App\Http\Controllers\BookingController::MONTHLY_SECURITY_DEPOSIT }};
-const utilityWaterFee = 350;
-const utilityWifiFee = 260;
 let missingRateAlertShown = false;
+let roomCapacityLimit = 2;
+
+function getTenantSelectElement() {
+    return document.querySelectorAll('.tenant-checkbox');
+}
+
+function getSelectedTenantNames() {
+    const checkboxes = document.querySelectorAll('.tenant-checkbox:checked');
+    return Array.from(checkboxes)
+        .map(checkbox => {
+            const label = document.querySelector(`label[for="${checkbox.id}"]`);
+            return label ? label.textContent.trim() : '';
+        })
+        .filter(name => name.length > 0);
+}
+
+function getSelectedTenantCount() {
+    return document.querySelectorAll('.tenant-checkbox:checked').length;
+}
+
+function enforceTenantSelectionLimit({ notify = true } = {}) {
+    const checkboxes = document.querySelectorAll('.tenant-checkbox:checked');
+    let removed = false;
+
+    if (checkboxes.length > roomCapacityLimit) {
+        // Uncheck the last selected ones
+        for (let i = roomCapacityLimit; i < checkboxes.length; i++) {
+            checkboxes[i].checked = false;
+            checkboxes[i].parentElement.classList.remove('selected');
+        }
+        removed = true;
+        if (notify) {
+            alert(`You can select up to ${roomCapacityLimit} tenant(s) for the selected room.`);
+        }
+    }
+    return removed;
+}
 
 // STEP NAVIGATION
 function changeStep(direction) {
@@ -647,11 +829,16 @@ function validateStep(step) {
     }
 
     if (step === 2) {
-        const tenantId = document.getElementById('tenant_id').value;
-        if (!tenantId) {
-            alert('Please select a tenant.');
+        // Check if at least one tenant checkbox is selected
+        const tenantCheckboxes = document.querySelectorAll('.tenant-checkbox:checked');
+
+        console.log('Tenant checkboxes checked:', tenantCheckboxes.length);
+
+        if (tenantCheckboxes.length === 0) {
+            alert('Please select at least one tenant.');
             return false;
         }
+
         return true;
     }
 
@@ -760,31 +947,36 @@ function updateSummary() {
     const checkin = document.getElementById('checkin_date').value;
     const checkout = document.getElementById('checkout_date').value;
     const stayLength = parseInt(document.getElementById('stay_length').value || '0', 10);
-    const tenantSelect = document.getElementById('tenant_id');
     const { rate, duration } = determineRateForSummary(stayLength);
 
     document.getElementById('summary_room').textContent = roomSelect ? roomSelect.querySelector('.room-number').textContent : '-';
     document.getElementById('summary_checkin').textContent = checkin ? new Date(checkin).toLocaleDateString() : '-';
     document.getElementById('summary_checkout').textContent = checkout ? new Date(checkout).toLocaleDateString() : '-';
     document.getElementById('summary_nights').textContent = stayLength ? `${stayLength} night(s)` : '-';
-    document.getElementById('summary_tenant').textContent = tenantSelect.options[tenantSelect.selectedIndex]?.text || '-';
+    const tenantNames = getSelectedTenantNames();
+    document.getElementById('summary_tenant').textContent = tenantNames.length ? tenantNames.join(' & ') : '-';
     document.getElementById('summary_rate').textContent = duration && rate ? `${duration} - ₱${Number(rate.base_price).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '-';
 
     if (checkin && checkout && stayLength && rate) {
         const pricing = calculatePricingSummary(stayLength, rate);
-        
+
         // For summary: Invoice total (rent + utilities, excluding security deposit)
-        const invoiceTotal = pricing.rateTotal + pricing.waterFee + pricing.wifiFee;
+        const utilitiesTotal = pricing.utilityFees ? Object.values(pricing.utilityFees).reduce((sum, fee) => sum + fee, 0) : 0;
+        const invoiceTotal = pricing.rateTotal + utilitiesTotal;
         document.getElementById('summary_rate_amount').textContent = '₱' + invoiceTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        
+
         // Total due includes security deposit (but it's paid separately)
         document.getElementById('summary_total_due').textContent = '₱' + pricing.totalDue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+        const chargesList = document.getElementById('charges_list');
         const depositRow = document.getElementById('summary_deposit_row');
-        const waterRow = document.getElementById('summary_water_row');
-        const wifiRow = document.getElementById('summary_wifi_row');
         const inclusionNote = document.getElementById('summary_inclusion_note');
 
+        // Remove existing utility rows (keep Rate Total and Security Deposit)
+        const existingUtilityRows = chargesList.querySelectorAll('.utility-row');
+        existingUtilityRows.forEach(row => row.remove());
+
+        // Display Security Deposit
         if (pricing.securityDeposit > 0) {
             depositRow.style.display = '';
             document.getElementById('summary_deposit_amount').textContent = '₱' + pricing.securityDeposit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -792,18 +984,25 @@ function updateSummary() {
             depositRow.style.display = 'none';
         }
 
-        if (pricing.waterFee > 0) {
-            waterRow.style.display = '';
-            document.getElementById('summary_water_amount').textContent = '₱' + pricing.waterFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        } else {
-            waterRow.style.display = 'none';
-        }
-
-        if (pricing.wifiFee > 0) {
-            wifiRow.style.display = '';
-            document.getElementById('summary_wifi_amount').textContent = '₱' + pricing.wifiFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        } else {
-            wifiRow.style.display = 'none';
+        // Dynamically add utility rows for ALL utilities
+        if (pricing.utilityFees) {
+            Object.keys(pricing.utilityFees).forEach(utilityName => {
+                const utilityFee = pricing.utilityFees[utilityName];
+                if (utilityFee > 0) {
+                    const li = document.createElement('li');
+                    li.className = 'utility-row';
+                    li.innerHTML = `<span>${utilityName}</span><span>₱${utilityFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
+                    // Insert before the total row (which is the last item, but we need to insert before Security Deposit if it exists, or at the end)
+                    const depositRowElement = chargesList.querySelector('#summary_deposit_row');
+                    if (depositRowElement && depositRowElement.style.display !== 'none') {
+                        chargesList.insertBefore(li, depositRowElement.nextSibling);
+                    } else {
+                        // Insert after Rate Total
+                        const rateTotalRow = chargesList.querySelector('li:first-child');
+                        chargesList.insertBefore(li, rateTotalRow.nextSibling);
+                    }
+                }
+            });
         }
 
         if (pricing.inclusionNote) {
@@ -829,15 +1028,70 @@ function calculatePricingSummary(days, rate) {
     let rateTotal = 0;
     let inclusionNote = '';
     let securityDeposit = 0;
-    let waterFee = 0;
-    let wifiFee = 0;
+    const utilityFees = {}; // Store all utilities dynamically
+
+    // Get utilities from rate
+    const utilities = {};
+    if (rate.utilities) {
+        rate.utilities.forEach(utility => {
+            utilities[utility.name] = utility.price;
+        });
+    }
 
     if (duration === 'Monthly') {
-        const months = Math.max(1, Math.ceil(days / 30));
-        rateTotal = rate.base_price * months;
+        // Calculate full months and remaining days
+        const fullMonths = Math.floor(days / 30);
+        const remainingDays = days % 30;
+
+        // Calculate rate total: full months at monthly rate
+        rateTotal = rate.base_price * fullMonths;
+
+        // IMPORTANT: Utilities are charged ONLY for full months, NOT for partial months
+        // Calculate fees for ALL utilities
+        Object.keys(utilities).forEach(utilityName => {
+            if (fullMonths > 0) {
+                utilityFees[utilityName] = utilities[utilityName] * fullMonths;
+            } else if (days > 0 && fullMonths === 0) {
+                // For stays less than 30 days, charge 1 month
+                utilityFees[utilityName] = utilities[utilityName];
+            } else {
+                utilityFees[utilityName] = 0;
+            }
+        });
+
+        // For remaining days, use daily rate base_price (rent only)
+        // NOTE: If daily rate includes utilities in base_price, extract rent-only portion
+        // Utilities are NOT included in rateTotal
+        if (remainingDays > 0) {
+            const dailyRate = ratesByDuration['Daily'];
+            if (dailyRate) {
+                // Calculate daily rent-only amount
+                // If daily rate has utilities, subtract them from base_price to get rent-only
+                let dailyRentOnly = dailyRate.base_price;
+                if (dailyRate.utilities && dailyRate.utilities.length > 0) {
+                    const dailyUtilities = {};
+                    dailyRate.utilities.forEach(utility => {
+                        dailyUtilities[utility.name] = utility.price;
+                    });
+                    // Subtract ALL utilities from daily rate to get rent-only
+                    Object.keys(dailyUtilities).forEach(utilityName => {
+                        dailyRentOnly -= (dailyUtilities[utilityName] / 30); // Convert monthly utility to daily
+                    });
+                }
+                rateTotal += dailyRentOnly * remainingDays;
+            } else {
+                // Fallback: prorate monthly rate (rent only)
+                const dailyPrice = rate.base_price / 30;
+                rateTotal += dailyPrice * remainingDays;
+            }
+        }
+
+        // Ensure at least 1 month if days > 0 but less than 30
+        if (days > 0 && fullMonths === 0) {
+            rateTotal = rate.base_price;
+        }
+
         securityDeposit = monthlySecurityDeposit;
-        waterFee = utilityWaterFee * months;
-        wifiFee = utilityWifiFee * months;
         inclusionNote = 'Security deposit is a separate invoice. Utilities are itemized separately for monthly stays.';
     } else if (duration === 'Weekly') {
         const weeks = Math.max(1, Math.ceil(days / 7));
@@ -848,8 +1102,11 @@ function calculatePricingSummary(days, rate) {
         inclusionNote = 'Water, Wi-Fi and Electricity are included in the daily package.';
     }
 
-    const totalDue = rateTotal + securityDeposit + waterFee + wifiFee;
-    return { rateTotal, securityDeposit, waterFee, wifiFee, totalDue, inclusionNote };
+    // Calculate total due
+    const utilitiesTotal = Object.values(utilityFees).reduce((sum, fee) => sum + fee, 0);
+    const totalDue = rateTotal + securityDeposit + utilitiesTotal;
+
+    return { rateTotal, securityDeposit, utilityFees, totalDue, inclusionNote };
 }
 
 // ROOM AVAILABILITY
@@ -873,12 +1130,14 @@ function checkAvailability() {
         .then(data => {
             const container = document.getElementById('roomsContainer');
             if (data.available_rooms && data.available_rooms.length > 0) {
-                container.innerHTML = data.available_rooms.map(room => `
-                    <div class="room-card" data-room-id="${room.room_id}" onclick="selectRoom(${room.room_id})">
+                container.innerHTML = data.available_rooms.map(room => {
+                    const capacity = room.capacity !== undefined && room.capacity !== null ? room.capacity : 2;
+                    return `
+                    <div class="room-card" data-room-id="${room.room_id}" data-capacity="${capacity}" onclick="selectRoom(${room.room_id})">
                         <div class="room-number">${room.room_num}</div>
-                        <div class="room-floor">Floor ${room.floor}</div>
-                    </div>
-                `).join('');
+                        <div class="room-floor">Floor ${room.floor} • Capacity: ${capacity}</div>
+                    </div>`;
+                }).join('');
             } else {
                 container.innerHTML = '<p class="text-muted">No rooms available for the selected dates.</p>';
             }
@@ -898,6 +1157,15 @@ function selectRoom(roomId) {
     if (card && !card.classList.contains('unavailable')) {
         card.classList.add('selected');
         document.getElementById('selected_room_id').value = roomId;
+        const capacity = parseInt(card.getAttribute('data-capacity'), 10);
+        roomCapacityLimit = isNaN(capacity) ? 2 : capacity;
+        const removed = enforceTenantSelectionLimit({ notify: false });
+        if (removed) {
+            alert(`Some tenants were unselected because the selected room allows up to ${roomCapacityLimit} tenant(s).`);
+        }
+        if (currentStep === 3) {
+            updateSummary();
+        }
     }
 }
 
@@ -906,18 +1174,18 @@ document.getElementById('bookingForm').addEventListener('submit', function(e) {
     const checkinDate = document.getElementById('checkin_date').value;
     const stayLength = document.getElementById('stay_length').value;
     const roomId = document.getElementById('selected_room_id').value;
-    const tenantId = document.getElementById('tenant_id').value;
+    const tenantCheckboxes = document.querySelectorAll('.tenant-checkbox:checked');
     const rateId = document.getElementById('rate_id').value;
 
     console.log('Form submission validation:', {
         checkinDate: !!checkinDate,
         stayLength: !!stayLength,
         roomId: !!roomId,
-        tenantId: !!tenantId,
+        tenantsSelected: tenantCheckboxes.length,
         rateId: !!rateId,
     });
 
-    if (!checkinDate || !stayLength || !roomId || !tenantId || !rateId) {
+    if (!checkinDate || !stayLength || !roomId || tenantCheckboxes.length === 0 || !rateId) {
         e.preventDefault();
         alert('Please complete all required fields before confirming.');
         return false;
@@ -933,6 +1201,96 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('checkin_date').addEventListener('change', calculateCheckoutDate);
     document.getElementById('custom_stay_length').addEventListener('input', handleCustomStayLength);
+
+    // Tenant dropdown and search functionality
+    const dropdownBtn = document.getElementById('tenantDropdownBtn');
+    const dropdownMenu = document.getElementById('tenantDropdownMenu');
+    const searchInput = document.getElementById('tenantSearchInput');
+    const listContainer = document.getElementById('tenantListContainer');
+
+    if (dropdownBtn && searchInput) {
+        // Open/close dropdown on input click
+        searchInput.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isOpen = dropdownMenu.style.display !== 'none';
+            dropdownMenu.style.display = isOpen ? 'none' : 'block';
+            dropdownBtn.classList.toggle('open');
+            if (dropdownMenu.style.display === 'block') {
+                searchInput.focus();
+            }
+        });
+
+        // Live search on input
+        searchInput.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const tenantItems = listContainer.querySelectorAll('.tenant-dropdown-item');
+            let visibleCount = 0;
+
+            tenantItems.forEach(item => {
+                const tenantName = item.getAttribute('data-tenant-name');
+                if (tenantName.includes(searchTerm)) {
+                    item.style.display = '';
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            // Show "no results" message
+            let noResultsMsg = listContainer.querySelector('.tenant-no-results');
+            if (visibleCount === 0 && searchTerm.length > 0) {
+                if (!noResultsMsg) {
+                    noResultsMsg = document.createElement('div');
+                    noResultsMsg.className = 'tenant-no-results';
+                    noResultsMsg.textContent = 'No tenants found';
+                    listContainer.appendChild(noResultsMsg);
+                }
+                noResultsMsg.style.display = '';
+            } else if (noResultsMsg) {
+                noResultsMsg.style.display = 'none';
+            }
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!dropdownBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                dropdownMenu.style.display = 'none';
+                dropdownBtn.classList.remove('open');
+                searchInput.value = '';
+                const tenantItems = listContainer.querySelectorAll('.tenant-dropdown-item');
+                tenantItems.forEach(item => item.style.display = '');
+                const noResultsMsg = listContainer.querySelector('.tenant-no-results');
+                if (noResultsMsg) noResultsMsg.style.display = 'none';
+            }
+        });
+    }
+
+    // Tenant checkbox listeners
+    const tenantCheckboxes = document.querySelectorAll('.tenant-checkbox');
+    tenantCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            // Update visual feedback
+            const item = this.parentElement;
+            if (this.checked) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
+            }
+
+            updateTenantDropdownText();
+            const removed = enforceTenantSelectionLimit();
+            if (removed && currentStep !== 3) {
+                // Alert already shown when notify true
+            }
+            if (currentStep === 3) {
+                updateSummary();
+            }
+        });
+    });
+
+    // Update dropdown text on load
+    updateTenantDropdownText();
+    enforceTenantSelectionLimit({ notify: false });
 
     // Tenant modal
     const tenantModalElement = document.getElementById('tenantModal');
@@ -983,12 +1341,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const tenant = await response.json();
             if (tenant && tenant.tenant_id) {
-                const tenantSelect = document.getElementById('tenant_id');
-                const option = document.createElement('option');
-                option.value = tenant.tenant_id;
-                option.textContent = tenant.full_name || `${tenant.first_name} ${tenant.last_name}`;
-                option.selected = true;
-                tenantSelect.appendChild(option);
+                const listContainer = document.getElementById('tenantListContainer');
+                const newCheckboxItem = document.createElement('div');
+                newCheckboxItem.className = 'tenant-dropdown-item selected';
+                newCheckboxItem.setAttribute('data-tenant-name', (tenant.full_name || `${tenant.first_name} ${tenant.last_name}`).toLowerCase());
+                newCheckboxItem.innerHTML = `
+                    <input type="checkbox"
+                           class="tenant-checkbox"
+                           name="tenant_ids[]"
+                           value="${tenant.tenant_id}"
+                           id="tenant_${tenant.tenant_id}"
+                           checked>
+                    <label for="tenant_${tenant.tenant_id}" class="tenant-label">
+                        ${tenant.full_name || `${tenant.first_name} ${tenant.last_name}`}
+                    </label>
+                `;
+                listContainer.appendChild(newCheckboxItem);
+
+                // Add event listener to new checkbox
+                newCheckboxItem.querySelector('.tenant-checkbox').addEventListener('change', function() {
+                    const item = this.parentElement;
+                    if (this.checked) {
+                        item.classList.add('selected');
+                    } else {
+                        item.classList.remove('selected');
+                    }
+                    updateTenantDropdownText();
+                    const removed = enforceTenantSelectionLimit();
+                    if (currentStep === 3) {
+                        updateSummary();
+                    }
+                });
+
+                enforceTenantSelectionLimit();
+                updateTenantDropdownText();
+                if (currentStep === 3) {
+                    updateSummary();
+                }
             }
             if (tenantModal) tenantModal.hide();
         } catch (error) {
@@ -998,6 +1387,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+function updateTenantDropdownText() {
+    const selectedTenants = getSelectedTenantNames();
+    const searchInput = document.getElementById('tenantSearchInput');
+
+    if (selectedTenants.length === 0) {
+        searchInput.placeholder = 'Search or select tenants...';
+    } else {
+        searchInput.placeholder = `${selectedTenants.length} tenant(s) selected - Search to add more`;
+    }
+}
 </script>
 @endsection
 

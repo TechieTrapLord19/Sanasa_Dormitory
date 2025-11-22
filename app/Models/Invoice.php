@@ -15,8 +15,6 @@ class Invoice extends Model
         'booking_id',
         'date_generated',
         'rent_subtotal',
-        'utility_water_fee',
-        'utility_wifi_fee',
         'utility_electricity_fee',
         'total_due',
         'is_paid',
@@ -25,8 +23,6 @@ class Invoice extends Model
     protected $casts = [
         'date_generated' => 'date',
         'rent_subtotal' => 'decimal:2',
-        'utility_water_fee' => 'decimal:2',
-        'utility_wifi_fee' => 'decimal:2',
         'utility_electricity_fee' => 'decimal:2',
         'total_due' => 'decimal:2',
         'is_paid' => 'boolean',
@@ -38,6 +34,14 @@ class Invoice extends Model
     public function booking(): BelongsTo
     {
         return $this->belongsTo(Booking::class, 'booking_id', 'booking_id');
+    }
+
+    /**
+     * Get all utilities for this invoice
+     */
+    public function invoiceUtilities(): HasMany
+    {
+        return $this->hasMany(InvoiceUtility::class, 'invoice_id', 'invoice_id');
     }
 
     /**

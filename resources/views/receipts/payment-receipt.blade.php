@@ -218,11 +218,16 @@
         <div class="receipt-section">
             <div class="receipt-section-title">Tenant & Booking</div>
             <div class="receipt-section-content">
-                <div class="info-line"><strong>{{ $tenant->full_name }}</strong></div>
+                @php
+                    $displayTenants = isset($occupants) && $occupants->count() > 0 ? $occupants : collect([$tenant]);
+                @endphp
+                @foreach($displayTenants as $person)
+                    <div class="info-line"><strong>{{ $person->full_name }}</strong></div>
+                    @if(!empty($person->contact_num))
+                        <div class="info-line">{{ $person->contact_num }}</div>
+                    @endif
+                @endforeach
                 <div class="info-line">Room: {{ $room->room_num }} | Booking #{{ $booking->booking_id }}</div>
-                @if($tenant->contact_num)
-                    <div class="info-line">{{ $tenant->contact_num }}</div>
-                @endif
             </div>
         </div>
 
@@ -280,17 +285,13 @@
                     <span class="receipt-value">₱{{ number_format($invoice->rent_subtotal, 2) }}</span>
                 </div>
                 @endif
-                @if($invoice->utility_water_fee > 0)
-                <div class="receipt-row">
-                    <span class="receipt-label">Water:</span>
-                    <span class="receipt-value">₱{{ number_format($invoice->utility_water_fee, 2) }}</span>
-                </div>
-                @endif
-                @if($invoice->utility_wifi_fee > 0)
-                <div class="receipt-row">
-                    <span class="receipt-label">WiFi:</span>
-                    <span class="receipt-value">₱{{ number_format($invoice->utility_wifi_fee, 2) }}</span>
-                </div>
+                @if($invoice->invoiceUtilities && $invoice->invoiceUtilities->count() > 0)
+                    @foreach($invoice->invoiceUtilities as $utility)
+                    <div class="receipt-row">
+                        <span class="receipt-label">{{ $utility->utility_name }}:</span>
+                        <span class="receipt-value">₱{{ number_format($utility->amount, 2) }}</span>
+                    </div>
+                    @endforeach
                 @endif
                 @if($invoice->utility_electricity_fee > 0 && !str_contains($paymentType, 'Security Deposit'))
                 <div class="receipt-row">

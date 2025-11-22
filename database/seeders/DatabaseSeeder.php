@@ -18,10 +18,10 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             UserSeeder::class, // <-- Call the UserSeeder here
-            RateSeeder::class, // <-- Call the RateSeeder here
             RoomSeeder::class, // <-- Call the RoomSeeder here
             TenantSeeder::class, // <-- Call the TenantSeeder here
             RoomAssetSeeder::class, // <-- Call the RoomAssetSeeder here
+            RateSeeder::class,      // Add this
         ]);
     }
 }

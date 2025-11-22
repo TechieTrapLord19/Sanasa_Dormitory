@@ -123,7 +123,7 @@
     }
 
     .reading-input {
-        width: 120px;
+        width: 140px;
         padding: 0.5rem;
         border: 1px solid #d0d7e2;
         border-radius: 6px;
@@ -180,6 +180,10 @@
 
     .btn-save-all:hover {
         background-color: #021d47;
+    }
+
+    .btn-save-all[style*="background-color: #8b5cf6"]:hover {
+        background-color: #7c3aed !important;
     }
 
     .save-all-section {
@@ -248,8 +252,26 @@
         <h1 class="readings-title">Electric Meter Readings</h1>
     </div>
 
-    <!-- Filters -->
+    <!-- Electricity Rate Card -->
     <div class="readings-filters">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <strong>Electricity Rate per kWh</strong>
+                <p class="text-muted mb-0 small">Set the price per kWh for electricity billing.</p>
+            </div>
+            <form method="POST" action="{{ route('electric-readings.rate') }}" id="rateForm" style="display:flex;align-items:center;gap:0.5rem;">
+                @csrf
+                <label for="kwh_price" style="margin:0;font-weight:600;color:#2d3748;">Price/ kWh (₱):</label>
+                <input id="kwh_price" type="number" name="electricity_rate_per_kwh" step="0.01" min="0" placeholder="Enter price per kWh" value="{{ old('electricity_rate_per_kwh', $electricityRate ?? '') }}" style="width:120px;padding:0.4rem;border:1px solid #d0d7e2;border-radius:6px;" required>
+                <button type="submit" class="btn-save-all" style="background-color: #03255b;">
+                    <i class="bi bi-save"></i> Save Rate
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="readings-filters" style="margin-top: 1rem;">
         <div class="filter-group">
             <label class="filter-label">Filter by Floor:</label>
             <button type="button" class="filter-btn active" data-filter="floor" data-value="all">All</button>
@@ -268,7 +290,7 @@
                     <tr>
                         <th>Room Number</th>
                         <th>Last Reading</th>
-                        <th>New Reading (kWh)</th>
+                        <th>New Meter Reading (kWh)</th>
                         <th>Date</th>
                         <th>Actions</th>
                     </tr>
@@ -296,14 +318,17 @@
                             </td>
                             <td>
                                 <input type="number"
-                                       class="reading-input"
+                                       class="reading-input meter-input"
                                        name="readings[{{ $room->room_id }}][meter_value_kwh]"
                                        data-last-reading="{{ $latestReading ? $latestReading->meter_value_kwh : 0 }}"
                                        step="0.01"
                                        min="0"
-                                       placeholder="0.00">
+                                       placeholder="e.g. 1300.00">
                                 <input type="hidden" name="readings[{{ $room->room_id }}][room_id]" value="{{ $room->room_id }}">
                                 <div class="reading-error" style="display: none; color: #dc2626; font-size: 0.75rem; margin-top: 0.25rem;"></div>
+                                <div class="reading-preview" style="font-size:0.85rem;color:#475569;margin-top:0.25rem;display:none;">
+                                    Usage: <span class="preview-usage">0.00</span> kWh — Cost: ₱<span class="preview-cost">0.00</span>
+                                </div>
                             </td>
                             <td>
                                 <input type="date"
@@ -335,7 +360,89 @@
 </div>
 
 <script>
+// Handle rate form submission separately
 document.addEventListener('DOMContentLoaded', function() {
+    const rateForm = document.getElementById('rateForm');
+    if (rateForm) {
+        rateForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const submitButton = this.querySelector('button[type="submit"]');
+            const originalText = submitButton.innerHTML;
+
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving...';
+
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(async response => {
+                const data = await response.json();
+                if (data.success) {
+                    // Update sessionStorage
+                    const rateValue = formData.get('electricity_rate_per_kwh');
+                    if (rateValue) {
+                        sessionStorage.setItem('electricity_rate_per_kwh', rateValue);
+                    }
+                    // Show success message and reload
+                    alert(data.message || 'Electricity rate saved successfully!');
+                    window.location.reload();
+                } else {
+                    throw new Error(data.message || 'Failed to save electricity rate');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error: ' + (error.message || 'Failed to save electricity rate. Please try again.'));
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalText;
+            });
+        });
+    }
+});
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const kwhPriceInput = document.getElementById('kwh_price');
+
+    // Load rate from sessionStorage on page load if input is empty
+    if (kwhPriceInput) {
+        const storedRate = sessionStorage.getItem('electricity_rate_per_kwh');
+        if (storedRate && !kwhPriceInput.value) {
+            kwhPriceInput.value = storedRate;
+        } else if (kwhPriceInput.value) {
+            // If there's a value from server, sync it to sessionStorage
+            sessionStorage.setItem('electricity_rate_per_kwh', kwhPriceInput.value);
+        }
+
+        // Whenever price input changes, immediately save to sessionStorage and update all previews
+        kwhPriceInput.addEventListener('input', function() {
+            if (this.value) {
+                sessionStorage.setItem('electricity_rate_per_kwh', this.value);
+            }
+            // Update all previews when rate changes
+            document.querySelectorAll('.meter-input').forEach(input => {
+                updatePreview(input);
+            });
+        });
+
+        kwhPriceInput.addEventListener('change', function() {
+            if (this.value) {
+                sessionStorage.setItem('electricity_rate_per_kwh', this.value);
+            }
+            // Update all previews when rate changes
+            document.querySelectorAll('.meter-input').forEach(input => {
+                updatePreview(input);
+            });
+        });
+    }
+
     // Set default date to today for all date inputs
     const today = new Date().toISOString().split('T')[0];
     document.querySelectorAll('.date-input').forEach(input => {
@@ -355,10 +462,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Validate reading inputs - check if new reading is less than last reading
-    document.querySelectorAll('.reading-input').forEach(input => {
+    // Validate meter inputs - input is new cumulative meter value; compute usage and preview cost
+    document.querySelectorAll('.meter-input').forEach(input => {
         input.addEventListener('blur', function() {
-            validateReading(this);
+            validateMeter(this);
         });
         input.addEventListener('input', function() {
             // Clear error on input
@@ -368,22 +475,45 @@ document.addEventListener('DOMContentLoaded', function() {
                 errorDiv.textContent = '';
             }
             this.classList.remove('invalid');
+            // Update preview
+            updatePreview(this);
         });
+        // Initialize preview on load
+        updatePreview(input);
     });
 
-    function validateReading(input) {
-        const newReading = parseFloat(input.value);
+    function validateMeter(input) {
+        const meter = parseFloat(input.value);
         const lastReading = parseFloat(input.getAttribute('data-last-reading')) || 0;
         const errorDiv = input.parentElement.querySelector('.reading-error');
 
-        if (!input.value || newReading <= 0) {
-            return; // Empty or invalid, will be caught by required validation
+        if (!input.value) {
+            // empty is allowed; treated as not-entered
+            return;
         }
 
-        if (lastReading > 0 && newReading < lastReading) {
+        if (isNaN(meter) || meter < 0) {
             input.classList.add('invalid');
             if (errorDiv) {
-                errorDiv.textContent = `Warning: New reading (${newReading.toFixed(2)}) is lower than last reading (${lastReading.toFixed(2)}). This may indicate a meter reset or error.`;
+                errorDiv.textContent = `Please enter a valid meter reading.`;
+                errorDiv.style.display = 'block';
+            }
+            return;
+        }
+
+        const usage = meter - lastReading;
+
+        if (usage < 0) {
+            // new reading lower than last — possible meter reset; warn but allow
+            input.classList.add('invalid');
+            if (errorDiv) {
+                errorDiv.textContent = `New reading is less than last reading. Please confirm.`;
+                errorDiv.style.display = 'block';
+            }
+        } else if (usage > 10000) {
+            input.classList.add('invalid');
+            if (errorDiv) {
+                errorDiv.textContent = `Warning: Usage (${usage.toFixed(2)} kWh) is unusually large.`;
                 errorDiv.style.display = 'block';
             }
         } else {
@@ -393,6 +523,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 errorDiv.textContent = '';
             }
         }
+        updatePreview(input);
+    }
+
+    function updatePreview(input) {
+        const meter = parseFloat(input.value);
+        const lastReading = parseFloat(input.getAttribute('data-last-reading')) || 0;
+        const preview = input.parentElement.querySelector('.reading-preview');
+        const usageSpan = input.parentElement.querySelector('.preview-usage');
+        const costSpan = input.parentElement.querySelector('.preview-cost');
+        const kwhPriceInput = document.getElementById('kwh_price');
+        const defaultPrice = kwhPriceInput && kwhPriceInput.value ? parseFloat(kwhPriceInput.value) : 0;
+
+        if (!preview) return;
+
+        if (isNaN(meter) || meter === null || input.value === '') {
+            preview.style.display = 'none';
+            return;
+        }
+
+        if (defaultPrice === 0) {
+            preview.style.display = 'none';
+            return;
+        }
+
+        const usage = Math.max(0, meter - lastReading);
+        const cost = usage * defaultPrice;
+
+        usageSpan.textContent = usage.toFixed(2);
+        costSpan.textContent = cost.toFixed(2);
+        preview.style.display = 'block';
     }
 
     // Floor filter functionality
@@ -432,8 +592,8 @@ function saveRow(button) {
     const readingDate = row.querySelector('input[name*="[reading_date]"]').value;
     const lastReading = parseFloat(meterInput.getAttribute('data-last-reading')) || 0;
 
-    if (!meterValue || meterValue <= 0) {
-        alert('Please enter a valid meter reading.');
+    if (!meterValue) {
+        alert('Please enter the new meter reading.');
         return;
     }
 
@@ -441,12 +601,15 @@ function saveRow(button) {
         alert('Please select a date.');
         return;
     }
+    const newMeterValue = parseFloat(meterValue);
+    if (isNaN(newMeterValue) || newMeterValue < 0) {
+        alert('Please enter a valid meter reading.');
+        return;
+    }
 
-    // Validate that new reading is not lower than last reading
-    const newReading = parseFloat(meterValue);
-    if (lastReading > 0 && newReading < lastReading) {
-        const confirmMessage = `Warning: The new reading (${newReading.toFixed(2)} kWh) is lower than the last reading (${lastReading.toFixed(2)} kWh).\n\nThis may indicate:\n- A meter reset/replacement\n- An error in data entry\n\nDo you want to proceed anyway?`;
-        if (!confirm(confirmMessage)) {
+    const usage = newMeterValue - lastReading;
+    if (usage < 0) {
+        if (!confirm('New reading is less than the last recorded reading. This may indicate a meter reset. Proceed anyway?')) {
             return;
         }
     }
@@ -456,7 +619,7 @@ function saveRow(button) {
     formData.append('_token', document.querySelector('input[name="_token"]').value);
     formData.append('room_id', roomId);
     formData.append('reading_date', readingDate);
-    formData.append('meter_value_kwh', meterValue);
+    formData.append('meter_value_kwh', newMeterValue);
 
     // Disable button during submission
     button.disabled = true;
@@ -503,20 +666,17 @@ document.getElementById('readingsForm').addEventListener('submit', function(e) {
         const match = name.match(/readings\[(\d+)\]/);
         if (match) {
             const roomId = match[1];
-            const meterValue = input.value;
+            const meterValueRaw = input.value;
             const dateInput = document.querySelector(`input[name="readings[${roomId}][reading_date]"]`);
             const lastReading = parseFloat(input.getAttribute('data-last-reading')) || 0;
-            const newReading = parseFloat(meterValue);
+            const meterValue = parseFloat(meterValueRaw);
 
-            if (meterValue && meterValue > 0) {
-                // Check if reading is lower than last reading
-                if (lastReading > 0 && newReading < lastReading) {
+            if (meterValueRaw && !isNaN(meterValue)) {
+                const usageCalc = meterValue - lastReading;
+
+                if (usageCalc < 0) {
                     const roomNum = input.closest('tr').querySelector('.room-number').textContent.trim();
-                    invalidReadings.push({
-                        room: roomNum,
-                        lastReading: lastReading,
-                        newReading: newReading
-                    });
+                    invalidReadings.push({ room: roomNum, lastReading: lastReading, newReading: meterValue });
                 }
 
                 readings.push({
@@ -529,8 +689,12 @@ document.getElementById('readingsForm').addEventListener('submit', function(e) {
         }
     });
 
-    if (!hasReadings) {
-        alert('Please enter at least one reading before saving.');
+    // Check if we have at least one reading or a rate to save
+    const kwhPriceInput = document.getElementById('kwh_price');
+    const hasRate = kwhPriceInput && kwhPriceInput.value && parseFloat(kwhPriceInput.value) > 0;
+
+    if (!hasReadings && !hasRate) {
+        alert('Please enter at least one reading or set a price/kWh rate before saving.');
         return;
     }
 
@@ -551,12 +715,19 @@ document.getElementById('readingsForm').addEventListener('submit', function(e) {
     const submitData = new FormData();
     submitData.append('_token', formData.get('_token'));
 
-    // Add readings array in the correct format
-    readings.forEach((reading, index) => {
-        submitData.append(`readings[${index}][room_id]`, reading.room_id);
-        submitData.append(`readings[${index}][reading_date]`, reading.reading_date);
-        submitData.append(`readings[${index}][meter_value_kwh]`, reading.meter_value_kwh);
-    });
+    // Add electricity rate
+    if (kwhPriceInput && kwhPriceInput.value) {
+        submitData.append('electricity_rate_per_kwh', kwhPriceInput.value);
+    }
+
+    // Add readings array in the correct format (send cumulative meter values)
+    if (readings.length > 0) {
+        readings.forEach((reading, index) => {
+            submitData.append(`readings[${index}][room_id]`, reading.room_id);
+            submitData.append(`readings[${index}][reading_date]`, reading.reading_date);
+            submitData.append(`readings[${index}][meter_value_kwh]`, reading.meter_value_kwh);
+        });
+    }
 
     const submitButton = this.querySelector('.btn-save-all');
     submitButton.disabled = true;

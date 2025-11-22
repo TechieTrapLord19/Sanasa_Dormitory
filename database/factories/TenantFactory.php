@@ -3,12 +3,17 @@
 namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use App\Models\Tenant;
 
-/**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Tenant>
- */
 class TenantFactory extends Factory
 {
+    /**
+     * The name of the factory's corresponding model.
+     *
+     * @var string
+     */
+    protected $model = Tenant::class;
+
     /**
      * Define the model's default state.
      *
@@ -17,15 +22,16 @@ class TenantFactory extends Factory
     public function definition(): array
     {
         return [
-            'first_name' => fake()->firstName(),
-            'middle_name' => fake()->optional()->lastName(), // optional() makes it sometimes NULL
-            'last_name' => fake()->lastName(),
-            'address' => fake()->address(),
-            'birth_date' => fake()->date('Y-m-d', '2005-01-01'), // Max birth year of 2005
-            'id_document' => 'id_docs/' . fake()->uuid() . '.jpg', // Simulates a file path
-            'contact_num' => fake()->phoneNumber(),
-            'emer_contact_num' => fake()->phoneNumber(),
-            'status' => fake()->randomElement(['Active', 'Inactive']),
+            'first_name' => $this->faker->firstName(),
+            'middle_name' => $this->faker->lastName(),
+            'last_name' => $this->faker->lastName(),
+            'email' => $this->faker->unique()->safeEmail(),
+            'address' => $this->faker->address(),
+            'birth_date' => $this->faker->dateTimeBetween('-60 years', '-18 years')->format('Y-m-d'),
+            'id_document' => 'ID-' . $this->faker->unique()->numerify('####-####'),
+            'contact_num' => '0917' . $this->faker->numerify('########'),
+            'emer_contact_num' => '0918' . $this->faker->numerify('########'),
+            'status' => 'active',
         ];
     }
 }

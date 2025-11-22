@@ -12,7 +12,7 @@ class Rate extends Model
         'rate_name',
         'duration_type',
         'base_price',
-        'inclusion',
+        'description',
     ];
 
     protected $casts = [
