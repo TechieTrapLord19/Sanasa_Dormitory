@@ -31,8 +31,8 @@ class BookingController extends Controller
 
         $query = Booking::with(['tenant', 'secondaryTenant', 'room', 'rate']);
 
-        // Filter by status tab - we'll filter after loading based on effective status
-        $statusFilter = $request->get('status', 'All');
+        // Filter by status tab - default to 'Pending Payment' if not specified
+        $statusFilter = $request->get('status', 'Pending Payment');
 
         // Map 'Paid' to 'Paid Payment' for backward compatibility
         if ($statusFilter === 'Paid') {
@@ -548,6 +548,8 @@ public function store(Request $request)
                 'room_id' => 'required|exists:rooms,room_id',
                 'checkin_date' => 'required|date',
                 'stay_length' => 'required|integer|min:1',
+                'tenant_ids' => 'required|array|min:1|max:2',
+                'tenant_ids.*' => 'required|exists:tenants,tenant_id',
             ], [
                 'room_id.required' => 'Please select a room.',
                 'room_id.exists' => 'The selected room does not exist.',
@@ -556,6 +558,10 @@ public function store(Request $request)
                 'stay_length.required' => 'Stay length is required.',
                 'stay_length.integer' => 'Stay length must be a whole number.',
                 'stay_length.min' => 'Stay length must be at least 1 day.',
+                'tenant_ids.required' => 'Please select at least one tenant.',
+                'tenant_ids.min' => 'Please select at least one tenant.',
+                'tenant_ids.max' => 'Maximum 2 tenants allowed per booking.',
+                'tenant_ids.*.exists' => 'One or more selected tenants do not exist.',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return back()->withErrors($e->errors())->withInput();
@@ -644,7 +650,54 @@ public function store(Request $request)
                 'checkout_date' => $checkoutDate->toDateString(),
                 'rate_id' => $rate->rate_id,
                 'total_calculated_fee' => $totalFee,
+                'tenant_id' => $validatedData['tenant_ids'][0] ?? null,
+                'secondary_tenant_id' => $validatedData['tenant_ids'][1] ?? null,
             ]);
+
+            // Update unpaid invoices for this booking (error recovery)
+            // Only update invoices that haven't been paid yet
+            $unpaidInvoices = Invoice::where('booking_id', $booking->booking_id)
+                ->where('is_paid', false)
+                ->get();
+
+            if ($unpaidInvoices->count() > 0) {
+                // Recalculate pricing based on new stay length
+                [$rentSubtotal, $utilities, $securityDeposit] = $this->calculateInvoiceBreakdown($rate, $stayLength, $durationType);
+
+                foreach ($unpaidInvoices as $invoice) {
+                    // Check if this is a security deposit invoice
+                    // Security deposit: rent_subtotal = 0, no utilities, utility_electricity_fee = 5000
+                    $isSecurityDepositInvoice = ($invoice->rent_subtotal == 0 &&
+                                                  $invoice->invoiceUtilities()->count() == 0 &&
+                                                  $invoice->utility_electricity_fee == self::MONTHLY_SECURITY_DEPOSIT);
+
+                    if ($isSecurityDepositInvoice) {
+                        // Security deposit invoice should NEVER be modified during booking updates
+                        // Skip updating this invoice to preserve its type and amount
+                        continue;
+                    } else {
+                        // Update rent and utilities invoice
+                        $utilitiesTotal = array_sum(array_column($utilities, 'amount'));
+
+                        $invoice->update([
+                            'rent_subtotal' => $rentSubtotal,
+                            'total_due' => $rentSubtotal + $utilitiesTotal,
+                        ]);
+
+                        // Update utilities in invoice_utilities table
+                        // Delete existing utilities for this invoice
+                        $invoice->invoiceUtilities()->delete();
+
+                        // Insert new utilities
+                        foreach ($utilities as $utility) {
+                            $invoice->invoiceUtilities()->create([
+                                'utility_name' => $utility['name'],
+                                'amount' => $utility['amount'],
+                            ]);
+                        }
+                    }
+                }
+            }
 
             // If booking is extended and is Active, generate renewal invoice
             if ($extensionDays > 0 && $booking->status === 'Active') {
@@ -1343,6 +1396,78 @@ public function checkin(string $id)
 
         $rate = Rate::where('duration_type', 'Daily')->first();
         return [$rate, 'Daily'];
+    }
+
+    /**
+     * Calculate invoice breakdown for a given rate and stay length
+     * Returns: [rentSubtotal, utilities (array), securityDeposit]
+     */
+    private function calculateInvoiceBreakdown($rate, int $stayLengthInDays, string $durationType): array
+    {
+        $days = max(1, $stayLengthInDays);
+        $rentSubtotal = 0;
+        $utilitiesArray = [];
+        $securityDeposit = 0;
+
+        // Load utilities from rate
+        $rate->load('utilities');
+        $rateUtilities = [];
+        foreach ($rate->utilities as $utility) {
+            $rateUtilities[$utility->name] = $utility->price;
+        }
+
+        if ($durationType === 'Monthly') {
+            $fullMonths = (int) floor($days / 30);
+            $remainingDays = $days - ($fullMonths * 30);
+
+            // Calculate rent (monthly rate * months)
+            $rentSubtotal = $rate->base_price * $fullMonths;
+
+            // Calculate utilities for full months only
+            if ($fullMonths > 0) {
+                foreach ($rateUtilities as $utilityName => $utilityPrice) {
+                    $utilitiesArray[] = [
+                        'name' => $utilityName,
+                        'amount' => $utilityPrice * $fullMonths,
+                    ];
+                }
+            }
+
+            // For remaining days, add daily rate (rent only, no utilities)
+            if ($remainingDays > 0) {
+                $dailyRate = Rate::where('duration_type', 'Daily')->first();
+                if ($dailyRate) {
+                    // Use daily rate base_price (includes utilities in the rate)
+                    $rentSubtotal += $dailyRate->base_price * $remainingDays;
+                } else {
+                    // Fallback: prorate monthly rate
+                    $rentSubtotal += ($rate->base_price / 30) * $remainingDays;
+                }
+            }
+
+            // Ensure at least 1 month charges if less than 30 days
+            if ($days > 0 && $fullMonths == 0) {
+                $rentSubtotal = $rate->base_price;
+                $utilitiesArray = [];
+                foreach ($rateUtilities as $utilityName => $utilityPrice) {
+                    $utilitiesArray[] = [
+                        'name' => $utilityName,
+                        'amount' => $utilityPrice,
+                    ];
+                }
+            }
+
+            $securityDeposit = self::MONTHLY_SECURITY_DEPOSIT;
+        } elseif ($durationType === 'Weekly') {
+            $weeks = max(1, (int) ceil($days / 7));
+            $rentSubtotal = $rate->base_price * $weeks;
+            // Utilities included in weekly rate
+        } else { // Daily
+            $rentSubtotal = $rate->base_price * $days;
+            // Utilities included in daily rate
+        }
+
+        return [$rentSubtotal, $utilitiesArray, $securityDeposit];
     }
 
     /**

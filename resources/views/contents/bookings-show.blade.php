@@ -569,15 +569,9 @@
     <div class="charges-summary">
         <h2 class="info-section-title">Charges To Collect</h2>
         <div class="charge-row">
-            <span>Rate Total ({{ $chargeSummary['duration_type'] }})</span>
+            <span>Rent ({{ $chargeSummary['duration_type'] }})</span>
             <span>₱{{ number_format($chargeSummary['rate_total'], 2) }}</span>
         </div>
-        @if($chargeSummary['security_deposit'] > 0)
-        <div class="charge-row">
-            <span>Security Deposit</span>
-            <span>₱{{ number_format($chargeSummary['security_deposit'], 2) }}</span>
-        </div>
-        @endif
         @if(isset($chargeSummary['utilities']) && count($chargeSummary['utilities']) > 0)
             @foreach($chargeSummary['utilities'] as $utility)
             <div class="charge-row">
@@ -585,6 +579,12 @@
                 <span>₱{{ number_format($utility['amount'], 2) }}</span>
             </div>
             @endforeach
+        @endif
+        @if($chargeSummary['security_deposit'] > 0)
+        <div class="charge-row">
+            <span>Security Deposit</span>
+            <span>₱{{ number_format($chargeSummary['security_deposit'], 2) }}</span>
+        </div>
         @endif
         <div class="charge-row total">
             <span>Total Due</span>
@@ -960,7 +960,7 @@
                         // Show calculation if new reading is entered
                         const newVal = parseFloat(newMeterInput.value) || 0;
                         const lastVal = hasLastReading ? lastReadingValue : 0;
-                        
+
                         let detailsHtml = `
                             <div style="display: grid; gap: 0.5rem;">
                                 <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(0,0,0,0.1);">
@@ -976,7 +976,7 @@
                                     <span><strong>${kwhUsed.toFixed(2)} kWh</strong></span>
                                 </div>
                         `;
-                        
+
                         if (rate > 0) {
                             const totalFee = kwhUsed * rate;
                             detailsHtml += `
@@ -998,7 +998,7 @@
                             `;
                             submitBtnText.textContent = 'Generate Electricity Invoice';
                         }
-                        
+
                         detailsHtml += `</div>`;
                         calculationDiv.style.display = 'block';
                         detailsDiv.innerHTML = detailsHtml;
@@ -1011,7 +1011,7 @@
                 // Load rate from sessionStorage on page load
                 const storedRate = sessionStorage.getItem('electricity_rate_per_kwh');
                 const currentRateDisplay = document.getElementById('currentRateDisplay');
-                
+
                 if (storedRate && rateInput) {
                     // Always update from sessionStorage if available (it's the most recent)
                     rateInput.value = storedRate;
@@ -1035,7 +1035,7 @@
                         }
                         calculateElectricity();
                     });
-                    
+
                     // Trigger calculation on page load
                     calculateElectricity();
                 }

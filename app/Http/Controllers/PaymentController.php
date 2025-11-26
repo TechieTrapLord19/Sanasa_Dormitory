@@ -131,10 +131,11 @@ class PaymentController extends Controller
                 $successMessage .= ' Invoice marked as paid.';
             }
 
-            // Redirect back to invoices page with success message and payment ID for receipt
-            return redirect()->route('invoices')
+            // Redirect to booking details page for easy check-in
+            return redirect()->route('bookings.show', ['id' => $booking->booking_id])
                 ->with('success', $successMessage)
-                ->with('payment_id', $payment->payment_id);
+                ->with('payment_id', $payment->payment_id)
+                ->with('show_checkin', true); // Flag to highlight check-in button
         } catch (\Exception $e) {
             DB::rollBack();
 

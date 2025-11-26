@@ -36,6 +36,13 @@ return new class extends Migration
             return;
         }
 
+        // Update any 'pending' status to 'available' before reverting constraint
+        DB::statement("
+            UPDATE rooms
+            SET status = 'available'
+            WHERE status = 'pending'
+        ");
+
         DB::statement("
             ALTER TABLE rooms
             DROP CONSTRAINT IF EXISTS CHK_RoomStatus
@@ -48,4 +55,3 @@ return new class extends Migration
         ");
     }
 };
-

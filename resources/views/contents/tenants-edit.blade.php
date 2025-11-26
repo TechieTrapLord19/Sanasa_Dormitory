@@ -66,7 +66,7 @@
     <form action="{{ route('tenants.update', $tenant->tenant_id) }}" method="POST">
         @csrf
         @method('PUT')
-        
+
         <div class="row">
             <div class="col-md-4 mb-3">
                 <label for="first_name" class="form-label">First Name <span class="text-danger">*</span></label>
@@ -152,11 +152,21 @@
             </div>
             <div class="col-md-6 mb-3">
                 <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
+                @php
+                    $hasActiveBooking = $tenant->bookings()->where('status', 'Active')->exists();
+                @endphp
                 <select class="form-select @error('status') is-invalid @enderror"
-                        id="status" name="status" required>
+                        id="status" name="status" required
+                        @if($hasActiveBooking && $tenant->status === 'active') disabled @endif>
                     <option value="active" {{ old('status', $tenant->status) === 'active' ? 'selected' : '' }}>Active</option>
                     <option value="inactive" {{ old('status', $tenant->status) === 'inactive' ? 'selected' : '' }}>Inactive</option>
                 </select>
+                @if($hasActiveBooking && $tenant->status === 'active')
+                    <input type="hidden" name="status" value="active">
+                    <small class="text-warning d-block mt-1">
+                        <i class="bi bi-exclamation-triangle"></i> Cannot change status while tenant has an active booking
+                    </small>
+                @endif
                 @error('status')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror

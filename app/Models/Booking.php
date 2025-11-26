@@ -203,12 +203,12 @@ public function getEffectiveStatusAttribute(): string
 
         // Add primary tenant
         if ($this->tenant) {
-            $tenants->push($this->tenant->full_name);
+            $tenants->push($this->formatTenantName($this->tenant));
         }
 
         // Add secondary tenant
         if ($this->secondaryTenant) {
-            $tenants->push($this->secondaryTenant->full_name);
+            $tenants->push($this->formatTenantName($this->secondaryTenant));
         }
 
         if ($tenants->isEmpty()) {
@@ -221,6 +221,27 @@ public function getEffectiveStatusAttribute(): string
     }
 
     /**
+     * Format tenant name as "LastName, FirstName MiddleInitial."
+     */
+    private function formatTenantName($tenant): string
+    {
+        // Use the individual name fields directly instead of parsing full_name
+        $lastName = $tenant->last_name;
+        $firstName = $tenant->first_name;
+        $middleName = $tenant->middle_name;
+
+        if (!$lastName || !$firstName) {
+            return $tenant->full_name;
+        }
+
+        // If there's a middle name, add the initial with a period
+        if ($middleName) {
+            return $lastName . ', ' . $firstName . ' ' . $middleName[0] . '.';
+        }
+
+        // Only first and last name
+        return $lastName . ', ' . $firstName;
+    }    /**
      * List conflicting tenant names who already have active/pending bookings
      */
     public static function conflictingTenantNames(array $tenantIds, ?int $excludeBookingId = null): array

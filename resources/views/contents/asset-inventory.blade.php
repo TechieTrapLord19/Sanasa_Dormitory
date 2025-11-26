@@ -34,6 +34,11 @@
         color: white;
     }
 
+    .modal-footer .btn-primary:hover {
+        background-color: #021d47 !important;
+        border-color: #021d47 !important;
+    }
+
     /* Filter Styles */
     .assets-filters {
         background-color: white;
@@ -135,7 +140,7 @@
     }
 
     .assets-table tbody tr:hover {
-        background-color: #f7fafc;
+        background-color: #f8fafc;
     }
 
     .assets-table tbody tr:last-child td {
@@ -387,9 +392,9 @@
 
             <div class="filter-group">
                 <label class="filter-label">Search:</label>
-                <input type="text" 
-                       name="search" 
-                       class="filter-input" 
+                <input type="text"
+                       name="search"
+                       class="filter-input"
                        placeholder="Search by asset name..."
                        value="{{ $searchTerm }}">
             </div>
@@ -568,7 +573,7 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="bi bi-x-circle"></i> Cancel
                     </button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary" style="background-color: #03255b; border-color: #03255b;">
                         <i class="bi bi-plus-circle"></i> Add Asset
                     </button>
                 </div>

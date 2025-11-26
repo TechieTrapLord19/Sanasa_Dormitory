@@ -39,13 +39,13 @@ class TenantController extends Controller
         if (!in_array($perPage, [10, 25, 50], true)) {
             $perPage = 10;
         }
-        
+
         $tenants = $query->withCount('bookings')
-                         ->orderBy('last_name')
-                         ->orderBy('first_name')
+                         ->orderBy('created_at', 'desc')
+                         ->orderBy('tenant_id', 'desc')
                          ->paginate($perPage)
                          ->withQueryString();
-        
+
         // Get counts for status indicators
         $statusCounts = [
             'active' => Tenant::where('status', 'active')->count(),
@@ -119,7 +119,7 @@ class TenantController extends Controller
         $tenant = Tenant::with(['bookings.room', 'bookings.rate', 'bookings.invoices.payments'])
                         ->withCount('bookings')
                         ->findOrFail($id);
-        
+
         return view('contents.tenants-show', compact('tenant'));
     }
 
@@ -152,6 +152,20 @@ class TenantController extends Controller
 
         $tenant = Tenant::findOrFail($id);
         $oldStatus = $tenant->status;
+
+        // Check if tenant has active booking before allowing status change to inactive
+        if ($validatedData['status'] === 'inactive' && $oldStatus === 'active') {
+            $hasActiveBooking = $tenant->bookings()
+                ->where('status', 'Active')
+                ->exists();
+
+            if ($hasActiveBooking) {
+                return redirect()->back()
+                    ->withErrors(['status' => 'Cannot set tenant to inactive while they have an active booking. Please check out the tenant first.'])
+                    ->withInput();
+            }
+        }
+
         $tenant->update($validatedData);
 
         $description = "Updated tenant {$tenant->full_name}";
@@ -171,6 +185,17 @@ class TenantController extends Controller
     public function archive(string $id)
     {
         $tenant = Tenant::findOrFail($id);
+
+        // Check if tenant has active booking
+        $hasActiveBooking = $tenant->bookings()
+            ->where('status', 'Active')
+            ->exists();
+
+        if ($hasActiveBooking) {
+            return redirect()->back()
+                ->with('error', 'Cannot archive tenant while they have an active booking. Please check out the tenant first.');
+        }
+
         $tenant->update(['status' => 'inactive']);
 
         $this->logActivity(

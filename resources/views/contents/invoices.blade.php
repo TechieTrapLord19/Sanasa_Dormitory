@@ -29,8 +29,14 @@
     .invoices-subtitle {
         color: #64748b;
         margin: 0.25rem 0 0;
-        font-size: 0.95rem;
+        font-size: 1rem;
     }
+
+    .modal-footer .btn-primary:hover {
+        background-color: #021d47 !important;
+        border-color: #021d47 !important;
+    }
+
     .add-invoice-btn {
         background-color: #03255b;
         color: white;
@@ -184,32 +190,44 @@
         background-color: white;
         border-radius: 8px;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-        margin-bottom: 2rem;
+        margin-bottom: 0;
     }
+
+    .table-scroll-container {
+        overflow-x: auto;
+        overflow-y: visible;
+    }
+
     .invoices-table {
         width: 100%;
+        min-width: 100%;
         border-collapse: collapse;
+        table-layout: auto;
     }
     .invoices-table thead {
         background: #f8fafc;
     }
     .invoices-table th {
-        padding: 0.9rem 1.25rem;
-        font-size: 0.78rem;
+        padding: 0.9rem 0.75rem;
+        font-size: 0.72rem;
         font-weight: 700;
         letter-spacing: 0.05em;
         text-transform: uppercase;
         color: #64748b;
         border-bottom: 1px solid #e2e8f0;
         white-space: nowrap;
+        position: sticky;
+        top: 0;
+        background: #f8fafc;
+        z-index: 10;
     }
     .invoices-table td {
-        padding: 1rem 1.25rem;
-        font-size: 0.9rem;
+        padding: 0.75rem 0.75rem;
+        font-size: 0.85rem;
         color: #1f2937;
         border-bottom: 1px solid #f1f5f9;
         vertical-align: middle;
+        white-space: nowrap;
     }
     .invoices-table tbody tr:hover {
         background-color: #f8fafc;
@@ -249,10 +267,11 @@
     .tenant-name {
         font-weight: 600;
         color: #0f172a;
+        font-size: 0.9rem;
     }
     .tenant-room {
         color: #64748b;
-        font-size: 0.85rem;
+        font-size: 0.78rem;
         font-weight: 500;
     }
     .amount-col {
@@ -266,10 +285,10 @@
         gap: 0.5rem;
     }
     .btn-add-payment {
-        padding: 0.5rem 1rem;
+        padding: 0.4rem 0.75rem;
         border: none;
         border-radius: 6px;
-        font-size: 0.875rem;
+        font-size: 0.8rem;
         font-weight: 500;
         cursor: pointer;
         transition: all 0.2s ease;
@@ -277,11 +296,11 @@
         color: white;
         display: inline-flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.4rem;
     }
 
     .btn-add-payment i {
-        font-size: 1rem;
+        font-size: 0.9rem;
     }
     .btn-add-payment:hover {
         background-color: #059669;
@@ -294,11 +313,11 @@
     }
     .invoice-type {
         font-weight: 600;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         color: #1e293b;
     }
     .invoice-date {
-        font-size: 0.78rem;
+        font-size: 0.72rem;
         color: #94a3b8;
         font-weight: 500;
     }
@@ -307,9 +326,11 @@
         justify-content: space-between;
         align-items: center;
         padding: 1rem 1.25rem;
-        background-color: #f8fafc;
+        background-color: #ffffff;
         flex-wrap: wrap;
         gap: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
     .pagination-wrapper .form-select {
         width: auto;
@@ -532,16 +553,6 @@
                     class="status-chip {{ $activeStatus === 'cancelled' ? 'active' : '' }}">
                 Cancelled ({{ $statusCounts['cancelled'] ?? 0 }})
             </button>
-            <div class="legend">
-                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f97316;"></span>
-                Pending
-                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#0ea5e9;"></span>
-                Partial
-                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;"></span>
-                Paid
-                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#991b1b;"></span>
-                Cancelled
-            </div>
         </div>
         <div class="filter-search">
             <input type="text"
@@ -560,21 +571,22 @@
     </form>
 
     <div class="invoices-table-card">
-        <table class="invoices-table">
-            <thead>
-                <tr>
-                    <th>Invoice</th>
-                    <th>Tenant &amp; Room</th>
-                    <th>Billing</th>
-                    <th>Type</th>
-                    <th>Utilities</th>
-                    <th>Total Due</th>
-                    <th>Collected</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
+        <div class="table-scroll-container">
+            <table class="invoices-table">
+                <thead>
+                    <tr>
+                        <th>Invoice</th>
+                        <th>Tenant &amp; Room</th>
+                        <th>Billing Period</th>
+                        <th style="width: 50px;">Type</th>
+                        <th>Details</th>
+                        <th>Total Due</th>
+                        <th>Collected</th>
+                        <th style="text-align: center;">Status</th>
+                        <th style="text-align: center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
                 @forelse($invoices as $invoice)
                     @php
                         // Check if this is a security deposit invoice
@@ -607,6 +619,7 @@
                             <div class="invoice-metadata">
                                 <span class="invoice-type">#{{ str_pad($invoice->invoice_id, 5, '0', STR_PAD_LEFT) }}</span>
                                 <span class="invoice-date">Generated {{ optional($invoice->date_generated)->format('M d, Y') ?? '—' }}</span>
+                                <span class="invoice-date">Due: {{ optional($invoice->date_generated)->addDays(5)->format('M d, Y') ?? '—' }}</span>
                             </div>
                         </td>
                         <td>
@@ -624,24 +637,36 @@
                             </div>
                         </td>
                         <td>
-                            <div class="invoice-metadata">
-                                <span class="invoice-type">{{ $invoice->billing_label }}</span>
-                                <span class="invoice-date">
-                                    {{ $invoice->billing_period ?? 'Recurring' }}
-                                </span>
-                            </div>
+                            <span class="invoice-date">
+                                @if($invoice->booking)
+                                    {{ optional($invoice->booking->checkin_date)->format('M d') }} - {{ optional($invoice->booking->checkout_date)->format('M d, Y') }}
+                                @else
+                                    —
+                                @endif
+                            </span>
                         </td>
-                        <td class="amount-col">{{ $invoice->invoice_type ?? '—' }}</td>
-                        <td class="amount-col">
+                        <td class="amount-col" style="white-space: normal; line-height: 1.4;">
                             @if($isSecurityDepositInvoice)
-                                ₱{{ number_format($securityDeposit, 2) }}
+                                Security<br>Deposit
                             @else
-                                ₱{{ number_format($utilitiesTotal, 2) }}
+                                Monthly Rent +<br>Utilities
+                            @endif
+                        </td>
+                        <td style="font-size: 0.8rem; color: #64748b; line-height: 1.5;">
+                            @if($isSecurityDepositInvoice)
+                                Security deposit for<br> monthly stay
+                            @else
+                                @if($invoice->rent_subtotal > 0)
+                                    Rent: ₱{{ number_format($invoice->rent_subtotal ?? 0, 2) }}<br>
+                                @endif
+                                @if($utilitiesTotal > 0)
+                                    Utilities: ₱{{ number_format($utilitiesTotal, 2) }}
+                                @endif
                             @endif
                         </td>
                         <td class="amount-col">₱{{ number_format($invoice->total_due ?? 0, 2) }}</td>
                         <td class="amount-col text-success">₱{{ number_format($invoice->total_collected ?? 0, 2) }}</td>
-                        <td>
+                        <td style="text-align: center;">
                             <span class="badge-status {{ $badgeClass }}">
                                 {{ $statusLabel }}
                             </span>
@@ -677,46 +702,46 @@
                         <td colspan="9">
                             <div class="no-data-state">
                                 <strong>No invoices found</strong>
-                                Adjust your filters or switch back to “All” to see every invoice in the system.
+                                Adjust your filters or switch back to "All" to see every invoice in the system.
                             </div>
                         </td>
                     </tr>
                 @endforelse
             </tbody>
         </table>
+    </div>
 
-        <div class="pagination-wrapper">
-            <div class="pagination-left">
-                <form method="GET" action="{{ route('invoices') }}" class="d-flex align-items-center gap-2">
-                    <input type="hidden" name="search" value="{{ $searchTerm }}">
-                    <input type="hidden" name="status" value="{{ $activeStatus }}">
-                    @if(request('booking_id'))
-                        <input type="hidden" name="booking_id" value="{{ request('booking_id') }}">
-                    @endif
-                    <label for="perPage" class="text-muted small mb-0">Rows per page</label>
-                    <select class="form-select form-select-sm" id="perPage" name="per_page" onchange="this.form.submit()">
-                        @foreach([10, 25, 50] as $option)
-                            <option value="{{ $option }}" {{ (int) $perPage === $option ? 'selected' : '' }}>
-                                {{ $option }}
-                            </option>
-                        @endforeach
-                    </select>
-                </form>
-            </div>
-            <div class="pagination-center">
-                <p class="small text-muted mb-0">
-                    Showing
-                    <span class="fw-semibold">{{ $invoices->firstItem() ?? 0 }}</span>
-                    to
-                    <span class="fw-semibold">{{ $invoices->lastItem() ?? 0 }}</span>
-                    of
-                    <span class="fw-semibold">{{ $invoices->total() }}</span>
-                    results
-                </p>
-            </div>
-            <div class="pagination-right">
-                {{ $invoices->appends(['status' => $activeStatus, 'search' => $searchTerm, 'per_page' => $perPage])->links() }}
-            </div>
+    <div class="pagination-wrapper">
+        <div class="pagination-left">
+            <form method="GET" action="{{ route('invoices') }}" class="d-flex align-items-center gap-2">
+                <input type="hidden" name="search" value="{{ $searchTerm }}">
+                <input type="hidden" name="status" value="{{ $activeStatus }}">
+                @if(request('booking_id'))
+                    <input type="hidden" name="booking_id" value="{{ request('booking_id') }}">
+                @endif
+                <label for="perPage" class="text-muted small mb-0">Rows per page</label>
+                <select class="form-select form-select-sm" id="perPage" name="per_page" onchange="this.form.submit()">
+                    @foreach([10, 25, 50] as $option)
+                        <option value="{{ $option }}" {{ (int) $perPage === $option ? 'selected' : '' }}>
+                            {{ $option }}
+                        </option>
+                    @endforeach
+                </select>
+            </form>
+        </div>
+        <div class="pagination-center">
+            <p class="small text-muted mb-0">
+                Showing
+                <span class="fw-semibold">{{ $invoices->firstItem() ?? 0 }}</span>
+                to
+                <span class="fw-semibold">{{ $invoices->lastItem() ?? 0 }}</span>
+                of
+                <span class="fw-semibold">{{ $invoices->total() }}</span>
+                results
+            </p>
+        </div>
+        <div class="pagination-right">
+            {{ $invoices->appends(['status' => $activeStatus, 'search' => $searchTerm, 'per_page' => $perPage])->links() }}
         </div>
     </div>
 </div>
@@ -832,7 +857,7 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="bi bi-x-circle"></i> Cancel
                     </button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary" style="background-color: #03255b; border-color: #03255b;">
                         <i class="bi bi-credit-card"></i> Save Payment
                     </button>
                 </div>

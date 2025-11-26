@@ -41,6 +41,11 @@
         font-size: 1rem;
     }
 
+    .modal-footer .btn-primary:hover {
+        background-color: #021d47 !important;
+        border-color: #021d47 !important;
+    }
+
     /* Filter Styles */
     .rates-filters {
         background-color: white;
@@ -395,7 +400,7 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="bi bi-x-circle"></i> Close
                     </button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary" style="background-color: #03255b; border-color: #03255b;">
                         <i class="bi bi-plus-circle"></i> Create Rate
                     </button>
                 </div>
@@ -477,7 +482,7 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="bi bi-x-circle"></i> Close
                     </button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary" style="background-color: #03255b; border-color: #03255b;">
                         <i class="bi bi-check-circle"></i> Update Rate
                     </button>
                 </div>

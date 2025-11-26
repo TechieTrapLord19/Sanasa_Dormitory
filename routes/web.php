@@ -16,22 +16,23 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\RefundController;
 use App\Http\Controllers\ElectricReadingController;
 use App\Http\Controllers\MaintenanceLogController;
-
+use App\Http\Controllers\DashboardController;
 //default page to login
 Route::get('/', [IndexController::class, 'index'])->name('home');
 
-// Authentication Routes
-Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [LoginController::class, 'login']);
-Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+// Authentication Routes (redirect to dashboard if already authenticated)
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [LoginController::class, 'login']);
+    Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
+    Route::post('/register', [RegisterController::class, 'register']);
+});
 
-Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
-Route::post('/register', [RegisterController::class, 'register']);
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 // Protected content routes
 Route::middleware('auth')->group(function () {
-    Route::view('/dashboard', 'contents.dashboard')->name('dashboard');
-
+Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     // Bookings routes
     Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
     Route::get('/bookings/create', [BookingController::class, 'create'])->name('bookings.create');
@@ -55,6 +56,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/tenants/{id}/archive', [TenantController::class, 'archive'])->name('tenants.archive');
     Route::post('/tenants/{id}/activate', [TenantController::class, 'activate'])->name('tenants.activate');
     Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices');
+    Route::get('/invoices/{id}', [InvoiceController::class, 'show'])->name('invoices.show');
     Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
     Route::get('/payments/{id}/receipt', [PaymentController::class, 'showReceipt'])->name('payments.receipt');
     Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs');

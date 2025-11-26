@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Asset;
 use App\Models\Room;
+use App\Models\MaintenanceLog;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
 use App\Traits\LogsActivity;
 
 class AssetController extends Controller
@@ -113,11 +115,31 @@ class AssetController extends Controller
             $location = "Storage";
         }
 
-        $this->logActivity(
-            'Created Asset',
-            "Added asset '{$asset->name}' to {$location} (Condition: {$asset->condition})",
-            $asset
-        );
+        $description = "Added asset '{$asset->name}' to {$location} (Condition: {$asset->condition})";
+
+        // Automatically create maintenance log if asset is created with "Needs Repair" or "Broken" condition
+        if (in_array($asset->condition, ['Needs Repair', 'Broken'])) {
+            $issueDescription = "New asset '{$asset->name}' added to {$location} with condition '{$asset->condition}'. ";
+
+            // Add automatic description based on condition
+            if ($asset->condition === 'Needs Repair') {
+                $issueDescription .= "Requires maintenance and repair work.";
+            } else if ($asset->condition === 'Broken') {
+                $issueDescription .= "Asset is broken and needs immediate attention.";
+            }
+
+            MaintenanceLog::create([
+                'asset_id' => $asset->asset_id,
+                'description' => $issueDescription,
+                'logged_by_user_id' => Auth::id(),
+                'date_reported' => now(),
+                'status' => 'Pending',
+            ]);
+
+            $description .= " - Maintenance log created automatically";
+        }
+
+        $this->logActivity('Created Asset', $description, $asset);
 
         return redirect()->back()->with('success', 'Asset added successfully!');
     }
@@ -164,28 +186,50 @@ class AssetController extends Controller
         $oldCondition = $asset->condition;
         $oldRoomId = $asset->room_id;
         $oldRoom = $asset->room; // Get old room before update
-        
+
         $asset->update($validatedData);
         $asset->refresh()->load('room'); // Refresh and reload room relationship
 
         // Build description with location info
         $oldLocation = $oldRoomId && $oldRoom ? "room {$oldRoom->room_num}" : "Storage";
         $newLocation = $asset->room_id && $asset->room ? "room {$asset->room->room_num}" : "Storage";
-        
+
         $description = "Updated asset '{$asset->name}'";
-        
+
         // If location changed
         if (isset($validatedData['room_id']) && $oldRoomId != $asset->room_id) {
             $description .= " - Moved from {$oldLocation} to {$newLocation}";
         } else {
             $description .= " in {$newLocation}";
         }
-        
+
         // If condition changed
         if (isset($validatedData['condition']) && $oldCondition !== $asset->condition) {
             $description .= " - Condition changed from {$oldCondition} to {$asset->condition}";
+
+            // Automatically create maintenance log if condition changed to "Needs Repair" or "Broken"
+            if (in_array($asset->condition, ['Needs Repair', 'Broken'])) {
+                $issueDescription = "Asset condition changed from '{$oldCondition}' to '{$asset->condition}' in {$newLocation}. ";
+
+                // Add automatic description based on condition
+                if ($asset->condition === 'Needs Repair') {
+                    $issueDescription .= "Requires maintenance and repair work.";
+                } else if ($asset->condition === 'Broken') {
+                    $issueDescription .= "Asset is broken and needs immediate attention.";
+                }
+
+                MaintenanceLog::create([
+                    'asset_id' => $asset->asset_id,
+                    'description' => $issueDescription,
+                    'logged_by_user_id' => Auth::id(),
+                    'date_reported' => now(),
+                    'status' => 'Pending',
+                ]);
+
+                $description .= " - Maintenance log created automatically";
+            }
         }
-        
+
         $this->logActivity('Updated Asset', $description, $asset);
 
         return redirect()->back()->with('success', 'Asset updated successfully!');

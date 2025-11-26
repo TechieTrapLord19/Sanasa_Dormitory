@@ -123,7 +123,7 @@
     }
 
     .bookings-table tbody tr:hover {
-        background-color: #f7fafc;
+        background-color: #f8fafc;
     }
 
     .booking-row-clickable {
@@ -630,18 +630,18 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Make booking rows clickable to navigate to invoices
     const bookingRows = document.querySelectorAll('.booking-row-clickable');
-    
+
     bookingRows.forEach(row => {
         row.addEventListener('click', function(e) {
             // Don't navigate if clicking on action buttons or links
-            if (e.target.closest('.action-column') || 
-                e.target.closest('.btn-view') || 
+            if (e.target.closest('.action-column') ||
+                e.target.closest('.btn-view') ||
                 e.target.closest('.btn-cancel') ||
                 e.target.closest('button') ||
                 e.target.closest('a')) {
                 return;
             }
-            
+
             const bookingId = this.getAttribute('data-booking-id');
             if (bookingId) {
                 // Navigate to invoices page filtered by booking_id

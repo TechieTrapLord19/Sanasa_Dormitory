@@ -115,7 +115,7 @@ public function index(Request $request): View
             $totalCollected = min((float) $invoice->total_due, $paymentsSum);
             $remainingBalance = max(0, (float) $invoice->total_due - $totalCollected);
             $isFirstInvoice = isset($firstInvoiceIds[$invoice->invoice_id]);
-            
+
             // Check if booking is canceled
             $isCanceled = optional($invoice->booking)->status === 'Canceled';
 
@@ -131,10 +131,10 @@ public function index(Request $request): View
             );
             $invoice->setAttribute('tenant_name', $invoice->booking ? $invoice->booking->tenant_summary : '—');
             $invoice->setAttribute('room_number', optional($invoice->booking?->room)->room_num ?? '—');
-            
+
             // Determine invoice type and billing label
             $durationType = optional($invoice->booking?->rate)->duration_type ?? 'Monthly';
-            
+
             // Check if this is a security deposit invoice
             // Security deposit invoices:
             // 1. Have only electricity fee (no rent, no utilities from invoice_utilities)
@@ -142,22 +142,22 @@ public function index(Request $request): View
             // 3. Typically have a fixed amount (MONTHLY_SECURITY_DEPOSIT = 5000.00)
             // Use loaded relationship (property) instead of method call to avoid N+1 queries
             $hasUtilities = $invoice->invoiceUtilities && $invoice->invoiceUtilities->count() > 0;
-            $hasOnlyElectricityFee = ($invoice->rent_subtotal == 0 && 
-                                     !$hasUtilities && 
+            $hasOnlyElectricityFee = ($invoice->rent_subtotal == 0 &&
+                                     !$hasUtilities &&
                                      $invoice->utility_electricity_fee > 0);
-            
+
             // Get invoice position for this booking (security deposit is typically 2nd invoice)
             // We'll check if it's one of the first 2 invoices OR if amount matches security deposit
             $invoiceCount = Invoice::where('booking_id', $invoice->booking_id)
                 ->where('invoice_id', '<=', $invoice->invoice_id)
                 ->count();
-            
+
             $isEarlyInvoice = $invoiceCount <= 2; // First or second invoice for the booking
-            
+
             // Security deposit is typically the 2nd invoice for monthly bookings, or if amount matches security deposit (₱5,000.00)
-            $isSecurityDepositInvoice = $hasOnlyElectricityFee && 
+            $isSecurityDepositInvoice = $hasOnlyElectricityFee &&
                                        ($isEarlyInvoice || abs($invoice->utility_electricity_fee - 5000.00) < 0.01);
-            
+
             if ($isSecurityDepositInvoice) {
                 $billingLabel = 'Security Deposit';
                 $invoiceType = 'Security Deposit';
@@ -190,7 +190,7 @@ public function index(Request $request): View
                     default => 'Monthly Rent + Utilities'
                 };
             }
-            
+
             $invoice->setAttribute('billing_label', $billingLabel);
             $invoice->setAttribute('invoice_type', $invoiceType);
             $invoice->setAttribute('billing_period', optional($invoice->date_generated)->format('F Y') ?? '—');
@@ -202,7 +202,7 @@ public function index(Request $request): View
     $allInvoices = Invoice::with(['booking', 'payments'])
         ->withSum('payments as payments_sum', 'amount')
         ->get();
-    
+
     $statusCounts = [
         'total' => $allInvoices->count(),
         'paid' => $allInvoices->filter(function ($invoice) {
@@ -239,6 +239,18 @@ public function index(Request $request): View
         'perPage' => $perPage,
     ]);
 }
+
+    /**
+     * Display a specific invoice (redirects to booking details page).
+     */
+    public function show($id)
+    {
+        $invoice = Invoice::with(['booking'])->findOrFail($id);
+
+        // Redirect to the booking show page with the invoice highlighted
+        return redirect()->route('bookings.show', ['id' => $invoice->booking_id])
+            ->with('highlight_invoice', $id);
+    }
 
     /**
      * Build a collection of financial metrics for the invoices dashboard.

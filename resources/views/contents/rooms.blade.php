@@ -48,6 +48,12 @@
     .status-dot.pending {
         background-color: #fbbf24;
 }
+
+    .modal-footer .btn-primary:hover {
+        background-color: #021d47 !important;
+        border-color: #021d47 !important;
+    }
+
     .create-room-btn {
         background-color: #03255b;
         color: white;
@@ -283,7 +289,7 @@
         @if(auth()->check() && strtolower(auth()->user()->role) === 'owner')
         <div class="col-md-4 d-flex justify-content-end">
             <button class="create-room-btn" data-bs-toggle="modal" data-bs-target="#createRoomModal">
-                <span class="create-room-btn-icon">+</span>
+                <i class="bi bi-plus-circle"></i>
                 <span>Create New Room</span>
             </button>
         </div>
@@ -405,19 +411,11 @@
                     </div>
 
                     <div class="room-card-actions" onclick="event.stopPropagation();">
-                        @if($room->status === 'maintenance')
-                            <button class="room-action-btn" type="button" title="Remove maintenance" onclick="event.stopPropagation();">
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                    <path d="M4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8z"/>
-                                </svg>
-                            </button>
-                        @else
                             <button class="room-action-btn" type="button" title="More options" onclick="event.stopPropagation();">
                                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                                     <path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
                                 </svg>
                             </button>
-                        @endif
                     </div>
                 </div>
             </div>
@@ -479,7 +477,7 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="bi bi-x-circle"></i> Close
                     </button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary" style="background-color: #03255b; border-color: #03255b;">
                         <i class="bi bi-plus-circle"></i> Create Room
                     </button>
                 </div>

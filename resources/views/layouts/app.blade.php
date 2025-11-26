@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'Sanasa Dormitory') }} - @yield('title')</title>
+    <title>@yield('title') - Sanasa Dormitory</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/loginimage.png') }}">
 
 
     <!-- Bootstrap CSS -->
@@ -187,7 +188,7 @@
     <div class="d-flex">
         <!-- Sidebar -->
         <aside class="app-sidebar bg-primary text-white d-flex flex-column" style="width: 256px;">
-            <div class="border-bottom d-flex align-items-center" style="height: 80px; flex-shrink: 0;">
+            <div class="border-bottom border-secondary border-opacity-50 d-flex align-items-center" style="height: 80px; flex-shrink: 0;">
                 <img src="{{ asset('images/Logo1.png') }}" alt="Sanasa Dormitory" class="img-fluid" style="max-height: 100%; width: 100%;" >
             </div>
             <nav class="flex-grow-1 py-3" style="overflow-y: auto; overflow-x: hidden;" role="navigation" aria-label="Main sidebar">
@@ -285,7 +286,7 @@
                 </ul>
             </nav>
             @auth
-            <div class="border-top border-primary border-opacity-50 p-3">
+            <div class="border-top border-secondary border-opacity-50 p-3">
                 <div class="d-flex align-items-center gap-2 mb-2">
                     <div class="rounded-circle bg-primary bg-opacity-50 d-flex align-items-center justify-content-center text-white fw-semibold" style="width: 40px; height: 40px; font-size: 14px;">
                         {{ strtoupper(substr(auth()->user()->first_name,0,1)) }}

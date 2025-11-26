@@ -160,6 +160,17 @@
         background-color: #fde68a;
     }
 
+    .btn-archive:disabled {
+        background-color: #e5e7eb;
+        color: #9ca3af;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .btn-archive:disabled:hover {
+        background-color: #e5e7eb;
+    }
+
     .btn-activate {
         background-color: #d1fae5;
         color: #065f46;
@@ -265,12 +276,20 @@
                 <i class="bi bi-x-circle"></i> Cancel
             </button>
             @if($tenant->status === 'active')
+                @php
+                    $hasActiveBooking = $tenant->bookings()->where('status', 'Active')->exists();
+                @endphp
                 <form action="{{ route('tenants.archive', $tenant->tenant_id) }}" method="POST" style="display: inline;" id="archiveForm">
                     @csrf
-                    <button type="submit" class="btn-action btn-archive" onclick="return confirm('Are you sure you want to archive this tenant?')">
+                    <button type="submit"
+                            class="btn-action btn-archive"
+                            @if($hasActiveBooking) disabled @endif
+                            title="{{ $hasActiveBooking ? 'Cannot archive tenant while they have an active booking' : 'Archive this tenant' }}"
+                            onclick="return {{ $hasActiveBooking ? 'false' : 'confirm(\'Are you sure you want to archive this tenant?\')' }}">
                         <i class="bi bi-archive"></i> Archive
                     </button>
                 </form>
+
             @else
                 <form action="{{ route('tenants.activate', $tenant->tenant_id) }}" method="POST" style="display: inline;" id="activateForm">
                     @csrf

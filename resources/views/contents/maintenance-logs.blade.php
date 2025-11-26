@@ -35,6 +35,11 @@
         color: white;
     }
 
+    .modal-footer .btn-primary:hover {
+        background-color: #021d47 !important;
+        border-color: #021d47 !important;
+    }
+
     /* Filter Styles */
     .logs-filters {
         background-color: white;
@@ -610,7 +615,7 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="bi bi-x-circle"></i> Cancel
                     </button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary" style="background-color: #03255b; border-color: #03255b;">
                         <i class="bi bi-check-circle"></i> Update Status
                     </button>
                 </div>
@@ -628,7 +633,7 @@
             if (statusSelect.name === 'status') {
                 const logId = statusSelect.id.replace('status', '');
                 const dateCompleted = document.getElementById('date_completed' + logId);
-                
+
                 if (dateCompleted) {
                     statusSelect.addEventListener('change', function() {
                         if (this.value === 'Completed' && !dateCompleted.value) {

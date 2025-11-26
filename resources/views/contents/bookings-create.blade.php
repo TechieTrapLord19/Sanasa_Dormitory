@@ -960,10 +960,8 @@ function updateSummary() {
     if (checkin && checkout && stayLength && rate) {
         const pricing = calculatePricingSummary(stayLength, rate);
 
-        // For summary: Invoice total (rent + utilities, excluding security deposit)
-        const utilitiesTotal = pricing.utilityFees ? Object.values(pricing.utilityFees).reduce((sum, fee) => sum + fee, 0) : 0;
-        const invoiceTotal = pricing.rateTotal + utilitiesTotal;
-        document.getElementById('summary_rate_amount').textContent = '₱' + invoiceTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        // Rate Total shows ONLY the rent amount (no utilities)
+        document.getElementById('summary_rate_amount').textContent = '₱' + pricing.rateTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
         // Total due includes security deposit (but it's paid separately)
         document.getElementById('summary_total_due').textContent = '₱' + pricing.totalDue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

@@ -96,7 +96,7 @@
     }
 
     .readings-table tbody tr:hover {
-        background-color: #f7fafc;
+        background-color: #f8fafc;
     }
 
     .readings-table tbody tr:last-child td {
@@ -157,13 +157,13 @@
         font-size: 0.875rem;
         font-weight: 500;
         cursor: pointer;
-        background-color: #10b981;
+        background-color: #03255b;
         color: white;
         transition: background-color 0.2s ease;
     }
 
     .btn-save-row:hover {
-        background-color: #059669;
+        background-color: #021d47;
     }
 
     .btn-save-all {
@@ -262,7 +262,7 @@
             <form method="POST" action="{{ route('electric-readings.rate') }}" id="rateForm" style="display:flex;align-items:center;gap:0.5rem;">
                 @csrf
                 <label for="kwh_price" style="margin:0;font-weight:600;color:#2d3748;">Price/ kWh (₱):</label>
-                <input id="kwh_price" type="number" name="electricity_rate_per_kwh" step="0.01" min="0" placeholder="Enter price per kWh" value="{{ old('electricity_rate_per_kwh', $electricityRate ?? '') }}" style="width:120px;padding:0.4rem;border:1px solid #d0d7e2;border-radius:6px;" required>
+                <input id="kwh_price" type="number" name="electricity_rate_per_kwh" step="0.01" min="0" placeholder="Enter price per kWh" value="{{ $electricityRate ?? '' }}" style="width:120px;padding:0.4rem;border:1px solid #d0d7e2;border-radius:6px;" required>
                 <button type="submit" class="btn-save-all" style="background-color: #03255b;">
                     <i class="bi bi-save"></i> Save Rate
                 </button>
@@ -385,11 +385,6 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(async response => {
                 const data = await response.json();
                 if (data.success) {
-                    // Update sessionStorage
-                    const rateValue = formData.get('electricity_rate_per_kwh');
-                    if (rateValue) {
-                        sessionStorage.setItem('electricity_rate_per_kwh', rateValue);
-                    }
                     // Show success message and reload
                     alert(data.message || 'Electricity rate saved successfully!');
                     window.location.reload();
@@ -411,21 +406,9 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('DOMContentLoaded', function() {
     const kwhPriceInput = document.getElementById('kwh_price');
 
-    // Load rate from sessionStorage on page load if input is empty
+    // Update previews when rate changes
     if (kwhPriceInput) {
-        const storedRate = sessionStorage.getItem('electricity_rate_per_kwh');
-        if (storedRate && !kwhPriceInput.value) {
-            kwhPriceInput.value = storedRate;
-        } else if (kwhPriceInput.value) {
-            // If there's a value from server, sync it to sessionStorage
-            sessionStorage.setItem('electricity_rate_per_kwh', kwhPriceInput.value);
-        }
-
-        // Whenever price input changes, immediately save to sessionStorage and update all previews
         kwhPriceInput.addEventListener('input', function() {
-            if (this.value) {
-                sessionStorage.setItem('electricity_rate_per_kwh', this.value);
-            }
             // Update all previews when rate changes
             document.querySelectorAll('.meter-input').forEach(input => {
                 updatePreview(input);
@@ -433,9 +416,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         kwhPriceInput.addEventListener('change', function() {
-            if (this.value) {
-                sessionStorage.setItem('electricity_rate_per_kwh', this.value);
-            }
             // Update all previews when rate changes
             document.querySelectorAll('.meter-input').forEach(input => {
                 updatePreview(input);

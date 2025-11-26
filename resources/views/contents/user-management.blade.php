@@ -41,6 +41,11 @@
         font-size: 1rem;
     }
 
+    .modal-footer .btn-primary:hover {
+        background-color: #021d47 !important;
+        border-color: #021d47 !important;
+    }
+
     /* Filter Styles */
     .users-filters {
         background-color: white;
@@ -314,7 +319,7 @@
         <!-- Right: Create Button -->
         <div class="col-md-4 d-flex justify-content-end">
             <button class="create-user-btn" data-bs-toggle="modal" data-bs-target="#createUserModal">
-                <span class="create-user-btn-icon">+</span>
+                <i class="bi bi-plus-circle"></i>
                 <span>Create Caretaker</span>
             </button>
         </div>
@@ -550,7 +555,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Create User</button>
+                    <button type="submit" class="btn btn-primary" style="background-color: #03255b; border-color: #03255b;">Create User</button>
                 </div>
             </form>
         </div>
