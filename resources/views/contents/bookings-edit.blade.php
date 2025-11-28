@@ -137,6 +137,18 @@
         color: #03255b;
     }
 
+    .duration-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background-color: #e5e7eb;
+        color: #9ca3af;
+    }
+
+    .duration-button:disabled:hover {
+        border-color: #cbd5e0;
+        color: #9ca3af;
+    }
+
     .rooms-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -161,6 +173,12 @@
     .room-card.selected {
         border-color: #03255b;
         background-color: #e0f2fe;
+    }
+
+    .room-card.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
     }
 
     .room-number {
@@ -436,10 +454,12 @@
             <div class="step-number">2</div>
             <div class="step-title">Booking Info</div>
         </div>
+        @if($booking->status !== 'Active')
         <div class="step" data-step="3">
             <div class="step-number">3</div>
             <div class="step-title">Review & Update</div>
         </div>
+        @endif
     </div>
 
     @if ($errors->any())
@@ -476,7 +496,7 @@
                                name="checkin_date"
                                id="checkin_date"
                                value="{{ old('checkin_date', $booking->checkin_date->format('Y-m-d')) }}"
-                               required>
+                               @if($booking->status === 'Active') readonly style="background-color: #f8f9fa;" @else required @endif>
                         @error('checkin_date')
                             <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
@@ -504,6 +524,7 @@
                                min="1"
                                class="form-control @error('stay_length') is-invalid @enderror"
                                placeholder="Enter days"
+                               @if($booking->status === 'Active') readonly style="background-color: #f8f9fa;" @endif
                                value="{{ old('stay_length', $defaultStayLength) }}">
                         <input type="hidden" name="stay_length" id="stay_length" value="{{ old('stay_length', $defaultStayLength) }}" required>
                         @error('stay_length')
@@ -516,9 +537,9 @@
             <div class="form-group">
                 <label class="form-label d-block mb-2">Quick Select</label>
                 <div class="duration-presets">
-                    <button type="button" class="duration-button" data-days="1">1 Day</button>
-                    <button type="button" class="duration-button" data-days="7">7 Days</button>
-                    <button type="button" class="duration-button" data-days="30">30 Days</button>
+                    <button type="button" class="duration-button" data-days="1" {{ $booking->status === 'Active' ? 'disabled' : '' }}>1 Day</button>
+                    <button type="button" class="duration-button" data-days="7" {{ $booking->status === 'Active' ? 'disabled' : '' }}>7 Days</button>
+                    <button type="button" class="duration-button" data-days="30" {{ $booking->status === 'Active' ? 'disabled' : '' }}>30 Days</button>
                 </div>
             </div>
 
@@ -585,7 +606,7 @@
 
             <div class="info-box mt-3">
                 <p><strong>Current Room:</strong> {{ $booking->room->room_num }} (Floor {{ $booking->room->floor }})</p>
-                <p><strong>Current Rate:</strong> {{ $booking->rate->duration_type }} - ₱{{ number_format($booking->rate->base_price, 2) }}</p>
+                <p id="rateInfoDisplay"><strong>Current Rate:</strong> {{ $booking->rate->duration_type }} - ₱{{ number_format($booking->rate->base_price, 2) }}</p>
                 <p><strong>Status:</strong> <span style="color: #10b981; font-weight: 600;">{{ $booking->status }}</span></p>
             </div>
 
@@ -656,8 +677,9 @@
 
 <script>
 let currentStep = 1;
-const totalSteps = 3;
+const totalSteps = {{ $booking->status === 'Active' ? 2 : 3 }};
 const currentRoomId = {{ $booking->room_id }};
+const isCheckedIn = {{ $booking->status === 'Active' ? 'true' : 'false' }};
 
 const ratesByDuration = {!! json_encode($ratesByDuration->mapWithKeys(function($rate) {
     return [$rate->duration_type => [
@@ -682,6 +704,11 @@ function changeStep(direction) {
         return;
     }
 
+    // If checked in (Active), prevent going beyond step 2
+    if (isCheckedIn && currentStep + direction > 2) {
+        return;
+    }
+
     document.querySelector(`.step-content[data-step="${currentStep}"]`).classList.remove('active');
     document.querySelector(`.step[data-step="${currentStep}"]`).classList.remove('active');
 
@@ -697,6 +724,13 @@ function changeStep(direction) {
     document.getElementById('prevBtn').style.display = currentStep > 1 ? 'inline-block' : 'none';
     document.getElementById('nextBtn').style.display = currentStep < totalSteps ? 'inline-block' : 'none';
     document.getElementById('submitBtn').style.display = currentStep === totalSteps ? 'inline-block' : 'none';
+
+    if (currentStep === 2) {
+        const stayLength = parseInt(document.getElementById('stay_length').value || '0', 10);
+        if (stayLength > 0) {
+            updateRateInfoBox(stayLength);
+        }
+    }
 
     if (currentStep === 3) {
         updateSummary();
@@ -1060,6 +1094,40 @@ document.addEventListener('DOMContentLoaded', function() {
     const editForm = document.getElementById('editBookingForm');
     if (editForm) {
         editForm.addEventListener('submit', function(e) {
+            // For Active bookings, skip date validation - only validate room and tenants
+            if (isCheckedIn) {
+                const roomId = document.getElementById('selected_room_id').value;
+                const tenantCount = getSelectedTenantCount();
+
+                if (!roomId || roomId === '0' || roomId === '') {
+                    e.preventDefault();
+                    alert('Please select a room.');
+                    currentStep = 1;
+                    changeStep(0);
+                    return false;
+                }
+
+                if (tenantCount === 0) {
+                    e.preventDefault();
+                    alert('Please select at least one tenant.');
+                    currentStep = 2;
+                    changeStep(0);
+                    return false;
+                }
+
+                if (tenantCount > roomCapacityLimit) {
+                    e.preventDefault();
+                    alert(`Maximum ${roomCapacityLimit} tenants allowed per booking.`);
+                    currentStep = 2;
+                    changeStep(0);
+                    return false;
+                }
+
+                console.log('Active booking validation passed, form will submit');
+                return true;
+            }
+
+            // For non-Active bookings, validate everything
             // Ensure checkout_date is calculated before submission
             calculateCheckoutDate();
 
@@ -1158,8 +1226,24 @@ function setStayLength(days) {
     document.getElementById('custom_stay_length').value = days;
     calculateCheckoutDate();
 
+    // Update rate based on new duration
+    updateRateForDuration(days);
+
     if (currentStep === 3) {
         updateSummary();
+    }
+}
+
+function updateRateForDuration(days) {
+    const duration = determineRateDuration(days);
+    const rate = ratesByDuration[duration];
+
+    if (rate) {
+        console.log('Updated rate for', days, 'days:', duration, '- Rate ID:', rate.rate_id);
+        // Update the summary display to show new rate
+        document.getElementById('summary_rate_plan').textContent = duration;
+    } else {
+        console.warn('No rate found for duration:', duration);
     }
 }
 
@@ -1235,11 +1319,25 @@ function handleCustomStayLength(event) {
     if (!isNaN(value) && value > 0) {
         setStayLength(value);
         highlightDurationButton(null);
+        // Update the info box in step 2 to show the new rate
+        if (currentStep === 2) {
+            updateRateInfoBox(value);
+        }
     }
 }
 
+function updateRateInfoBox(days) {
+    const duration = determineRateDuration(days);
+    const rate = ratesByDuration[duration];
 
-// Tenant dropdown functionality
+    if (rate) {
+        // Find and update the rate display in the info box
+        const rateDisplay = document.getElementById('rateInfoDisplay');
+        if (rateDisplay) {
+            rateDisplay.innerHTML = `<strong>New Rate:</strong> ${duration} - ₱${Number(rate.base_price).toLocaleString('en-US', { minimumFractionDigits: 2 })} <span style="color: #10b981; font-size: 0.85rem;">(Updated)</span>`;
+        }
+    }
+}
 let roomCapacityLimit = 2;
 
 function getSelectedTenantNames() {

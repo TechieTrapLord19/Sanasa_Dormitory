@@ -64,6 +64,8 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
     Route::resource('rates', RateController::class);
     Route::post('/assets', [AssetController::class, 'store'])->name('assets.store');
     Route::put('/assets/{id}', [AssetController::class, 'update'])->name('assets.update');
+    Route::post('/assets/assign', [AssetController::class, 'assign'])->name('assets.assign');
+    Route::put('/assets/{id}/move', [AssetController::class, 'move'])->name('assets.move');
     Route::get('/electric-readings', [ElectricReadingController::class, 'index'])->name('electric-readings');
     Route::post('/electric-readings', [ElectricReadingController::class, 'store'])->name('electric-readings.store');
     Route::post('/electric-readings/rate', [ElectricReadingController::class, 'storeRate'])->name('electric-readings.rate');

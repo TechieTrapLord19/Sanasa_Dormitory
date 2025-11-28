@@ -242,4 +242,65 @@ class AssetController extends Controller
     {
         //
     }
+
+    /**
+     * Assign an existing asset to a room
+     */
+    public function assign(Request $request)
+    {
+        $validatedData = $request->validate([
+            'asset_id' => 'required|exists:assets,asset_id',
+            'room_id' => 'required|exists:rooms,room_id',
+        ]);
+
+        $asset = Asset::findOrFail($validatedData['asset_id']);
+        $oldRoomId = $asset->room_id;
+        $oldRoom = $asset->room;
+
+        $asset->room_id = $validatedData['room_id'];
+        $asset->save();
+        $asset->refresh()->load('room');
+
+        // Build activity description
+        $oldLocation = $oldRoomId && $oldRoom ? "room {$oldRoom->room_num}" : "Storage";
+        $newLocation = $asset->room->room_num;
+
+        $description = "Assigned asset '{$asset->name}' from {$oldLocation} to room {$newLocation}";
+
+        $this->logActivity('Assigned Asset', $description, $asset);
+
+        return redirect()->back()->with('success', "Asset '{$asset->name}' has been assigned to Room {$newLocation}!");
+    }
+
+    /**
+     * Move an asset to another room or storage
+     */
+    public function move(Request $request, string $id)
+    {
+        $asset = Asset::with('room')->findOrFail($id);
+
+        $validatedData = $request->validate([
+            'room_id' => 'nullable|exists:rooms,room_id',
+        ]);
+
+        $oldRoomId = $asset->room_id;
+        $oldRoom = $asset->room;
+
+        // Handle empty room_id as null (moving to storage)
+        $newRoomId = $validatedData['room_id'] ?? null;
+
+        $asset->room_id = $newRoomId;
+        $asset->save();
+        $asset->refresh()->load('room');
+
+        // Build activity description
+        $oldLocation = $oldRoomId && $oldRoom ? "room {$oldRoom->room_num}" : "Storage";
+        $newLocation = $newRoomId && $asset->room ? "room {$asset->room->room_num}" : "Storage";
+
+        $description = "Moved asset '{$asset->name}' from {$oldLocation} to {$newLocation}";
+
+        $this->logActivity('Moved Asset', $description, $asset);
+
+        return redirect()->back()->with('success', "Asset '{$asset->name}' has been moved to {$newLocation}!");
+    }
 }

@@ -148,9 +148,10 @@
         display: flex;
         gap: 0.5rem;
         justify-content: center;
+        align-items: center;
     }
 
-    .btn-edit, .btn-delete {
+    .btn-edit, .btn-archive, .btn-activate {
         padding: 0.5rem 1rem;
         border: none;
         border-radius: 6px;
@@ -158,12 +159,14 @@
         font-weight: 500;
         cursor: pointer;
         transition: all 0.2s ease;
+        text-decoration: none;
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
     }
 
-    .btn-edit i, .btn-delete i {
+    .btn-edit i, .btn-archive i, .btn-activate i,
+    .action-buttons button i {
         font-size: 1rem;
     }
 
@@ -176,13 +179,22 @@
         background-color: #bae6fd;
     }
 
-    .btn-delete {
-        background-color: #fee2e2;
-        color: #dc2626;
+    .btn-archive {
+        background-color: #fef3c7;
+        color: #92400e;
     }
 
-    .btn-delete:hover {
-        background-color: #fecaca;
+    .btn-archive:hover {
+        background-color: #fde68a;
+    }
+
+    .btn-activate {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+
+    .btn-activate:hover {
+        background-color: #a7f3d0;
     }
 
     .room-rates-header {
@@ -226,25 +238,44 @@
 .rates-table td:nth-child(6) {
     text-align: center;
 }
+
+.rates-table th:nth-child(7),
+.rates-table td:nth-child(7) {
+    text-align: center;
+    width: 1%;
+    white-space: nowrap;
+    padding: 1rem 0.75rem;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.375rem 0.875rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-badge.active {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.status-badge.inactive {
+    background-color: #e5e7eb;
+    color: #4b5563;
+}
 </style>
 
-<div class="rates-header">
-    <div class="row align-items-center">
-        <!-- Left: Title -->
-        <div class="col-md-8 d-flex justify-content-start">
-            <h1 class="rates-title">Rates Management</h1>
-        </div>
-
-        <!-- Right: Create Button - Only for owners -->
-        @if(auth()->check() && strtolower(auth()->user()->role) === 'owner')
-        <div class="col-md-4 d-flex justify-content-end">
-            <button class="create-rate-btn" data-bs-toggle="modal" data-bs-target="#createRateModal">
-                <i class="bi bi-plus-circle"></i>
-                <span>Create New Rate</span>
-            </button>
-        </div>
-        @endif
-    </div>
+<div class="rates-header d-flex justify-content-between align-items-center mb-4">
+    <h1 class="rates-title">Rates Management</h1>
+    @if(auth()->check() && strtolower(auth()->user()->role) === 'owner')
+    <button class="create-rate-btn" data-bs-toggle="modal" data-bs-target="#createRateModal">
+        <i class="bi bi-plus-circle"></i>
+        <span>Create New Rate</span>
+    </button>
+    @endif
 </div>
 
 <!-- Filters -->
@@ -266,6 +297,7 @@
                 <th>Base Price</th>
                 <th>Utilities</th>
                 <th>Description</th>
+                <th>Status</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -288,21 +320,34 @@
                     </td>
                     <td>{{ $rate->description }}</td>
                     <td>
+                        @if($rate->status === 'active')
+                            <span class="status-badge active">Active</span>
+                        @else
+                            <span class="status-badge inactive">Inactive</span>
+                        @endif
+                    </td>
+                    <td>
                         <div class="action-buttons">
                             @if(auth()->check() && strtolower(auth()->user()->role) === 'owner')
                             <button class="btn-edit" onclick="editRate({{ $rate->rate_id }})">
                                 <i class="bi bi-pencil-square"></i> Edit
                             </button>
-                            <button class="btn-delete" onclick="deleteRate({{ $rate->rate_id }})">
-                                <i class="bi bi-trash"></i> Delete
-                            </button>
+                            @if($rate->status === 'active')
+                                <button class="btn-archive" onclick="archiveRate({{ $rate->rate_id }})">
+                                    <i class="bi bi-archive"></i> Archive
+                                </button>
+                            @else
+                                <button class="btn-activate" onclick="archiveRate({{ $rate->rate_id }})">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Activate
+                                </button>
+                            @endif
                             @endif
                         </div>
                     </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="6" class="text-center text-muted py-4">No rates found</td>
+                    <td colspan="7" class="text-center text-muted py-4">No rates found</td>
                 </tr>
             @endforelse
         </tbody>
@@ -891,8 +936,8 @@ async function editRate(rateId) {
     }
 }
 
-function deleteRate(rateId) {
-    if (confirm('Are you sure you want to delete this rate?')) {
+function archiveRate(rateId) {
+    if (confirm('Are you sure you want to archive/restore this rate?')) {
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = `/rates/${rateId}`;

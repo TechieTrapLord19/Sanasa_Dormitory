@@ -41,25 +41,26 @@
 
     .filter-btn {
         padding: 0.5rem 1rem;
-        border: 1px solid #e2e8f0;
-        background-color: white;
+        border: none;
+        background-color: transparent;
         border-radius: 6px;
         font-size: 0.875rem;
         font-weight: 500;
-        color: #4a5568;
+        color: #718096;
         cursor: pointer;
         transition: all 0.2s ease;
+        text-decoration: none;
     }
 
     .filter-btn:hover {
+        color: #03255b;
         background-color: #f7fafc;
-        border-color: #cbd5e0;
     }
 
     .filter-btn.active {
         background-color: #03255b;
         color: white;
-        border-color: #03255b;
+        font-weight: 600;
     }
 
     /* Table Styles */
@@ -110,6 +111,17 @@
     .room-number {
         font-weight: 600;
         color: #0f172a;
+    }
+
+    .room-number.clickable {
+        color: #03255b;
+        cursor: pointer;
+        text-decoration: underline;
+        transition: color 0.2s ease;
+    }
+
+    .room-number.clickable:hover {
+        color: #021d47;
     }
 
     .last-reading {
@@ -248,8 +260,12 @@
         </div>
     @endif
 
-    <div class="readings-header d-flex justify-content-between align-items-center mb-4">
-        <h1 class="readings-title">Electric Meter Readings</h1>
+    <div class="readings-header mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-8 d-flex justify-content-start">
+                <h1 class="readings-title">Electric Meter Readings</h1>
+            </div>
+        </div>
     </div>
 
     <!-- Electricity Rate Card -->
@@ -303,7 +319,15 @@
                         @endphp
                         <tr class="reading-row" data-floor="{{ $room->floor }}">
                             <td>
-                                <span class="room-number">Room {{ $room->room_num }}</span>
+                                @if($room->activeBooking)
+                                    <a href="{{ route('bookings.show', $room->activeBooking->booking_id) }}"
+                                       class="room-number clickable"
+                                       title="View booking details">
+                                        Room {{ $room->room_num }}
+                                    </a>
+                                @else
+                                    <span class="room-number">Room {{ $room->room_num }}</span>
+                                @endif
                             </td>
                             <td>
                                 @if($latestReading)

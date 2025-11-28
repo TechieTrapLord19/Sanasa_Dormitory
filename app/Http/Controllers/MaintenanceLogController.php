@@ -127,6 +127,24 @@ class MaintenanceLogController extends Controller
         $oldStatus = $maintenanceLog->status;
         $maintenanceLog->update($validatedData);
 
+        // Automatically update asset condition to "Good" when maintenance is completed
+        if ($validatedData['status'] === 'Completed' && $maintenanceLog->asset_id) {
+            $asset = Asset::find($maintenanceLog->asset_id);
+            if ($asset && in_array($asset->condition, ['Needs Repair', 'Broken'])) {
+                $oldCondition = $asset->condition;
+                $asset->condition = 'Good';
+                $asset->save();
+
+                // Log the asset condition update
+                $location = $asset->room_id && $asset->room ? "room {$asset->room->room_num}" : "Storage";
+                $this->logActivity(
+                    'Updated Asset',
+                    "Asset '{$asset->name}' in {$location} - Condition automatically changed from {$oldCondition} to Good (Maintenance completed)",
+                    $asset
+                );
+            }
+        }
+
         // Log activity
         $assetInfo = $maintenanceLog->asset ? "{$maintenanceLog->asset->name} - {$maintenanceLog->asset->location}" : "General Issue";
         $statusChange = $oldStatus !== $validatedData['status'] ? " (Status changed from {$oldStatus} to {$validatedData['status']})" : "";

@@ -33,10 +33,34 @@
             margin-bottom: 12px;
         }
 
+        .company-logo {
+            width: 100%;
+            height: 70px;
+            margin: 0 auto 6px;
+            display: block;
+        }
+
+        .company-name {
+            font-size: 14px;
+            font-weight: bold;
+            color: #03255b;
+            margin-bottom: 2px;
+            letter-spacing: 0.5px;
+        }
+
         .receipt-header h1 {
             color: #03255b;
             font-size: 18px;
             font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .unofficial-notice {
+            font-size: 9px;
+            color: #e53e3e;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
             margin-bottom: 4px;
         }
 
@@ -196,6 +220,8 @@
 <body>
     <div class="receipt-container">
         <div class="receipt-header">
+            <img src="{{ asset('images/Logo1.png') }}" alt="Sanasa Dormitory Logo" class="company-logo">
+            <div class="unofficial-notice">*** UNOFFICIAL RECEIPT ***</div>
             <h1>PAYMENT RECEIPT</h1>
             <div class="receipt-number">Receipt No: {{ $receiptNumber }}</div>
         </div>
@@ -275,7 +301,7 @@
             </div>
         </div>
 
-        @if($invoice && (str_contains($paymentType, 'Rent') || str_contains($paymentType, 'Utilities')))
+        @if($invoice && str_contains($paymentType, 'Monthly'))
         <div class="receipt-section">
             <div class="receipt-section-title">Breakdown</div>
             <div class="receipt-section-content">
@@ -310,7 +336,7 @@
         <div class="receipt-section">
             <div class="receipt-row">
                 <span class="receipt-label">Collected By:</span>
-                <span class="receipt-value">{{ $collectedBy->first_name }} {{ $collectedBy->last_name }}</span>
+                <span class="receipt-value">{{ $collectedBy ? $collectedBy->first_name . ' ' . $collectedBy->last_name : 'N/A' }}</span>
             </div>
         </div>
 

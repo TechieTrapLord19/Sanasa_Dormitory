@@ -4,6 +4,16 @@
 
 @section('content')
 <style>
+    .dashboard-header {
+        background-color: white;
+        margin-bottom: 2rem;
+    }
+    .dashboard-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #03255b;
+        margin: 0;
+    }
     body {
         background-color: #f5f5f5;
     }
@@ -270,7 +280,14 @@
         }
     }
 </style>
-
+<div class="dashboard-header">
+    <div class="row align-items-center">
+        <!-- Left: Title -->
+        <div class="col-md-8 d-flex justify-content-start">
+            <h1 class="dashboard-title">Dashboard</h1>
+        </div>
+    </div>
+</div>
 <!-- Top Stats Row -->
 <div class="stats-row">
     <div class="row g-3">

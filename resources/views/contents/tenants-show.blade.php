@@ -451,6 +451,58 @@
         </div>
     </form>
 
+    <!-- Payment History -->
+    <div class="info-section">
+        <h2 class="info-section-title">Payment History ({{ $payments->count() }} payments · Total: ₱{{ number_format($totalPaid, 2) }})</h2>
+        @if($payments->count() > 0)
+            <div class="bookings-table-container">
+                <table class="bookings-table">
+                    <thead>
+                        <tr>
+                            <th>Date Received</th>
+                            <th>Payment Type</th>
+                            <th>Room</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Reference</th>
+                            <th>Collected By</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($payments as $payment)
+                            <tr>
+                                <td>
+                                    <strong>{{ $payment->date_received ? $payment->date_received->format('M d, Y') : 'N/A' }}</strong>
+                                    <br><small class="text-muted">{{ $payment->created_at->format('g:i A') }}</small>
+                                </td>
+                                <td>{{ $payment->payment_type }}</td>
+                                <td>
+                                    @if($payment->booking && $payment->booking->room)
+                                        Room {{ $payment->booking->room->room_num }}
+                                    @else
+                                        <span class="text-muted">N/A</span>
+                                    @endif
+                                </td>
+                                <td><strong>₱{{ number_format($payment->amount, 2) }}</strong></td>
+                                <td>{{ $payment->payment_method }}</td>
+                                <td>{{ $payment->reference_number ?? 'N/A' }}</td>
+                                <td>{{ $payment->collectedBy->full_name ?? 'N/A' }}</td>
+                                <td>
+                                    @if($payment->booking)
+                                        <a href="{{ route('bookings.show', $payment->booking->booking_id) }}" class="btn-view">View Booking</a>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @else
+            <p class="text-muted">No payment records found for this tenant.</p>
+        @endif
+    </div>
+
     <!-- Booking History -->
     <div class="info-section">
         <h2 class="info-section-title">Booking History ({{ $tenant->bookings_count ?? 0 }})</h2>

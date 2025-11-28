@@ -286,11 +286,16 @@
         border-radius: 8px;
         padding: 1.25rem;
         transition: all 0.2s ease;
+        cursor: pointer;
+        text-decoration: none;
+        display: block;
+        color: inherit;
     }
 
     .tenant-card:hover {
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         border-color: #cbd5e0;
+        transform: translateY(-2px);
     }
 
     .tenant-header {
@@ -391,8 +396,7 @@
                             class="btn-edit-status"
                             data-bs-toggle="modal"
                             data-bs-target="#editStatusModal"
-                            title="Edit Status"
-                            @if($room->activeBooking) disabled @endif>
+                            title="Edit Status">
                         <i class="bi bi-pencil-square"></i>
                     </button>
                 </span>
@@ -422,7 +426,7 @@
             @endphp
             @if($occupants->isNotEmpty())
                 @foreach($occupants as $index => $occupant)
-                    <div class="tenant-card">
+                    <a href="{{ route('tenants.show', $occupant->tenant_id) }}" class="tenant-card">
                         <div class="tenant-header">
                             <h4 class="tenant-name">{{ $occupant->full_name }}</h4>
                         </div>
@@ -440,7 +444,7 @@
                                 <span class="detail-value">{{ $occupant->emer_contact_num ?? 'N/A' }}</span>
                             </div>
                         </div>
-                    </div>
+                    </a>
                 @endforeach
             @else
                 <p class="text-muted">No tenant assigned</p>
@@ -453,8 +457,8 @@
     <div class="info-section">
         <div class="section-header">
             <h2 class="info-section-title mb-0">Asset Inventory</h2>
-            <button type="button" class="btn-action btn-add-asset" data-bs-toggle="modal" data-bs-target="#addAssetModal">
-                <i class="bi bi-plus-circle"></i> Add New Asset
+            <button type="button" class="btn-action btn-add-asset" data-bs-toggle="modal" data-bs-target="#assignAssetModal">
+                <i class="bi bi-box-arrow-in-down"></i> Assign Asset
             </button>
         </div>
 
@@ -500,59 +504,64 @@
     </div>
 </div>
 
-<!-- Add Asset Modal -->
-<div class="modal fade" id="addAssetModal" tabindex="-1" aria-labelledby="addAssetModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<!-- Assign Asset Modal -->
+<div class="modal fade" id="assignAssetModal" tabindex="-1" aria-labelledby="assignAssetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="addAssetModalLabel">Add New Asset</h5>
+                <h5 class="modal-title" id="assignAssetModalLabel">Assign Asset to Room {{ $room->room_num }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('assets.store') }}" method="POST">
+            <form action="{{ route('assets.assign') }}" method="POST">
                 @csrf
                 <div class="modal-body">
                     <input type="hidden" name="room_id" value="{{ $room->room_id }}">
 
-                    <div class="mb-3">
-                        <label for="asset_name" class="form-label">Asset Name <span class="text-danger">*</span></label>
-                        <input type="text"
-                               class="form-control @error('name') is-invalid @enderror"
-                               id="asset_name"
-                               name="name"
-                               value="{{ old('name') }}"
-                               required>
-                        @error('name')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Select an asset from Storage or another room to assign to this room.
                     </div>
 
                     <div class="mb-3">
-                        <label for="asset_condition" class="form-label">Condition <span class="text-danger">*</span></label>
-                        <select class="form-select @error('condition') is-invalid @enderror"
-                                id="asset_condition"
-                                name="condition"
+                        <label for="asset_id" class="form-label">Select Asset <span class="text-danger">*</span></label>
+                        <select class="form-select @error('asset_id') is-invalid @enderror"
+                                id="asset_id"
+                                name="asset_id"
                                 required>
-                            <option value="">Select condition...</option>
-                            <option value="Good" {{ old('condition') === 'Good' ? 'selected' : '' }}>Good</option>
-                            <option value="Needs Repair" {{ old('condition') === 'Needs Repair' ? 'selected' : '' }}>Needs Repair</option>
-                            <option value="Broken" {{ old('condition') === 'Broken' ? 'selected' : '' }}>Broken</option>
-                            <option value="Missing" {{ old('condition') === 'Missing' ? 'selected' : '' }}>Missing</option>
-                        </select>
-                        @error('condition')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
+                            <option value="">Choose an asset...</option>
+                            @php
+                                $allAssets = \App\Models\Asset::with('room')->orderBy('name')->get();
+                                $storageAssets = $allAssets->whereNull('room_id');
+                                $otherRoomAssets = $allAssets->where('room_id', '!=', $room->room_id)->whereNotNull('room_id');
+                            @endphp
 
-                    <div class="mb-3">
-                        <label for="asset_date_acquired" class="form-label">Date Acquired</label>
-                        <input type="date"
-                               class="form-control @error('date_acquired') is-invalid @enderror"
-                               id="asset_date_acquired"
-                               name="date_acquired"
-                               value="{{ old('date_acquired') }}">
-                        @error('date_acquired')
+                            @if($storageAssets->isNotEmpty())
+                                <optgroup label="📦 From Storage">
+                                    @foreach($storageAssets as $asset)
+                                        <option value="{{ $asset->asset_id }}">
+                                            {{ $asset->name }} - {{ $asset->condition }}
+                                        </option>
+                                    @endforeach
+                                </optgroup>
+                            @endif
+
+                            @if($otherRoomAssets->isNotEmpty())
+                                <optgroup label="🚪 From Other Rooms">
+                                    @foreach($otherRoomAssets as $asset)
+                                        <option value="{{ $asset->asset_id }}">
+                                            {{ $asset->name }} (Room {{ $asset->room->room_num }}) - {{ $asset->condition }}
+                                        </option>
+                                    @endforeach
+                                </optgroup>
+                            @endif
+
+                            @if($storageAssets->isEmpty() && $otherRoomAssets->isEmpty())
+                                <option value="" disabled>No available assets to assign</option>
+                            @endif
+                        </select>
+                        @error('asset_id')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
+                        <small class="text-muted">Assets currently assigned to this room are not shown.</small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -560,7 +569,7 @@
                         <i class="bi bi-x-circle"></i> Cancel
                     </button>
                     <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-plus-circle"></i> Add Asset
+                        <i class="bi bi-box-arrow-in-down"></i> Assign to Room
                     </button>
                 </div>
             </form>
@@ -574,13 +583,14 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="editAssetModalLabel{{ $asset->asset_id }}">Edit Asset</h5>
+                <h5 class="modal-title" id="editAssetModalLabel{{ $asset->asset_id }}">Edit Asset: {{ $asset->name }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form action="{{ route('assets.update', $asset->asset_id) }}" method="POST">
                 @csrf
                 @method('PUT')
                 <div class="modal-body">
+                    <!-- Asset Details Section -->
                     <div class="mb-3">
                         <label for="edit_asset_name{{ $asset->asset_id }}" class="form-label">Asset Name <span class="text-danger">*</span></label>
                         <input type="text"
@@ -622,6 +632,37 @@
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
+
+                    <hr class="my-4">
+
+                    <!-- Move/Transfer Section -->
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> <strong>Optional:</strong> Move this asset to another location
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_room_id{{ $asset->asset_id }}" class="form-label">Location</label>
+                        <select class="form-select @error('room_id') is-invalid @enderror"
+                                id="edit_room_id{{ $asset->asset_id }}"
+                                name="room_id">
+                            <option value="{{ $room->room_id }}" selected>🚪 Keep in Room {{ $room->room_num }} (Current)</option>
+                            <option value="">🏪 Move to Storage</option>
+                            @php
+                                $allRooms = \App\Models\Room::where('room_id', '!=', $room->room_id)
+                                    ->orderBy('room_num')
+                                    ->get();
+                            @endphp
+                            @foreach($allRooms as $otherRoom)
+                                <option value="{{ $otherRoom->room_id }}">
+                                    🚪 Move to Room {{ $otherRoom->room_num }} ({{ ucfirst($otherRoom->status) }})
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('room_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                        <small class="text-muted">Leave as current room to only update asset details, or select a new location to move it.</small>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
@@ -650,9 +691,19 @@
                 @method('PUT')
                 <div class="modal-body">
                     @if($room->activeBooking)
-                        <div class="alert alert-warning">
-                            <i class="bi bi-exclamation-triangle"></i> <strong>Room is Occupied</strong><br>
-                            Cannot change room status while occupied by an active booking. Please check out the tenant first.
+                        <div class="mb-3">
+                            <label for="room_status" class="form-label">Room Status <span class="text-danger">*</span></label>
+                            <select class="form-select @error('status') is-invalid @enderror"
+                                    id="room_status"
+                                    name="status"
+                                    required>
+                                <option value="occupied" {{ old('status', $room->status) === 'occupied' ? 'selected' : '' }}>Occupied</option>
+                                <option value="maintenance" {{ old('status', $room->status) === 'maintenance' ? 'selected' : '' }}>Maintenance</option>
+                            </select>
+                            @error('status')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <small class="text-muted">Room is occupied. Only "Maintenance" status can be selected if room needs repair.</small>
                         </div>
                     @else
                         <div class="mb-3">
@@ -662,7 +713,6 @@
                                     name="status"
                                     required>
                                 <option value="available" {{ old('status', $room->status) === 'available' ? 'selected' : '' }}>Available</option>
-                                <option value="pending" {{ old('status', $room->status) === 'pending' ? 'selected' : '' }}>Pending</option>
                                 <option value="occupied" {{ old('status', $room->status) === 'occupied' ? 'selected' : '' }}>Occupied</option>
                                 <option value="maintenance" {{ old('status', $room->status) === 'maintenance' ? 'selected' : '' }}>Maintenance</option>
                             </select>
@@ -677,11 +727,9 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="bi bi-x-circle"></i> Cancel
                     </button>
-                    @if(!$room->activeBooking)
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-circle"></i> Update Status
-                        </button>
-                    @endif
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Update Status
+                    </button>
                 </div>
             </form>
         </div>

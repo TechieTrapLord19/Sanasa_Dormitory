@@ -37,7 +37,7 @@
         display: inline-block;
         padding: 0.35rem 0.75rem;
         border-radius: 20px;
-        font-size: 0.75rem;
+        font-size: 0.65rem;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -320,8 +320,8 @@
         <div class="action-buttons">
             @php
                 // Check check-in eligibility based on rules:
-                // 1. Monthly Rent + Utilities MUST be fully paid (ALL invoices, including extensions)
-                // 2. Security Deposit must be at least HALF paid (₱2,500 minimum)
+                // 1. Rent + Utilities MUST be fully paid (ALL invoices, including extensions)
+                // 2. Security Deposit must be at least HALF paid (₱2,500 minimum) - only for monthly bookings
                 $rentUtilitiesInvoices = $booking->invoices->filter(function($invoice) {
                     $hasUtilities = $invoice->invoiceUtilities && $invoice->invoiceUtilities->count() > 0;
                     return $invoice->rent_subtotal > 0 || $hasUtilities;
@@ -337,9 +337,9 @@
                 $canCheckIn = false;
                 $checkInMessage = '';
 
-                // Check Monthly Rent + Utilities (aggregate ALL invoices)
+                // Check Rent + Utilities (aggregate ALL invoices)
                 if ($rentUtilitiesInvoices->isEmpty()) {
-                    $checkInMessage = 'Monthly Rent + Utilities invoice not found';
+                    $checkInMessage = $chargeSummary['duration_type'] . ' Rent' . (isset($chargeSummary['utilities']) && count($chargeSummary['utilities']) > 0 ? ' + Utilities' : '') . ' invoice not found';
                 } else {
                     // Sum up total due and payments across ALL rent/utilities invoices
                     $rentUtilitiesDue = $rentUtilitiesInvoices->sum('total_due');
@@ -371,7 +371,6 @@
                 }
             @endphp
 
-            {{-- Check-In Button: Only enabled if Monthly Rent + Utilities is fully paid --}}
             {{-- Check-in is always manual - no automatic check-in even when fully paid --}}
             @if(!in_array($booking->status, ['Active', 'Completed', 'Canceled']) && $canCheckIn)
                 <form action="{{ route('bookings.checkin', $booking->booking_id) }}" method="POST" style="display: inline;">
@@ -476,9 +475,20 @@
                 <span class="info-label">Stay Length</span>
                 <span class="info-value">{{ $stayLengthDays }} night(s)</span>
             </div>
+        </div>
+    </div>
+
+    <!-- Rates Info -->
+    <div class="info-section">
+        <h2 class="info-section-title">Rates Information</h2>
+        <div class="info-grid">
             <div class="info-item">
-                <span class="info-label">Rate</span>
-                <span class="info-value">{{ $booking->rate->duration_type }} &middot; ₱{{ number_format($booking->rate->base_price, 2) }}</span>
+                <span class="info-label">Rate(s) Used</span>
+                <span class="info-value">{{ $chargeSummary['rates_used'] }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Rate Breakdown</span>
+                <span class="info-value">{{ $chargeSummary['units'] }}</span>
             </div>
             <div class="info-item">
                 <span class="info-label">Rate Total (Current Stay)</span>
@@ -539,25 +549,25 @@
                 <span class="info-value">
                     <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                         @if($rentUtilitiesInvoices->isNotEmpty())
-                            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-                                <span style="font-weight: 500; color: #2d3748; min-width: 180px;">Monthly Rent + Utilities:</span>
-                                <span class="status-badge {{ str_replace(' ', '-', $rentUtilitiesStatus) }}">{{ $rentUtilitiesStatus }}</span>
-                                @if($rentUtilitiesStatus === 'Partial Payment' || $rentUtilitiesStatus === 'Pending Payment')
-                                    <span style="font-size: 0.875rem; color: #718096;">
-                                        ₱{{ number_format($rentUtilitiesPaid, 2) }} / ₱{{ number_format($rentUtilitiesDue, 2) }}
-                                    </span>
-                                @endif
+                            <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <span style="font-weight: 500; color: #2d3748;">{{ $chargeSummary['duration_type'] }} Rent @if(isset($chargeSummary['utilities']) && count($chargeSummary['utilities']) > 0)+ Utilities @endif:</span>
+                                    <span class="status-badge {{ str_replace(' ', '-', $rentUtilitiesStatus) }}">{{ $rentUtilitiesStatus }}</span>
+                                </div>
+                                <span style="font-size: 0.875rem; color: #4a5568; margin-left: 0;">
+                                    ₱{{ number_format($rentUtilitiesPaid, 2) }} / ₱{{ number_format($rentUtilitiesDue, 2) }}
+                                </span>
                             </div>
                         @endif
                         @if($securityDepositInvoice)
-                            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-                                <span style="font-weight: 500; color: #2d3748; min-width: 180px;">Security Deposit:</span>
-                                <span class="status-badge {{ str_replace(' ', '-', $securityDepositStatus) }}">{{ $securityDepositStatus }}</span>
-                                @if($securityDepositStatus === 'Partial Payment' || $securityDepositStatus === 'Pending Payment')
-                                    <span style="font-size: 0.875rem; color: #718096;">
-                                        ₱{{ number_format($securityDepositPaid, 2) }} / ₱{{ number_format($securityDepositDue, 2) }}
-                                    </span>
-                                @endif
+                            <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <span style="font-weight: 500; color: #2d3748;">Security Deposit:</span>
+                                    <span class="status-badge {{ str_replace(' ', '-', $securityDepositStatus) }}">{{ $securityDepositStatus }}</span>
+                                </div>
+                                <span style="font-size: 0.875rem; color: #4a5568; margin-left: 0;">
+                                    ₱{{ number_format($securityDepositPaid, 2) }} / ₱{{ number_format($securityDepositDue, 2) }}
+                                </span>
                             </div>
                         @endif
                     </div>
@@ -567,7 +577,7 @@
     </div>
     <!-- Charges Summary -->
     <div class="charges-summary">
-        <h2 class="info-section-title">Charges To Collect</h2>
+        <h2 class="info-section-title">Booking Breakdown</h2>
         <div class="charge-row">
             <span>Rent ({{ $chargeSummary['duration_type'] }})</span>
             <span>₱{{ number_format($chargeSummary['rate_total'], 2) }}</span>
@@ -911,9 +921,22 @@
                             <small class="text-muted">Current rate: <strong id="currentRateDisplay">₱{{ $electricityRate ? number_format($electricityRate, 2) : 'Not set' }}</strong> (from Electric Readings page)</small>
                         </div>
 
-                        <div class="alert alert-info" id="electricityCalculation" style="display: none;">
-                            <strong style="display: block; margin-bottom: 0.75rem;">Electricity Calculation:</strong>
-                            <div id="electricityDetails" style="line-height: 1.8;"></div>
+                        <div class="mb-3">
+                            <label for="elec_usage" class="form-label">Usage (kWh)</label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="elec_usage"
+                                   readonly
+                                   style="background-color: #f8fafc;">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="elec_total" class="form-label">Total Amount (₱)</label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="elec_total"
+                                   readonly
+                                   style="background-color: #f8fafc; font-weight: 600;">
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -929,81 +952,35 @@
             document.addEventListener('DOMContentLoaded', function() {
                 const hasLastReading = {{ $lastReading ? 'true' : 'false' }};
                 const lastReadingValue = {{ $lastReading ? $lastReading->meter_value_kwh : 0 }};
-                const lastReadingDate = {{ $lastReading ? json_encode($lastReading->reading_date->format('M d, Y')) : 'null' }};
                 const rateInput = document.getElementById('elec_electricity_rate_per_kwh');
                 const newMeterInput = document.getElementById('elec_new_meter_reading');
-                const calculationDiv = document.getElementById('electricityCalculation');
-                const detailsDiv = document.getElementById('electricityDetails');
-                const submitBtn = document.getElementById('submitElectricityBtn');
+                const usageInput = document.getElementById('elec_usage');
+                const totalInput = document.getElementById('elec_total');
                 const submitBtnText = document.getElementById('submitBtnText');
 
                 function calculateElectricity() {
-                    const rate = parseFloat(rateInput.value) || 0;
-                    let kwhUsed = 0;
-
-                    // Calculate usage: new meter reading - last reading
-                    if (newMeterInput && newMeterInput.value && newMeterInput.value.trim() !== '') {
-                        const newVal = Math.max(0, parseFloat(newMeterInput.value) || 0);
-                        const lastVal = hasLastReading ? lastReadingValue : 0;
-                        kwhUsed = Math.max(0, newVal - lastVal);
+                    if (!rateInput || !newMeterInput || !usageInput || !totalInput) {
+                        return;
                     }
 
-                    const lastReadingInfoHtml = hasLastReading
-                        ? `<div><strong>Last Reading:</strong> ${lastReadingValue.toFixed(2)} kWh (${lastReadingDate ?? ''})</div>`
-                        : `<div><strong>Previous Reading:</strong> 0.00 kWh (Brand new meter)</div>`;
+                    const rate = parseFloat(rateInput.value) || 0;
+                    const newVal = parseFloat(newMeterInput.value) || 0;
+                    const lastVal = hasLastReading ? lastReadingValue : 0;
+                    const kwhUsed = Math.max(0, newVal - lastVal);
+                    const totalFee = kwhUsed * rate;
 
-                    const currentReadingDisplay = (newMeterInput && newMeterInput.value && newMeterInput.value.trim() !== '')
-                        ? `${parseFloat(newMeterInput.value).toFixed(2)} kWh`
-                        : '—';
-
-                    if (newMeterInput && newMeterInput.value && newMeterInput.value.trim() !== '') {
-                        // Show calculation if new reading is entered
-                        const newVal = parseFloat(newMeterInput.value) || 0;
-                        const lastVal = hasLastReading ? lastReadingValue : 0;
-
-                        let detailsHtml = `
-                            <div style="display: grid; gap: 0.5rem;">
-                                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(0,0,0,0.1);">
-                                    <span><strong>Last Reading:</strong></span>
-                                    <span>${lastVal.toFixed(2)} kWh${hasLastReading ? ` (${lastReadingDate ?? ''})` : ''}</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(0,0,0,0.1);">
-                                    <span><strong>New Reading:</strong></span>
-                                    <span>${newVal.toFixed(2)} kWh</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 2px solid rgba(0,0,0,0.2);">
-                                    <span><strong>Usage:</strong></span>
-                                    <span><strong>${kwhUsed.toFixed(2)} kWh</strong></span>
-                                </div>
-                        `;
-
+                    if (newMeterInput.value && newMeterInput.value.trim() !== '') {
+                        usageInput.value = kwhUsed.toFixed(2) + ' kWh';
                         if (rate > 0) {
-                            const totalFee = kwhUsed * rate;
-                            detailsHtml += `
-                                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
-                                    <span>Rate:</span>
-                                    <span>₱${rate.toFixed(2)} per kWh</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; margin-top: 0.5rem; border-top: 2px solid rgba(0,0,0,0.2); background-color: rgba(13, 110, 253, 0.1); border-radius: 4px; padding-left: 0.75rem; padding-right: 0.75rem;">
-                                    <span><strong>Total Electricity Fee:</strong></span>
-                                    <span><strong style="font-size: 1.1em; color: #0d6efd;">₱${totalFee.toFixed(2)}</strong></span>
-                                </div>
-                            `;
-                            submitBtnText.textContent = `Add ₱${totalFee.toFixed(2)} to Invoice`;
+                            totalInput.value = '₱' + totalFee.toFixed(2);
+                            submitBtnText.textContent = 'Add ₱' + totalFee.toFixed(2) + ' to Invoice';
                         } else {
-                            detailsHtml += `
-                                <div style="padding: 0.5rem 0; color: #6c757d; font-style: italic;">
-                                    Enter electricity rate to calculate total fee
-                                </div>
-                            `;
+                            totalInput.value = '';
                             submitBtnText.textContent = 'Generate Electricity Invoice';
                         }
-
-                        detailsHtml += `</div>`;
-                        calculationDiv.style.display = 'block';
-                        detailsDiv.innerHTML = detailsHtml;
                     } else {
-                        calculationDiv.style.display = 'none';
+                        usageInput.value = '';
+                        totalInput.value = '';
                         submitBtnText.textContent = 'Generate Electricity Invoice';
                     }
                 }
@@ -1013,42 +990,39 @@
                 const currentRateDisplay = document.getElementById('currentRateDisplay');
 
                 if (storedRate && rateInput) {
-                    // Always update from sessionStorage if available (it's the most recent)
                     rateInput.value = storedRate;
                     if (currentRateDisplay) {
                         currentRateDisplay.textContent = '₱' + parseFloat(storedRate).toFixed(2);
                     }
                 } else if (rateInput && rateInput.value) {
-                    // If there's a value from server, sync it to sessionStorage
                     sessionStorage.setItem('electricity_rate_per_kwh', rateInput.value);
                     if (currentRateDisplay) {
                         currentRateDisplay.textContent = '₱' + parseFloat(rateInput.value).toFixed(2);
                     }
                 }
 
-                // Update current rate display when rate input changes
+                // Update on input
                 if (rateInput) {
-                    rateInput.addEventListener('input', function() {
+                    const updateRate = function() {
                         if (this.value && currentRateDisplay) {
                             currentRateDisplay.textContent = '₱' + parseFloat(this.value).toFixed(2);
                             sessionStorage.setItem('electricity_rate_per_kwh', this.value);
                         }
                         calculateElectricity();
-                    });
-
-                    // Trigger calculation on page load
-                    calculateElectricity();
+                    };
+                    rateInput.addEventListener('input', updateRate);
+                    rateInput.addEventListener('change', updateRate);
                 }
 
                 if (newMeterInput) {
                     newMeterInput.addEventListener('input', calculateElectricity);
+                    newMeterInput.addEventListener('change', calculateElectricity);
                 }
 
-                // Also trigger calculation when modal is shown
+                // Trigger calculation when modal is shown
                 const modal = document.getElementById('electricityInvoiceModal');
                 if (modal) {
                     modal.addEventListener('show.bs.modal', function() {
-                        // Re-load rate from sessionStorage when modal opens (most recent)
                         const updatedRate = sessionStorage.getItem('electricity_rate_per_kwh');
                         if (updatedRate && rateInput) {
                             rateInput.value = updatedRate;
@@ -1056,7 +1030,6 @@
                                 currentRateDisplay.textContent = '₱' + parseFloat(updatedRate).toFixed(2);
                             }
                         }
-                        // Trigger calculation after a short delay to ensure inputs are ready
                         setTimeout(() => {
                             calculateElectricity();
                         }, 100);
@@ -1069,5 +1042,4 @@
     </div>
 </div>
 @endif
-
 @endsection

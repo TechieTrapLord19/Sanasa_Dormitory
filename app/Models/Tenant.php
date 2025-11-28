@@ -54,6 +54,21 @@ class Tenant extends Model
     }
 
     /**
+     * Get all payments for this tenant across all bookings
+     */
+    public function payments()
+    {
+        return $this->hasManyThrough(
+            Payment::class,
+            Booking::class,
+            'tenant_id',
+            'booking_id',
+            'tenant_id',
+            'booking_id'
+        );
+    }
+
+    /**
      * Get the tenant's age
      */
     public function getAgeAttribute()

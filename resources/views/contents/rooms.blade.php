@@ -14,40 +14,6 @@
         color: #03255b;
         margin: 0;
     }
-    .room-status-container {
-        display: flex;
-        flex-direction: column;
-        align-items: end;
-    }
-    .room-status-item {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.80rem;
-    }
-    /* Status Dots */
-    .status-dot {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        display: inline-block;
-    }
-
-    .status-dot.available {
-        background-color: #10b981;
-    }
-
-    .status-dot.occupied {
-        background-color: #ef4444;
-    }
-
-    .status-dot.maintenance {
-        background-color: #f59e0b;
-    }
-
-    .status-dot.pending {
-        background-color: #fbbf24;
-}
 
     .modal-footer .btn-primary:hover {
         background-color: #021d47 !important;
@@ -231,25 +197,26 @@
 
     .filter-btn {
         padding: 0.5rem 1rem;
-        border: 1px solid #e2e8f0;
-        background-color: white;
+        border: none;
+        background-color: transparent;
         border-radius: 6px;
         font-size: 0.875rem;
         font-weight: 500;
-        color: #4a5568;
+        color: #718096;
         cursor: pointer;
         transition: all 0.2s ease;
+        text-decoration: none;
     }
 
     .filter-btn:hover {
+        color: #03255b;
         background-color: #f7fafc;
-        border-color: #cbd5e0;
     }
 
     .filter-btn.active {
         background-color: #03255b;
         color: white;
-        border-color: #03255b;
+        font-weight: 600;
     }
 
     .filter-select {
@@ -278,68 +245,32 @@
     }
 </style>
 
-<div class="room-header">
-    <div class="row align-items-center">
-        <!-- Left: Title -->
-        <div class="col-md-8 d-flex justify-content-start">
-            <h1 class="room-title">Room Management</h1>
-        </div>
-
-        <!-- Right: Create Button (aligned to the end) - Only for owners -->
-        @if(auth()->check() && strtolower(auth()->user()->role) === 'owner')
-        <div class="col-md-4 d-flex justify-content-end">
-            <button class="create-room-btn" data-bs-toggle="modal" data-bs-target="#createRoomModal">
-                <i class="bi bi-plus-circle"></i>
-                <span>Create New Room</span>
-            </button>
-        </div>
-        @endif
-    </div>
+<div class="room-header d-flex justify-content-between align-items-center mb-4">
+    <h1 class="room-title">Room Management</h1>
+    @if(auth()->check() && strtolower(auth()->user()->role) === 'owner')
+    <button class="create-room-btn" data-bs-toggle="modal" data-bs-target="#createRoomModal">
+        <i class="bi bi-plus-circle"></i>
+        <span>Create New Room</span>
+    </button>
+    @endif
 </div>
 
 <!-- Filters -->
 <div class="room-filters mt-4">
-    <div class="row align-items-center">
-        <!-- Left: Filters (two groups stacked) -->
-        <div class="col-md-8">
-            <div class="filter-group">
-                <p class="filter-label mb-0">Filter by Floor:</p>
-                <button class="filter-btn active" data-filter="floor" data-value="all">All</button>
-                @foreach($floors as $floor)
-                    <button class="filter-btn" data-filter="floor" data-value="{{ $floor }}">Floor {{ $floor }}</button>
-                @endforeach
-            </div>
-            <div class="filter-group mt-3">
-                <p class="filter-label mb-0">Filter by Status:</p>
-                <button class="filter-btn active" data-filter="status" data-value="all">All</button>
-                <button class="filter-btn" data-filter="status" data-value="available">Available</button>
-                <button class="filter-btn" data-filter="status" data-value="pending">Pending</button>
-                <button class="filter-btn" data-filter="status" data-value="occupied">Occupied</button>
-                <button class="filter-btn" data-filter="status" data-value="maintenance">Maintenance</button>
-            </div>
-        </div>
-
-        <!-- Right: Room counts aligned to end -->
-        <div class="col-md-4 d-flex justify-content-end">
-            <div class="room-status-container">
-                <div class="room-status-item">
-                    <span class="status-dot available"></span>
-                    <span>Available <strong>{{ $roomCounts['available'] ?? 0 }}/{{ $totalRooms ?? 0 }}</strong></span>
-                </div>
-                <div class="room-status-item">
-                    <span class="status-dot pending"></span>
-                    <span>Pending <strong>{{ $roomCounts['pending'] ?? 0 }}/{{ $totalRooms ?? 0 }}</strong></span>
-                </div>
-                <div class="room-status-item">
-                    <span class="status-dot occupied"></span>
-                    <span>Occupied <strong>{{ $roomCounts['occupied'] ?? 0 }}/{{ $totalRooms ?? 0 }}</strong></span>
-                </div>
-                <div class="room-status-item">
-                    <span class="status-dot maintenance"></span>
-                    <span>Maintenance <strong>{{ $roomCounts['maintenance'] ?? 0 }}/{{ $totalRooms ?? 0 }}</strong></span>
-                </div>
-            </div>
-        </div>
+    <div class="filter-group">
+        <p class="filter-label mb-0">Filter by Floor:</p>
+        <button class="filter-btn active" data-filter="floor" data-value="all">All</button>
+        @foreach($floors as $floor)
+            <button class="filter-btn" data-filter="floor" data-value="{{ $floor }}">Floor {{ $floor }}</button>
+        @endforeach
+    </div>
+    <div class="filter-group mt-3">
+        <p class="filter-label mb-0">Filter by Status:</p>
+        <button class="filter-btn active" data-filter="status" data-value="all">All ({{ $totalRooms ?? 0 }})</button>
+        <button class="filter-btn" data-filter="status" data-value="available">Available ({{ $roomCounts['available'] ?? 0 }})</button>
+        <button class="filter-btn" data-filter="status" data-value="pending">Pending ({{ $roomCounts['pending'] ?? 0 }})</button>
+        <button class="filter-btn" data-filter="status" data-value="occupied">Occupied ({{ $roomCounts['occupied'] ?? 0 }})</button>
+        <button class="filter-btn" data-filter="status" data-value="maintenance">Maintenance ({{ $roomCounts['maintenance'] ?? 0 }})</button>
     </div>
 </div>
 

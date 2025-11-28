@@ -8,180 +8,17 @@
     <title>@yield('title') - Sanasa Dormitory</title>
     <link rel="icon" type="image/png" href="{{ asset('images/loginimage.png') }}">
 
+    <!-- Preconnect to CDNs for faster loading -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
 
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Try CDN first (online), fallback to local (offline) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" onerror="this.onerror=null;this.href='{{ asset('build/assets/bootstrap-app-40oqglNi.css') }}'">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all';this.onerror=null;">
+    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700" rel="stylesheet" onerror="this.onerror=null;">
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700" rel="stylesheet" />
-
-    <style>
-    body {
-        font-family: 'Inter', sans-serif;
-        overflow-x: hidden;
-    }
-
-    .app-sidebar {
-        background-color: rgb(7, 42, 97) !important;
-        position: fixed;
-        left: 0;
-        top: 0;
-        height: 100vh;
-        z-index: 1000;
-        display: flex;
-        flex-direction: column;
-        width: 256px;
-        box-sizing: border-box;
-    }
-
-    /* Header (logo) - fixed height */
-    .app-sidebar > .border-bottom {
-        height: 80px;
-        flex-shrink: 0;
-    }
-
-    /* Make nav use remaining vertical space and allow internal scrolling */
-    .app-sidebar nav {
-        flex: 1 1 auto;
-        overflow-y: auto;
-        padding-top: 8px;
-        padding-bottom: 8px;
-        -webkit-overflow-scrolling: touch;
-        /* reserve a little right padding so the scrollbar doesn't overlap link text */
-        padding-right: 10px;
-    }
-
-    /* Compact list typography and spacing so items fit within sidebar height */
-    .app-sidebar ul {
-        margin: 0;
-        padding: 0.25rem 0.5rem;
-        list-style: none;
-        font-size: 0.9rem;             /* slightly smaller base font */
-        line-height: 1.1;             /* tighter line height */
-    }
-
-    /* Section headers smaller and tighter */
-    .app-sidebar .text-white-50.small {
-        font-size: 0.72rem;
-        letter-spacing: 0.02em;
-        padding-left: 0.5rem;
-        margin-bottom: 0.4rem;
-    }
-
-    /* Compact link paddings to reduce vertical space usage */
-    .app-sidebar li.mb-1 > a {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.45rem 0.6rem;
-        border-radius: 6px;
-        font-size: 0.92rem;
-        white-space: nowrap;
-    }
-
-    /* Reduce hr spacing */
-    .app-sidebar hr {
-        margin: 0.4rem 0;
-        border-color: rgba(255, 255, 255, 0.08);
-    }
-
-    /* Keep bottom auth panel fixed height and prevent it from growing */
-    .app-sidebar > .border-top {
-        flex-shrink: 0;
-        padding: 0.6rem;
-    }
-
-    .main-content-wrapper {
-        margin-left: 256px;
-        width: calc(100% - 256px);
-        min-height: 100vh;
-        overflow-y: auto;
-    }
-
-    .active > a {
-        background-color: rgba(255, 255, 255, 0.2);
-        color: #ffffff;
-    }
-    .active > a:hover {
-        background-color: rgba(255, 255, 255, 0.3);
-    }
-    a {
-        transition: background-color 0.18s ease, color 0.18s ease;
-    }
-    a:hover {
-        background-color: rgba(255, 255, 255, 0.07);
-        color: #ffffff;
-    }
-    a:focus {
-        outline: none;
-    }
-
-    /* ---------- Custom scrollbars ---------- */
-
-    /* Sidebar scrollbar (WebKit) */
-    .app-sidebar nav::-webkit-scrollbar {
-        width: 8px;
-    }
-    .app-sidebar nav::-webkit-scrollbar-track {
-        background: rgba(255,255,255,0.02); /* subtle track that blends with sidebar */
-        border-radius: 6px;
-    }
-    .app-sidebar nav::-webkit-scrollbar-thumb {
-        background-color: rgba(255,255,255,0.12); /* light translucent thumb */
-        border-radius: 6px;
-    }
-    .app-sidebar nav::-webkit-scrollbar-thumb:hover {
-        background-color: rgba(255,255,255,0.18);
-    }
-
-    /* Sidebar scrollbar (Firefox) */
-    .app-sidebar nav {
-        scrollbar-width: thin;
-        scrollbar-color: rgba(255,255,255,0.12) rgba(255,255,255,0.02);
-    }
-
-    /* Main content scrollbar - neutral grey */
-    .main-content-wrapper::-webkit-scrollbar {
-        width: 10px;
-    }
-    .main-content-wrapper::-webkit-scrollbar-track {
-        background: #f1f1f1;
-    }
-    .main-content-wrapper::-webkit-scrollbar-thumb {
-        background: #c1c1c1;
-        border-radius: 6px;
-    }
-    .main-content-wrapper::-webkit-scrollbar-thumb:hover {
-        background: #a8a8a8;
-    }
-    .main-content-wrapper {
-        scrollbar-color: #c1c1c1 #f1f1f1;
-        scrollbar-width: thin;
-    }
-
-    /* Optional: prevent layout shift when sidebar scrollbar appears in some browsers */
-    @supports (scrollbar-gutter: stable) {
-        .app-sidebar { scrollbar-gutter: stable; }
-    }
-    html {
-    scroll-behavior: smooth;
-}
-
-    .app-sidebar nav {
-        scroll-behavior: smooth;
-    }
-    .app-sidebar > .border-bottom img {
-    transition: opacity 0.2s ease;
-    will-change: opacity;
-}
-
-    /* Prevent layout shift during image load */
-    .app-sidebar > .border-bottom {
-        background-color: rgb(7, 42, 97);
-    }
-</style>
+    <!-- Local styles always loaded -->
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
 
 </head>
 <body class="bg-white">
@@ -189,7 +26,7 @@
         <!-- Sidebar -->
         <aside class="app-sidebar bg-primary text-white d-flex flex-column" style="width: 256px;">
             <div class="border-bottom border-secondary border-opacity-50 d-flex align-items-center" style="height: 80px; flex-shrink: 0;">
-                <img src="{{ asset('images/Logo1.png') }}" alt="Sanasa Dormitory" class="img-fluid" style="max-height: 100%; width: 100%;" >
+                <img src="{{ asset('images/Logo1.png') }}" alt="Sanasa Dormitory" class="img-fluid" style="max-height: 100%; width: 100%;" loading="eager" decoding="async">
             </div>
             <nav class="flex-grow-1 py-3" style="overflow-y: auto; overflow-x: hidden;" role="navigation" aria-label="Main sidebar">
                 <ul class="list-unstyled px-2 mb-0">
@@ -326,60 +163,65 @@
         </div>
     @endif
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap JS - Try CDN first, fallback to local -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer onerror="this.onerror=null;this.src='{{ asset('build/assets/app-BhWFyjkN.js') }}'"></script>
+
 </body>
 <script>
-    // Save sidebar scroll position before navigation
-    document.addEventListener('DOMContentLoaded', function() {
+    // Optimized sidebar scroll persistence
+    (function() {
+        'use strict';
+        const SCROLL_KEY = 'sidebarScrollPos';
         const sidebar = document.querySelector('.app-sidebar nav');
         const logo = document.querySelector('.app-sidebar img');
 
-        // Restore scroll position from sessionStorage
-        const savedScrollPos = sessionStorage.getItem('sidebarScrollPos');
-        if (savedScrollPos && sidebar) {
-            sidebar.scrollTop = parseInt(savedScrollPos);
+        if (!sidebar) return;
+
+        // Restore scroll position
+        const savedPos = sessionStorage.getItem(SCROLL_KEY);
+        if (savedPos) {
+            sidebar.scrollTop = parseInt(savedPos, 10);
         }
 
-        // Prevent logo image flicker by preloading
+        // Optimize logo loading
         if (logo) {
             logo.style.opacity = '1';
-            logo.style.transition = 'opacity 0.2s ease';
         }
 
-        // Save scroll position when user scrolls
-        if (sidebar) {
-            sidebar.addEventListener('scroll', function() {
-                sessionStorage.setItem('sidebarScrollPos', sidebar.scrollTop);
+        // Throttle scroll event for better performance
+        let scrollTimeout;
+        sidebar.addEventListener('scroll', function() {
+            if (scrollTimeout) {
+                window.cancelAnimationFrame(scrollTimeout);
+            }
+            scrollTimeout = window.requestAnimationFrame(function() {
+                sessionStorage.setItem(SCROLL_KEY, sidebar.scrollTop);
             });
+        }, { passive: true });
 
-            // Save scroll position and disable transitions before page unload
-            document.querySelectorAll('.app-sidebar a').forEach(link => {
-                link.addEventListener('click', function(e) {
-                    // Save the current scroll position
-                    sessionStorage.setItem('sidebarScrollPos', sidebar.scrollTop);
+        // Save position on navigation
+        document.querySelectorAll('.app-sidebar a').forEach(function(link) {
+            link.addEventListener('click', function() {
+                sessionStorage.setItem(SCROLL_KEY, sidebar.scrollTop);
+            }, { passive: true });
+        });
 
-
-
-                });
-            });
-        }
-
-        // Use the browser's bfcache to preserve scroll on back button
+        // Handle bfcache
         window.addEventListener('pageshow', function(event) {
-            if (event.persisted && sidebar && savedScrollPos) {
-                sidebar.scrollTop = parseInt(sessionStorage.getItem('sidebarScrollPos'));
+            if (event.persisted) {
+                const pos = sessionStorage.getItem(SCROLL_KEY);
+                if (pos && sidebar) {
+                    sidebar.scrollTop = parseInt(pos, 10);
+                }
+                if (logo) {
+                    logo.style.opacity = '1';
+                }
             }
-            if (logo) {
-                logo.style.opacity = '1';
-            }
-        });
+        }, { passive: true });
 
-        window.addEventListener('pagehide', function(event) {
-            if (sidebar) {
-                sessionStorage.setItem('sidebarScrollPos', sidebar.scrollTop);
-            }
-        });
-    });
+        window.addEventListener('pagehide', function() {
+            sessionStorage.setItem(SCROLL_KEY, sidebar.scrollTop);
+        }, { passive: true });
+    })();
 </script>
 </html>

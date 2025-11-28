@@ -87,25 +87,26 @@
 
     .filter-btn {
         padding: 0.5rem 1rem;
-        border: 1px solid #e2e8f0;
-        background-color: white;
+        border: none;
+        background-color: transparent;
         border-radius: 6px;
         font-size: 0.875rem;
         font-weight: 500;
-        color: #4a5568;
+        color: #718096;
         cursor: pointer;
         transition: all 0.2s ease;
+        text-decoration: none;
     }
 
     .filter-btn:hover {
+        color: #03255b;
         background-color: #f7fafc;
-        border-color: #cbd5e0;
     }
 
     .filter-btn.active {
         background-color: #03255b;
         color: white;
-        border-color: #03255b;
+        font-weight: 600;
     }
 
     /* Table Styles */

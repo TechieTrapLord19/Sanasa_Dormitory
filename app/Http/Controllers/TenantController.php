@@ -116,11 +116,27 @@ class TenantController extends Controller
      */
     public function show(string $id)
     {
-        $tenant = Tenant::with(['bookings.room', 'bookings.rate', 'bookings.invoices.payments'])
-                        ->withCount('bookings')
-                        ->findOrFail($id);
+        $tenant = Tenant::with([
+                'bookings.room',
+                'bookings.rate',
+                'bookings.invoices.payments',
+                'payments.booking.room',
+                'payments.invoice',
+                'payments.collectedBy'
+            ])
+            ->withCount('bookings')
+            ->findOrFail($id);
 
-        return view('contents.tenants-show', compact('tenant'));
+        // Get payments sorted by date (newest first)
+        $payments = $tenant->payments()->with(['booking.room', 'invoice', 'collectedBy'])
+                           ->orderBy('date_received', 'desc')
+                           ->orderBy('created_at', 'desc')
+                           ->get();
+
+        // Calculate total paid
+        $totalPaid = $payments->sum('amount');
+
+        return view('contents.tenants-show', compact('tenant', 'payments', 'totalPaid'));
     }
 
     /**

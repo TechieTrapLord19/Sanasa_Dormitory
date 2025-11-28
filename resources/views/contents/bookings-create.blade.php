@@ -469,7 +469,7 @@
                                class="form-control @error('checkin_date') is-invalid @enderror"
                                name="checkin_date"
                                id="checkin_date"
-                               value="{{ old('checkin_date') }}"
+                               value="{{ old('checkin_date', date('Y-m-d')) }}"
                                required
                                min="{{ date('Y-m-d') }}">
                         @error('checkin_date')

@@ -11,25 +11,13 @@
     }
     .invoices-header {
         background-color: white;
-        padding: 1.75rem 2rem;
-        border-radius: 12px;
-        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1.5rem;
+        margin-bottom: 2rem;
     }
     .invoices-title {
         font-size: 2rem;
         font-weight: 700;
         color: #03255b;
         margin: 0;
-    }
-    .invoices-subtitle {
-        color: #64748b;
-        margin: 0.25rem 0 0;
-        font-size: 1rem;
     }
 
     .modal-footer .btn-primary:hover {
@@ -229,6 +217,9 @@
         vertical-align: middle;
         white-space: nowrap;
     }
+    .invoices-table tbody tr {
+        cursor: pointer;
+    }
     .invoices-table tbody tr:hover {
         background-color: #f8fafc;
     }
@@ -268,6 +259,9 @@
         font-weight: 600;
         color: #0f172a;
         font-size: 0.9rem;
+    }
+    .tenant-name {
+        color: #0f172a;
     }
     .tenant-room {
         color: #64748b;
@@ -491,11 +485,8 @@
         </div>
     @endif
 
-    <div class="d-flex align-items-center justify-content-between mb-3">
-        <div>
-            <h1 class="invoices-title" style="margin:0">Invoices Management</h1>
-        </div>
-
+    <div class="invoices-header mb-4">
+        <h1 class="invoices-title">Invoices Management</h1>
     </div>
 
     <div class="summary-cards">
@@ -614,12 +605,11 @@
                                     ? 'canceled'
                                     : 'partial'));
                     @endphp
-                    <tr>
+                    <tr onclick="window.location='{{ $invoice->booking ? route('bookings.show', $invoice->booking->booking_id) : '#' }}'" style="{{ !$invoice->booking ? 'cursor: default;' : '' }}">
                         <td>
                             <div class="invoice-metadata">
                                 <span class="invoice-type">#{{ str_pad($invoice->invoice_id, 5, '0', STR_PAD_LEFT) }}</span>
                                 <span class="invoice-date">Generated {{ optional($invoice->date_generated)->format('M d, Y') ?? '—' }}</span>
-                                <span class="invoice-date">Due: {{ optional($invoice->date_generated)->addDays(5)->format('M d, Y') ?? '—' }}</span>
                             </div>
                         </td>
                         <td>
@@ -646,11 +636,7 @@
                             </span>
                         </td>
                         <td class="amount-col" style="white-space: normal; line-height: 1.4;">
-                            @if($isSecurityDepositInvoice)
-                                Security<br>Deposit
-                            @else
-                                Monthly Rent +<br>Utilities
-                            @endif
+                            {{ $invoice->invoice_type }}
                         </td>
                         <td style="font-size: 0.8rem; color: #64748b; line-height: 1.5;">
                             @if($isSecurityDepositInvoice)
@@ -671,7 +657,7 @@
                                 {{ $statusLabel }}
                             </span>
                         </td>
-                        <td>
+                        <td onclick="event.stopPropagation();">
                             <div class="action-buttons">
                                 @if($statusLabel !== 'Paid' && $statusLabel !== 'Canceled')
                                     <button class="btn-add-payment"

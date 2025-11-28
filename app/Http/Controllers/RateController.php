@@ -22,7 +22,7 @@ class RateController extends Controller
         // Only show occupied rooms in the active room rates section
         $occupiedRooms = Room::where('status', 'occupied')->get();
         $floors = Room::select('floor')->distinct()->orderBy('floor')->pluck('floor');
-        
+
         return view('contents.rates', compact('rates', 'occupiedRooms', 'floors'));
     }
 
@@ -151,36 +151,29 @@ class RateController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Archive/deactivate the specified resource.
      */
     public function destroy(string $id)
     {
-        // Only owners can delete rates
+        // Only owners can archive rates
         $this->requireOwner();
 
         $rate = Rate::findOrFail($id);
         $rateName = $rate->rate_name ?? $rate->duration_type . ' Rate';
 
-        // Check if there are any bookings using this rate
-        $bookingsCount = Booking::where('rate_id', $rate->rate_id)->count();
-        
-        if ($bookingsCount > 0) {
-            return redirect()->route('rates.index')
-                ->with('error', "Cannot delete {$rateName}. This rate is currently being used by {$bookingsCount} booking(s). Please remove or update the bookings first.");
-        }
+        // Toggle status between active and inactive
+        $newStatus = $rate->status === 'active' ? 'inactive' : 'active';
+        $rate->update(['status' => $newStatus]);
 
-        // Delete associated utilities
-        $rate->utilities()->delete();
-        
-        // Delete the rate
-        $rate->delete();
+        $action = $newStatus === 'inactive' ? 'Archived' : 'Restored';
 
         $this->logActivity(
-            'Deleted Rate',
-            "Deleted {$rateName}",
-            null
+            "{$action} Rate",
+            "{$action} {$rateName}",
+            $rate
         );
 
-        return redirect()->route('rates.index')->with('success', 'Rate deleted successfully!');
+        return redirect()->route('rates.index')
+            ->with('success', "Rate {$action} successfully!");
     }
 }

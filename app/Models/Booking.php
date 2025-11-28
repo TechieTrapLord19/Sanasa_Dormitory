@@ -22,6 +22,8 @@ class Booking extends Model
         'status',
         'cancellation_reason',
         'secondary_tenant_id',
+        'auto_canceled',
+        'auto_cancel_reason',
     ];
 
     protected $casts = [

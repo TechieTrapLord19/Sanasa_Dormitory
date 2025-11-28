@@ -14,8 +14,10 @@ class ElectricReadingController extends Controller
      */
     public function index()
     {
-        // Load all rooms ordered by room number
-        $rooms = Room::orderBy('room_num')->get();
+        // Load all rooms ordered by room number with active booking
+        $rooms = Room::with(['activeBooking'])
+            ->orderBy('room_num')
+            ->get();
 
         // Get distinct floors for filtering
         $floors = Room::select('floor')->distinct()->orderBy('floor')->pluck('floor');
@@ -105,12 +107,12 @@ class ElectricReadingController extends Controller
         // Filter out empty readings from request before validation
         $readings = $request->input('readings', []);
         $filteredReadings = [];
-        
+
         // Filter readings - only include those with valid meter values
         foreach ($readings as $index => $reading) {
             // Check if meter_value_kwh exists and is a valid positive number
-            if (isset($reading['meter_value_kwh']) && 
-                $reading['meter_value_kwh'] !== '' && 
+            if (isset($reading['meter_value_kwh']) &&
+                $reading['meter_value_kwh'] !== '' &&
                 $reading['meter_value_kwh'] !== null &&
                 is_numeric($reading['meter_value_kwh']) &&
                 floatval($reading['meter_value_kwh']) > 0) {
@@ -130,7 +132,7 @@ class ElectricReadingController extends Controller
             return redirect()->back()
                 ->withErrors(['error' => 'Please enter at least one reading.']);
         }
-        
+
         // Manually validate readings
         foreach ($filteredReadings as $index => $reading) {
             if (empty($reading['room_id'])) {
@@ -140,7 +142,7 @@ class ElectricReadingController extends Controller
                 return redirect()->back()
                     ->withErrors(['error' => "Room ID is required for reading at index {$index}."]);
             }
-            
+
             if (empty($reading['reading_date'])) {
                 if ($request->expectsJson()) {
                     return response()->json(['success' => false, 'message' => "Reading date is required for reading at index {$index}."], 422);
@@ -148,7 +150,7 @@ class ElectricReadingController extends Controller
                 return redirect()->back()
                     ->withErrors(['error' => "Reading date is required for reading at index {$index}."]);
             }
-            
+
             // Validate room exists
             if (!\App\Models\Room::where('room_id', $reading['room_id'])->exists()) {
                 if ($request->expectsJson()) {

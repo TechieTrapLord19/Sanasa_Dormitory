@@ -397,21 +397,12 @@
     }
 </style>
 
-<div class="bookings-header">
-    <div class="row align-items-center">
-        <!-- Left: Title -->
-        <div class="col-md-8 d-flex justify-content-start">
-            <h1 class="bookings-title">Bookings Management</h1>
-        </div>
-
-        <!-- Right: Create Button -->
-        <div class="col-md-4 d-flex justify-content-end">
-            <a href="{{ route('bookings.create') }}" class="create-booking-btn">
-                <i class="bi bi-plus-circle"></i>
-                <span>Create New Booking</span>
-            </a>
-        </div>
-    </div>
+<div class="bookings-header d-flex justify-content-between align-items-center mb-4">
+    <h1 class="bookings-title">Bookings Management</h1>
+    <a href="{{ route('bookings.create') }}" class="create-booking-btn">
+        <i class="bi bi-plus-circle"></i>
+        <span>Create New Booking</span>
+    </a>
 </div>
 
 <!-- Tabs -->
@@ -502,6 +493,7 @@
                 <th>Check-out Date</th>
                 <th>Rate</th>
                 <th>Status</th>
+                <th>Auto-Cancel</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -531,6 +523,23 @@
                         <span class="status-badge {{ str_replace(' ', '-', $status) }}">
                             {{ $status }}
                         </span>
+                    </td>
+                    <td>
+                        @if($booking->countdown_data)
+                            @if($booking->countdown_data['expired'])
+                                <span class="countdown-expired" style="color: #e53e3e; font-weight: 600;">
+                                    OVERDUE
+                                </span>
+                            @else
+                                <span class="countdown-timer"
+                                      data-expires-at="{{ $booking->countdown_data['expires_at'] }}"
+                                      style="color: #f59e0b; font-weight: 600;">
+                                    {{ $booking->countdown_data['hours'] }}h {{ $booking->countdown_data['minutes'] }}m
+                                </span>
+                            @endif
+                        @else
+                            <span style="color: #a0aec0;">—</span>
+                        @endif
                     </td>
                     <td class="action-column" onclick="event.stopPropagation();">
                         <div class="action-buttons">
@@ -649,6 +658,46 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // Update countdown timers every minute
+    function updateCountdowns() {
+        const countdownTimers = document.querySelectorAll('.countdown-timer');
+
+        countdownTimers.forEach(timer => {
+            const expiresAt = new Date(timer.getAttribute('data-expires-at'));
+            const now = new Date();
+
+            const diffMs = expiresAt - now;
+
+            if (diffMs <= 0) {
+                // Timer expired
+                timer.className = 'countdown-expired';
+                timer.style.color = '#e53e3e';
+                timer.style.fontWeight = '600';
+                timer.textContent = 'OVERDUE';
+            } else {
+                // Calculate hours and minutes remaining
+                const totalMinutes = Math.floor(diffMs / (1000 * 60));
+                const hours = Math.floor(totalMinutes / 60);
+                const minutes = totalMinutes % 60;
+
+                timer.textContent = hours + 'h ' + minutes + 'm';
+
+                // Change color as time runs out
+                if (hours < 1) {
+                    timer.style.color = '#e53e3e'; // Red when less than 1 hour
+                } else if (hours < 6) {
+                    timer.style.color = '#f59e0b'; // Orange when less than 6 hours
+                } else {
+                    timer.style.color = '#10b981'; // Green when more than 6 hours
+                }
+            }
+        });
+    }
+
+    // Update immediately and then every minute
+    updateCountdowns();
+    setInterval(updateCountdowns, 60000); // Update every 60 seconds
 });
 </script>
 

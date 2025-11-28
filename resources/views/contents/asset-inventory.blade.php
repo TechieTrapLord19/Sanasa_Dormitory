@@ -125,11 +125,21 @@
 
     .assets-table th {
         padding: 1rem;
-        text-align: left;
+        text-align: center;
         font-weight: 600;
         color: #2d3748;
         font-size: 0.875rem;
         border-bottom: 2px solid #e2e8f0;
+    }
+
+    .assets-table th:first-child {
+        text-align: left;
+    }
+
+    .assets-table th:last-child {
+        text-align: center;
+        width: 1%;
+        white-space: nowrap;
     }
 
     .assets-table td {
@@ -137,6 +147,17 @@
         color: #4a5568;
         font-size: 0.875rem;
         border-bottom: 1px solid #e2e8f0;
+        text-align: center;
+    }
+
+    .assets-table td:first-child {
+        text-align: left;
+    }
+
+    .assets-table td:last-child {
+        text-align: center;
+        width: 1%;
+        white-space: nowrap;
     }
 
     .assets-table tbody tr:hover {
@@ -433,7 +454,7 @@
                                 {{ $asset->date_acquired ? $asset->date_acquired->format('M d, Y') : 'N/A' }}
                             </td>
                             <td>
-                                <div class="d-flex gap-2">
+                                <div class="d-flex gap-2 justify-content-center">
                                     <button type="button"
                                             class="btn-edit-asset"
                                             data-bs-toggle="modal"
@@ -547,7 +568,7 @@
                                 name="condition"
                                 required>
                             <option value="">Select condition...</option>
-                            <option value="Good" {{ old('condition') === 'Good' ? 'selected' : '' }}>Good</option>
+                            <option value="Good" {{ old('condition', 'Good') === 'Good' ? 'selected' : '' }}>Good</option>
                             <option value="Needs Repair" {{ old('condition') === 'Needs Repair' ? 'selected' : '' }}>Needs Repair</option>
                             <option value="Broken" {{ old('condition') === 'Broken' ? 'selected' : '' }}>Broken</option>
                             <option value="Missing" {{ old('condition') === 'Missing' ? 'selected' : '' }}>Missing</option>
@@ -563,7 +584,7 @@
                                class="form-control @error('date_acquired') is-invalid @enderror"
                                id="asset_date_acquired"
                                name="date_acquired"
-                               value="{{ old('date_acquired') }}">
+                               value="{{ old('date_acquired', date('Y-m-d')) }}">
                         @error('date_acquired')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
