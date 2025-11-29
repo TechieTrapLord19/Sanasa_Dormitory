@@ -22,8 +22,6 @@ class Booking extends Model
         'status',
         'cancellation_reason',
         'secondary_tenant_id',
-        'auto_canceled',
-        'auto_cancel_reason',
     ];
 
     protected $casts = [
@@ -78,6 +76,14 @@ class Booking extends Model
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class, 'booking_id', 'booking_id');
+    }
+
+    /**
+     * Get the security deposit for this booking
+     */
+    public function securityDeposit()
+    {
+        return $this->hasOne(SecurityDeposit::class, 'booking_id', 'booking_id');
     }
 
     /**

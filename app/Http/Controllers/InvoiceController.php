@@ -60,27 +60,26 @@ public function index(Request $request): View
         $invoiceQuery->where('booking_id', $bookingId);
     }
 
-    // Filter by status
+    // Filter by status - based on actual payment amounts, not is_paid flag
     if ($activeStatus === 'paid') {
-        $invoiceQuery->where('is_paid', true);
+        // Paid: sum of payments >= total_due AND not canceled
+        $invoiceQuery->whereHas('booking', function ($query) {
+                $query->where('status', '!=', 'Canceled');
+            })
+            ->whereRaw('(SELECT COALESCE(SUM(amount), 0) FROM payments WHERE payments.invoice_id = invoices.invoice_id) >= invoices.total_due');
     } elseif ($activeStatus === 'pending') {
-        // Pending: not paid, no payments, and booking not canceled
-        $invoiceQuery->where('is_paid', false)
-            ->whereDoesntHave('payments', function ($query) {
-                $query->where('amount', '>', 0);
-            })
-            ->whereHas('booking', function ($query) {
+        // Pending: no payments (sum = 0), and booking not canceled
+        $invoiceQuery->whereHas('booking', function ($query) {
                 $query->where('status', '!=', 'Canceled');
-            });
+            })
+            ->whereRaw('(SELECT COALESCE(SUM(amount), 0) FROM payments WHERE payments.invoice_id = invoices.invoice_id) = 0');
     } elseif ($activeStatus === 'partial') {
-        // Partial: not paid, has payments, and booking not canceled
-        $invoiceQuery->where('is_paid', false)
-            ->whereHas('payments', function ($query) {
-                $query->where('amount', '>', 0);
-            })
-            ->whereHas('booking', function ($query) {
+        // Partial: has payments (sum > 0) but less than total_due, and booking not canceled
+        $invoiceQuery->whereHas('booking', function ($query) {
                 $query->where('status', '!=', 'Canceled');
-            });
+            })
+            ->whereRaw('(SELECT COALESCE(SUM(amount), 0) FROM payments WHERE payments.invoice_id = invoices.invoice_id) > 0')
+            ->whereRaw('(SELECT COALESCE(SUM(amount), 0) FROM payments WHERE payments.invoice_id = invoices.invoice_id) < invoices.total_due');
     } elseif ($activeStatus === 'cancelled') {
         // Cancelled: booking is canceled
         $invoiceQuery->whereHas('booking', function ($query) {
@@ -229,6 +228,7 @@ public function index(Request $request): View
     ];
 
     $financialSnapshot = $this->buildFinancialSnapshot();
+    $highlightInvoiceId = $request->input('highlight');
 
     return view('contents.invoices', [
         'invoices' => $invoices,
@@ -237,6 +237,7 @@ public function index(Request $request): View
         'activeStatus' => $activeStatus,
         'searchTerm' => $searchTerm,
         'perPage' => $perPage,
+        'highlightInvoiceId' => $highlightInvoiceId,
     ]);
 }
 
@@ -247,8 +248,8 @@ public function index(Request $request): View
     {
         $invoice = Invoice::with(['booking'])->findOrFail($id);
 
-        // Redirect to the booking show page with the invoice highlighted
-        return redirect()->route('bookings.show', ['id' => $invoice->booking_id])
+        // Redirect to the invoices page with the invoice highlighted
+        return redirect()->route('invoices', ['highlight' => $id])
             ->with('highlight_invoice', $id);
     }
 

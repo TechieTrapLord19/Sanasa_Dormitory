@@ -78,6 +78,17 @@
         color: #065f46;
     }
 
+    .status-badge.Forfeited,
+    .status-badge.Depleted {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+
+    .status-badge.Partially-Used {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+
     .info-section {
         margin-bottom: 1.5rem;
         flex-shrink: 0;
@@ -560,14 +571,47 @@
                             </div>
                         @endif
                         @if($securityDepositInvoice)
+                            @php
+                                // Get the actual current balance from SecurityDeposit model
+                                $deposit = $booking->securityDeposit;
+                                $currentBalance = $deposit ? $deposit->calculateRefundable() : $securityDepositPaid;
+                                $hasDeductions = $deposit && $deposit->amount_deducted > 0;
+                                $isFullyFunded = $currentBalance >= $deposit->amount_required;
+
+                                // Determine status based on actual balance
+                                if ($deposit) {
+                                    if ($deposit->status === 'Forfeited') {
+                                        $securityDepositStatus = 'Forfeited';
+                                    } elseif ($deposit->status === 'Refunded') {
+                                        $securityDepositStatus = 'Refunded';
+                                    } elseif ($currentBalance <= 0) {
+                                        $securityDepositStatus = 'Depleted';
+                                    } elseif ($isFullyFunded) {
+                                        $securityDepositStatus = 'Paid';
+                                    } elseif ($hasDeductions && $currentBalance < $deposit->amount_required) {
+                                        $securityDepositStatus = 'Partially Used';
+                                    } elseif ($securityDepositPaid > 0) {
+                                        $securityDepositStatus = 'Partial Payment';
+                                    } else {
+                                        $securityDepositStatus = 'Pending Payment';
+                                    }
+                                }
+                            @endphp
                             <div style="display: flex; flex-direction: column; gap: 0.35rem;">
                                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                                     <span style="font-weight: 500; color: #2d3748;">Security Deposit:</span>
                                     <span class="status-badge {{ str_replace(' ', '-', $securityDepositStatus) }}">{{ $securityDepositStatus }}</span>
                                 </div>
-                                <span style="font-size: 0.875rem; color: #4a5568; margin-left: 0;">
-                                    ₱{{ number_format($securityDepositPaid, 2) }} / ₱{{ number_format($securityDepositDue, 2) }}
-                                </span>
+                                @if($hasDeductions)
+                                    <span style="font-size: 0.875rem; color: #4a5568; margin-left: 0;">
+                                        Balance: ₱{{ number_format($currentBalance, 2) }} / ₱{{ number_format($securityDepositDue, 2) }}
+                                        <span style="color: #6b7280;">(₱{{ number_format($deposit->amount_deducted, 2) }} used)</span>
+                                    </span>
+                                @else
+                                    <span style="font-size: 0.875rem; color: #4a5568; margin-left: 0;">
+                                        ₱{{ number_format($securityDepositPaid, 2) }} / ₱{{ number_format($securityDepositDue, 2) }}
+                                    </span>
+                                @endif
                             </div>
                         @endif
                     </div>
@@ -621,7 +665,14 @@
         $refundablePayments = collect();
         $totalRefundable = 0;
         if ($booking->canBeRefunded() && $allPayments->where('amount', '>', 0)->isNotEmpty()) {
-            $refundablePayments = $allPayments->filter(function($payment) {
+            // Check if security deposit is forfeited
+            $isDepositForfeited = $booking->securityDeposit && $booking->securityDeposit->status === 'Forfeited';
+
+            $refundablePayments = $allPayments->filter(function($payment) use ($isDepositForfeited) {
+                // Exclude Security Deposit payments if the deposit has been forfeited
+                if ($isDepositForfeited && $payment->payment_type === 'Security Deposit') {
+                    return false;
+                }
                 return $payment->canBeRefunded() && $payment->amount > 0;
             });
             $totalRefundable = $refundablePayments->sum('remaining_refundable_amount');
@@ -704,6 +755,86 @@
                 </tbody>
             </table>
         </div>
+    </div>
+    @endif
+
+    <!-- Security Deposit Management Section -->
+    @if($booking->securityDeposit)
+    @php
+        $deposit = $booking->securityDeposit;
+        $statusClass = match($deposit->status) {
+            'Pending' => 'Pending-Payment',
+            'Held' => 'Active',
+            'Depleted' => 'Depleted',
+            'Partially Refunded' => 'Partial-Payment',
+            'Refunded' => 'Completed',
+            'Forfeited' => 'Canceled',
+            default => 'Pending-Payment'
+        };
+        $shortfall = max(0, $deposit->amount_required - $deposit->calculateRefundable());
+    @endphp
+    <div class="info-section">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="info-section-title mb-0">
+                <i class="bi bi-shield-check me-2"></i>Security Deposit Management
+            </h2>
+            <div class="d-flex gap-2">
+                @if($deposit->calculateRefundable() < $deposit->amount_required && in_array($deposit->status, ['Held', 'Depleted', 'Pending']))
+                    <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#topUpDepositModal">
+                        <i class="bi bi-plus-circle me-1"></i> Top Up Deposit
+                    </button>
+                @endif
+                <a href="{{ route('security-deposits.show', $booking->securityDeposit) }}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-gear me-1"></i> Manage Deposit
+                </a>
+            </div>
+        </div>
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Required</th>
+                        <th>Paid</th>
+                        <th>Deducted</th>
+                        <th>Refundable Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="status-badge {{ $statusClass }}">{{ $deposit->status }}</span></td>
+                        <td>₱{{ number_format($deposit->amount_required, 2) }}</td>
+                        <td>₱{{ number_format($deposit->amount_paid, 2) }}</td>
+                        <td style="color: #dc2626;">-₱{{ number_format($deposit->amount_deducted, 2) }}</td>
+                        <td style="color: {{ $deposit->calculateRefundable() > 0 ? '#059669' : '#dc2626' }}; font-weight: 600;">
+                            ₱{{ number_format($deposit->calculateRefundable(), 2) }}
+                            @if($shortfall > 0 && !in_array($deposit->status, ['Forfeited', 'Refunded']))
+                                <small class="text-danger d-block">(₱{{ number_format($shortfall, 2) }} below required)</small>
+                            @endif
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Deductions summary if any -->
+        @php $deductions = $deposit->getDeductionsArray(); @endphp
+        @if(count($deductions) > 0)
+            <div class="mt-2">
+                <span style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600;">Applied Deductions:</span>
+                <ul class="list-unstyled mb-0 mt-2" style="font-size: 0.875rem;">
+                    @foreach($deductions as $deduction)
+                        <li class="mb-1" style="color: #dc2626;">
+                            <i class="bi bi-dash-circle me-1"></i>
+                            {{ $deduction['category'] }}: -₱{{ number_format($deduction['amount'], 2) }}
+                            @if(!empty($deduction['description']))
+                                <small class="text-muted">({{ $deduction['description'] }})</small>
+                            @endif
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
     </div>
     @endif
 </div>
@@ -1038,6 +1169,73 @@
             });
             </script>
 
+        </div>
+    </div>
+</div>
+@endif
+
+<!-- Top Up Deposit Modal -->
+@if($booking->securityDeposit && $booking->securityDeposit->calculateRefundable() < $booking->securityDeposit->amount_required && in_array($booking->securityDeposit->status, ['Held', 'Depleted', 'Pending']))
+<div class="modal fade" id="topUpDepositModal" tabindex="-1" aria-labelledby="topUpDepositModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="topUpDepositModalLabel">
+                    <i class="bi bi-plus-circle me-2"></i>Top Up Security Deposit
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('security-deposits.top-up', $booking->securityDeposit) }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    @php
+                        $currentBalance = $booking->securityDeposit->calculateRefundable();
+                        $required = $booking->securityDeposit->amount_required;
+                        $shortfall = max(0, $required - $currentBalance);
+                    @endphp
+
+                    <div class="alert alert-info mb-3">
+                        <strong>Current Balance:</strong> ₱{{ number_format($currentBalance, 2) }}<br>
+                        <strong>Required Amount:</strong> ₱{{ number_format($required, 2) }}<br>
+                        <strong>Shortfall:</strong> <span class="text-danger">₱{{ number_format($shortfall, 2) }}</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="topup_amount" class="form-label">Top Up Amount <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">₱</span>
+                            <input type="number"
+                                   class="form-control"
+                                   id="topup_amount"
+                                   name="amount"
+                                   min="1"
+                                   step="0.01"
+                                   value="{{ $shortfall }}"
+                                   required>
+                        </div>
+                        <small class="text-muted">Suggested: ₱{{ number_format($shortfall, 2) }} to restore full deposit</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="topup_payment_method" class="form-label">Payment Method <span class="text-danger">*</span></label>
+                        <select class="form-select" id="topup_payment_method" name="payment_method" required>
+                            <option value="Cash">Cash</option>
+                            <option value="GCash">GCash</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="topup_notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="topup_notes" name="notes" rows="2" placeholder="Optional notes about this top-up"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success" style="color: white;">
+                        <i class="bi bi-check-circle me-1"></i> Process Top Up
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

@@ -521,7 +521,7 @@
                 <div id="roomsContainer" class="rooms-grid">
                     <p class="text-muted">Please select check-in date and stay length to see available rooms.</p>
                 </div>
-            <input type="hidden" name="room_id" id="selected_room_id" value="{{ old('room_id') }}" required>                @error('room_id')
+            <input type="hidden" name="room_id" id="selected_room_id" value="{{ old('room_id', $selectedRoomId ?? '') }}" required>                @error('room_id')
                     <div class="text-danger small mt-1">{{ $message }}</div>
                 @enderror
             </div>
@@ -1123,6 +1123,8 @@ function checkAvailability() {
 
     document.getElementById('roomsContainer').innerHTML = '<p class="text-muted">Loading available rooms...</p>';
 
+    const preSelectedRoomId = document.getElementById('selected_room_id').value;
+
     fetch(`{{ route('bookings.check-availability') }}?checkin_date=${checkin}&checkout_date=${checkout}`)
         .then(response => response.json())
         .then(data => {
@@ -1130,12 +1132,22 @@ function checkAvailability() {
             if (data.available_rooms && data.available_rooms.length > 0) {
                 container.innerHTML = data.available_rooms.map(room => {
                     const capacity = room.capacity !== undefined && room.capacity !== null ? room.capacity : 2;
+                    const isPreSelected = preSelectedRoomId && parseInt(preSelectedRoomId) === room.room_id;
                     return `
-                    <div class="room-card" data-room-id="${room.room_id}" data-capacity="${capacity}" onclick="selectRoom(${room.room_id})">
+                    <div class="room-card ${isPreSelected ? 'selected' : ''}" data-room-id="${room.room_id}" data-capacity="${capacity}" onclick="selectRoom(${room.room_id})">
                         <div class="room-number">${room.room_num}</div>
                         <div class="room-floor">Floor ${room.floor} • Capacity: ${capacity}</div>
                     </div>`;
                 }).join('');
+
+                // If pre-selected room exists, set the capacity limit
+                if (preSelectedRoomId) {
+                    const preSelectedCard = document.querySelector(`.room-card[data-room-id="${preSelectedRoomId}"]`);
+                    if (preSelectedCard) {
+                        const capacity = parseInt(preSelectedCard.getAttribute('data-capacity'), 10);
+                        roomCapacityLimit = isNaN(capacity) ? 2 : capacity;
+                    }
+                }
             } else {
                 container.innerHTML = '<p class="text-muted">No rooms available for the selected dates.</p>';
             }

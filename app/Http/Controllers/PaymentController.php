@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Payment;
 use App\Models\Invoice;
 use App\Models\Booking;
+use App\Models\SecurityDeposit;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -40,7 +41,6 @@ class PaymentController extends Controller
         $validated = $request->validate([
             'booking_id' => ['required', 'exists:bookings,booking_id'],
             'invoice_id' => ['required', 'exists:invoices,invoice_id'],
-            'payment_type' => ['required', 'in:Rent/Utility'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'payment_method' => ['required', 'in:Cash,GCash'],
             'reference_number' => ['nullable', 'string', 'max:255'],
@@ -50,8 +50,6 @@ class PaymentController extends Controller
             'booking_id.exists' => 'The selected booking does not exist.',
             'invoice_id.required' => 'Invoice ID is required.',
             'invoice_id.exists' => 'The selected invoice does not exist.',
-            'payment_type.required' => 'Payment type is required.',
-            'payment_type.in' => 'Payment type must be "Rent/Utility".',
             'amount.required' => 'Amount is required.',
             'amount.numeric' => 'Amount must be a number.',
             'amount.min' => 'Amount must be at least 0.01.',
@@ -68,6 +66,15 @@ class PaymentController extends Controller
             ]);
         }
 
+        // Determine payment type based on invoice type
+        $invoiceForType = Invoice::with('invoiceUtilities')->findOrFail($validated['invoice_id']);
+        $hasUtilities = $invoiceForType->invoiceUtilities && $invoiceForType->invoiceUtilities->count() > 0;
+        $isSecurityDepositInvoice = ($invoiceForType->rent_subtotal == 0 &&
+                                    !$hasUtilities &&
+                                    $invoiceForType->utility_electricity_fee > 0);
+
+        $paymentType = $isSecurityDepositInvoice ? 'Security Deposit' : 'Rent/Utility';
+
         // Use database transaction to ensure data consistency
         DB::beginTransaction();
         try {
@@ -76,7 +83,7 @@ class PaymentController extends Controller
                 'booking_id' => $validated['booking_id'],
                 'invoice_id' => $validated['invoice_id'] ?? null,
                 'collected_by_user_id' => Auth::id(),
-                'payment_type' => $validated['payment_type'],
+                'payment_type' => $paymentType,
                 'amount' => $validated['amount'],
                 'payment_method' => $validated['payment_method'],
                 'reference_number' => $validated['reference_number'] ?? null,
@@ -88,8 +95,8 @@ class PaymentController extends Controller
             $invoice = null;
             $invoicePaid = false;
 
-            // CRITICAL: Update the invoice if this is a Rent/Utility payment
-            if ($validated['payment_type'] === 'Rent/Utility' && $validated['invoice_id']) {
+            // Update the invoice payment status
+            if ($validated['invoice_id']) {
                 $invoice = Invoice::with(['booking', 'invoiceUtilities'])->findOrFail($validated['invoice_id']);
 
                 // Prevent payment on canceled bookings
@@ -109,6 +116,11 @@ class PaymentController extends Controller
                     $invoice->is_paid = true;
                     $invoice->save();
                     $invoicePaid = true;
+                }
+
+                // If this is a security deposit payment, update or create SecurityDeposit record
+                if ($paymentType === 'Security Deposit') {
+                    $this->updateSecurityDepositRecord($booking, $invoice, $validated['amount']);
                 }
             }
 
@@ -131,11 +143,21 @@ class PaymentController extends Controller
                 $successMessage .= ' Invoice marked as paid.';
             }
 
-            // Redirect to booking details page for easy check-in
-            return redirect()->route('bookings.show', ['id' => $booking->booking_id])
-                ->with('success', $successMessage)
-                ->with('payment_id', $payment->payment_id)
-                ->with('show_checkin', true); // Flag to highlight check-in button
+            // Check if booking is ready for check-in (all requirements met)
+            // Requirements: Monthly Rent fully paid AND Security Deposit at least half paid
+            $readyForCheckIn = $this->isBookingReadyForCheckIn($booking->booking_id);
+
+            if ($readyForCheckIn) {
+                // Redirect to booking details page for easy check-in
+                return redirect()->route('bookings.show', ['id' => $booking->booking_id])
+                    ->with('success', $successMessage . ' Booking is now ready for check-in!')
+                    ->with('payment_id', $payment->payment_id)
+                    ->with('show_checkin', true); // Flag to highlight check-in button
+            } else {
+                // Stay on invoices page if not ready for check-in yet
+                return redirect()->route('invoices')
+                    ->with('success', $successMessage);
+            }
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -143,6 +165,103 @@ class PaymentController extends Controller
                 ->withInput()
                 ->withErrors(['error' => 'Failed to record payment: ' . $e->getMessage()]);
         }
+    }
+
+    /**
+     * Check if a booking is ready for check-in.
+     * Requirements:
+     * - Monthly Rent + Utilities invoice is FULLY paid
+     * - Security Deposit invoice is at least HALF paid
+     */
+    private function isBookingReadyForCheckIn(int $bookingId): bool
+    {
+        $invoices = Invoice::where('booking_id', $bookingId)
+            ->with('invoiceUtilities')
+            ->withSum('payments as payments_sum', 'amount')
+            ->get();
+
+        if ($invoices->isEmpty()) {
+            return false;
+        }
+
+        $rentInvoicePaid = false;
+        $securityDepositOk = false;
+        $hasRentInvoice = false;
+        $hasSecurityDeposit = false;
+
+        foreach ($invoices as $invoice) {
+            $totalPaid = (float) ($invoice->payments_sum ?? 0);
+            $totalDue = (float) $invoice->total_due;
+
+            // Check if this is a security deposit invoice
+            // Security deposit: no rent, no utilities from invoice_utilities, only electricity fee
+            $hasUtilities = $invoice->invoiceUtilities && $invoice->invoiceUtilities->count() > 0;
+            $isSecurityDepositInvoice = ($invoice->rent_subtotal == 0 &&
+                                        !$hasUtilities &&
+                                        $invoice->utility_electricity_fee > 0);
+
+            if ($isSecurityDepositInvoice) {
+                $hasSecurityDeposit = true;
+                // Security deposit needs at least half paid
+                $halfDue = $totalDue / 2;
+                if ($totalPaid >= $halfDue) {
+                    $securityDepositOk = true;
+                }
+            } else {
+                // This is a rent/utilities invoice
+                $hasRentInvoice = true;
+                // Rent invoice needs to be fully paid
+                if ($totalPaid >= $totalDue) {
+                    $rentInvoicePaid = true;
+                }
+            }
+        }
+
+        // If there's no security deposit invoice, consider it OK
+        if (!$hasSecurityDeposit) {
+            $securityDepositOk = true;
+        }
+
+        // If there's no rent invoice, consider it OK (edge case)
+        if (!$hasRentInvoice) {
+            $rentInvoicePaid = true;
+        }
+
+        return $rentInvoicePaid && $securityDepositOk;
+    }
+
+    /**
+     * Update or create a SecurityDeposit record when a security deposit payment is made.
+     */
+    private function updateSecurityDepositRecord(Booking $booking, Invoice $invoice, float $paymentAmount): void
+    {
+        // Find or create the security deposit record
+        $securityDeposit = SecurityDeposit::firstOrNew(
+            ['booking_id' => $booking->booking_id],
+            [
+                'invoice_id' => $invoice->invoice_id,
+                'amount_required' => $invoice->total_due,
+                'amount_paid' => 0,
+                'amount_deducted' => 0,
+                'amount_refunded' => 0,
+                'status' => SecurityDeposit::STATUS_PENDING,
+            ]
+        );
+
+        // Update amount paid
+        $securityDeposit->amount_paid += $paymentAmount;
+
+        // Update status based on payment
+        if ($securityDeposit->amount_paid > 0) {
+            $securityDeposit->status = SecurityDeposit::STATUS_HELD;
+        }
+
+        // Link to invoice if not already
+        if (!$securityDeposit->invoice_id) {
+            $securityDeposit->invoice_id = $invoice->invoice_id;
+        }
+
+        $securityDeposit->save();
     }
 
     /**

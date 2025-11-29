@@ -17,6 +17,8 @@ use App\Http\Controllers\RefundController;
 use App\Http\Controllers\ElectricReadingController;
 use App\Http\Controllers\MaintenanceLogController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\SalesController;
+use App\Http\Controllers\SecurityDepositController;
 //default page to login
 Route::get('/', [IndexController::class, 'index'])->name('home');
 
@@ -77,5 +79,19 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
     Route::post('/users', [UserController::class, 'store'])->name('users.store');
     Route::put('/users/{id}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{id}', [UserController::class, 'destroy'])->name('users.destroy');
+
+    // Sales & Reports routes
+    Route::get('/sales', [SalesController::class, 'index'])->name('sales.index');
+    Route::get('/sales/export', [SalesController::class, 'export'])->name('sales.export');
+
+    // Security Deposits routes
+    Route::get('/security-deposits', [SecurityDepositController::class, 'index'])->name('security-deposits.index');
+    Route::get('/security-deposits/{securityDeposit}', [SecurityDepositController::class, 'show'])->name('security-deposits.show');
+    Route::post('/security-deposits/{securityDeposit}/deduction', [SecurityDepositController::class, 'applyDeduction'])->name('security-deposits.deduction');
+    Route::post('/security-deposits/{securityDeposit}/refund', [SecurityDepositController::class, 'processRefund'])->name('security-deposits.refund');
+    Route::post('/security-deposits/{securityDeposit}/forfeit', [SecurityDepositController::class, 'forfeit'])->name('security-deposits.forfeit');
+    Route::post('/security-deposits/{securityDeposit}/rollover', [SecurityDepositController::class, 'rollover'])->name('security-deposits.rollover');
+    Route::post('/security-deposits/{securityDeposit}/top-up', [SecurityDepositController::class, 'topUp'])->name('security-deposits.top-up');
+    Route::get('/api/bookings/{booking}/security-deposit', [SecurityDepositController::class, 'getForBooking'])->name('security-deposits.for-booking');
 
 });

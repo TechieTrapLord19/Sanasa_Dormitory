@@ -10,6 +10,7 @@ use App\Models\Rate;
 use App\Models\Invoice;
 use App\Models\InvoiceUtility;
 use App\Models\ElectricReading;
+use App\Models\SecurityDeposit;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -95,11 +96,6 @@ class BookingController extends Controller
         $currentPage = \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPage();
         $currentItems = $filteredBookings->slice(($currentPage - 1) * $perPage, $perPage)->all();
 
-        // Add countdown data to each booking
-        foreach ($currentItems as $booking) {
-            $booking->countdown_data = $this->calculateCountdown($booking);
-        }
-
         $bookings = new \Illuminate\Pagination\LengthAwarePaginator(
             $currentItems,
             $filteredBookings->count(),
@@ -170,7 +166,10 @@ class BookingController extends Controller
             $availableRooms = $this->getAvailableRooms($checkinDate, $checkoutDate);
         }
 
-        return view('contents.bookings-create', compact('tenants', 'rooms', 'availableRooms', 'ratesByDuration'));
+        // Pre-selected room from Quick Booking
+        $selectedRoomId = $request->input('room_id');
+
+        return view('contents.bookings-create', compact('tenants', 'rooms', 'availableRooms', 'ratesByDuration', 'selectedRoomId'));
     }
 
     /**
@@ -355,13 +354,24 @@ public function store(Request $request)
             }
 
             // Invoice 2: Security Deposit
-            Invoice::create([
+            $securityDepositInvoice = Invoice::create([
                 'booking_id' => $booking->booking_id,
                 'date_generated' => now()->toDateString(),
                 'rent_subtotal' => 0,
                 'utility_electricity_fee' => self::MONTHLY_SECURITY_DEPOSIT,
                 'total_due' => self::MONTHLY_SECURITY_DEPOSIT,
                 'is_paid' => false,
+            ]);
+
+            // Create SecurityDeposit record immediately (status: Pending)
+            SecurityDeposit::create([
+                'booking_id' => $booking->booking_id,
+                'invoice_id' => $securityDepositInvoice->invoice_id,
+                'amount_required' => self::MONTHLY_SECURITY_DEPOSIT,
+                'amount_paid' => 0,
+                'amount_deducted' => 0,
+                'amount_refunded' => 0,
+                'status' => SecurityDeposit::STATUS_PENDING,
             ]);
 
         } else {
@@ -406,7 +416,7 @@ public function store(Request $request)
      */
     public function show(string $id)
     {
-        $booking = Booking::with(['tenant', 'secondaryTenant', 'room', 'rate', 'recordedBy', 'invoices.payments', 'invoices.invoiceUtilities', 'refunds.payment', 'refunds.refundedBy'])
+        $booking = Booking::with(['tenant', 'secondaryTenant', 'room', 'rate', 'recordedBy', 'invoices.payments', 'invoices.invoiceUtilities', 'refunds.payment', 'refunds.refundedBy', 'securityDeposit'])
                           ->findOrFail($id);
 
         $stayLengthDays = max(1, $booking->checkin_date->diffInDays($booking->checkout_date));
@@ -510,7 +520,9 @@ public function store(Request $request)
         $isMonthlyStay = $stayLengthDays >= 30 || ($securityDepositInvoice !== null);
 
         // Get all payments for this booking (directly from payments table)
+        // Exclude 'Deposit Deduction' as these are revenue records, not refundable payments
         $allPayments = Payment::where('booking_id', $booking->booking_id)
+            ->where('payment_type', '!=', 'Deposit Deduction')
             ->with('refunds')
             ->get();
 
@@ -1252,7 +1264,7 @@ public function checkin(string $id)
      */
     public function checkout(string $id)
     {
-        $booking = Booking::findOrFail($id);
+        $booking = Booking::with('securityDeposit')->findOrFail($id);
 
         if ($booking->status !== 'Active') {
             return back()->withErrors(['error' => 'Only active bookings can be checked out.']);
@@ -1262,6 +1274,17 @@ public function checkin(string $id)
         $unpaidInvoices = $booking->invoices()->where('is_paid', false)->count();
         if ($unpaidInvoices > 0) {
             return back()->withErrors(['error' => 'Cannot check out. There are unpaid invoices.']);
+        }
+
+        // Check if security deposit needs to be processed
+        $securityDeposit = $booking->securityDeposit;
+        if ($securityDeposit && in_array($securityDeposit->status, ['Held', 'Depleted', 'Pending'])) {
+            $refundableBalance = $securityDeposit->calculateRefundable();
+            if ($refundableBalance > 0) {
+                return back()->withErrors([
+                    'error' => 'Cannot check out. Security deposit of ₱' . number_format($refundableBalance, 2) . ' needs to be processed (refunded, deducted, or forfeited) before checkout.'
+                ])->with('security_deposit_pending', true);
+            }
         }
 
         DB::beginTransaction();
@@ -1577,47 +1600,5 @@ public function checkin(string $id)
                 ];
             })->values()
         ]);
-    }
-
-    /**
-     * Calculate countdown for auto-cancel
-     */
-    private function calculateCountdown($booking)
-    {
-        // Only show countdown for these statuses and stay types
-        $applicableStatuses = ['Pending Payment', 'Partial Payment', 'Paid Payment'];
-        $applicableStayTypes = ['Weekly', 'Monthly'];
-
-        if (!in_array($booking->effective_status, $applicableStatuses) ||
-            !in_array($booking->rate->duration_type, $applicableStayTypes)) {
-            return null;
-        }
-
-        // Calculate time remaining (24 hours from creation)
-        $createdAt = Carbon::parse($booking->created_at);
-        $expiresAt = $createdAt->copy()->addHours(24);
-        $now = Carbon::now();
-
-        // If already expired
-        if ($now->greaterThanOrEqualTo($expiresAt)) {
-            return [
-                'expired' => true,
-                'hours' => 0,
-                'minutes' => 0,
-                'expires_at' => $expiresAt->toIso8601String(),
-            ];
-        }
-
-        // Calculate remaining time
-        $diffInMinutes = $now->diffInMinutes($expiresAt, false);
-        $hours = floor($diffInMinutes / 60);
-        $minutes = $diffInMinutes % 60;
-
-        return [
-            'expired' => false,
-            'hours' => $hours,
-            'minutes' => $minutes,
-            'expires_at' => $expiresAt->toIso8601String(),
-        ];
     }
 }

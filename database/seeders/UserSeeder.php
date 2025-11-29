@@ -27,7 +27,7 @@ class UserSeeder extends Seeder
             'birth_date' => '1980-01-15',
             'address' => '123 Admin Street, Metro Manila',
             'role' => 'owner',
-            'password' => Hash::make('password')
+            'password' => Hash::make('lloren123')
         ]);
 
         // 2. Caretaker 1
@@ -38,7 +38,7 @@ class UserSeeder extends Seeder
             'birth_date' => '1990-05-20',
             'address' => '456 Caretaker Avenue, Quezon City',
             'role' => 'caretaker',
-            'password' => Hash::make('password')
+            'password' => Hash::make('lloren123')
         ]);
 
         // ... (rest of your users) ...
@@ -50,7 +50,7 @@ class UserSeeder extends Seeder
             'birth_date' => '1995-03-10',
             'address' => '789 Developer Road, Makati City',
             'role' => 'owner',
-            'password' => Hash::make('password')
+            'password' => Hash::make('lloren123')
         ]);
     }
 }

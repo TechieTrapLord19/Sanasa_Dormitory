@@ -493,7 +493,6 @@
                 <th>Check-out Date</th>
                 <th>Rate</th>
                 <th>Status</th>
-                <th>Auto-Cancel</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -524,23 +523,6 @@
                             {{ $status }}
                         </span>
                     </td>
-                    <td>
-                        @if($booking->countdown_data)
-                            @if($booking->countdown_data['expired'])
-                                <span class="countdown-expired" style="color: #e53e3e; font-weight: 600;">
-                                    OVERDUE
-                                </span>
-                            @else
-                                <span class="countdown-timer"
-                                      data-expires-at="{{ $booking->countdown_data['expires_at'] }}"
-                                      style="color: #f59e0b; font-weight: 600;">
-                                    {{ $booking->countdown_data['hours'] }}h {{ $booking->countdown_data['minutes'] }}m
-                                </span>
-                            @endif
-                        @else
-                            <span style="color: #a0aec0;">—</span>
-                        @endif
-                    </td>
                     <td class="action-column" onclick="event.stopPropagation();">
                         <div class="action-buttons">
                             <a href="{{ route('bookings.show', $booking->booking_id) }}" class="btn-view">
@@ -556,7 +538,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="text-center text-muted py-4">No bookings found</td>
+                    <td colspan="7" class="text-center text-muted py-4">No bookings found</td>
                 </tr>
             @endforelse
         </tbody>
@@ -658,46 +640,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-
-    // Update countdown timers every minute
-    function updateCountdowns() {
-        const countdownTimers = document.querySelectorAll('.countdown-timer');
-
-        countdownTimers.forEach(timer => {
-            const expiresAt = new Date(timer.getAttribute('data-expires-at'));
-            const now = new Date();
-
-            const diffMs = expiresAt - now;
-
-            if (diffMs <= 0) {
-                // Timer expired
-                timer.className = 'countdown-expired';
-                timer.style.color = '#e53e3e';
-                timer.style.fontWeight = '600';
-                timer.textContent = 'OVERDUE';
-            } else {
-                // Calculate hours and minutes remaining
-                const totalMinutes = Math.floor(diffMs / (1000 * 60));
-                const hours = Math.floor(totalMinutes / 60);
-                const minutes = totalMinutes % 60;
-
-                timer.textContent = hours + 'h ' + minutes + 'm';
-
-                // Change color as time runs out
-                if (hours < 1) {
-                    timer.style.color = '#e53e3e'; // Red when less than 1 hour
-                } else if (hours < 6) {
-                    timer.style.color = '#f59e0b'; // Orange when less than 6 hours
-                } else {
-                    timer.style.color = '#10b981'; // Green when more than 6 hours
-                }
-            }
-        });
-    }
-
-    // Update immediately and then every minute
-    updateCountdowns();
-    setInterval(updateCountdowns, 60000); // Update every 60 seconds
 });
 </script>
 

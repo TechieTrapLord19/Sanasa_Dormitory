@@ -58,42 +58,59 @@
         gap: 1rem;
     }
     .summary-card {
-        background-color: white;
-        border-radius: 12px;
+        background: white;
+        border-radius: 8px;
         padding: 1.5rem;
-        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
-        position: relative;
-        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e5e5e5;
+        height: 100%;
+        transition: all 0.2s ease-in-out;
     }
-    .summary-card::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(135deg, rgba(3, 37, 91, 0.08), transparent);
-        opacity: 0;
-        transition: opacity 0.3s ease;
+    .summary-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
-    .summary-card:hover::after {
-        opacity: 1;
+    .summary-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+    .summary-icon {
+        font-size: 1.25rem;
+        opacity: 0.6;
     }
     .summary-label {
-        font-size: 0.85rem;
+        font-size: 0.75rem;
         text-transform: uppercase;
-        letter-spacing: 0.08rem;
         color: #64748b;
         font-weight: 600;
-        margin-bottom: 0.5rem;
+        margin: 0;
+        letter-spacing: 0.5px;
     }
     .summary-value {
-        font-size: 1.85rem;
+        font-size: 2rem;
         font-weight: 700;
-        color: #0f172a;
-        margin-bottom: 0.35rem;
+        margin: 0;
+        line-height: 1;
+    }
+    .summary-card.total .summary-value {
+        color: #3b82f6;
+    }
+    .summary-card.paid .summary-value {
+        color: #10b981;
+    }
+    .summary-card.pending .summary-value {
+        color: #f59e0b;
+    }
+    .summary-card.overdue .summary-value {
+        color: #dc2626;
     }
     .summary-meta {
         font-size: 0.78rem;
         color: #94a3b8;
         font-weight: 500;
+        margin-top: 0.5rem;
     }
     .info-banner {
         background-color: #ecf4ff;
@@ -290,6 +307,7 @@
         color: white;
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 0.4rem;
     }
 
@@ -463,6 +481,20 @@
             align-items: stretch;
         }
     }
+
+    /* Highlight animation for invoice row */
+    .highlight-invoice {
+        animation: highlightFade 3s ease-out;
+    }
+
+    @keyframes highlightFade {
+        0% {
+            background-color: #fef3c7;
+        }
+        100% {
+            background-color: transparent;
+        }
+    }
 </style>
 
 <div class="invoices-page">
@@ -490,18 +522,27 @@
     </div>
 
     <div class="summary-cards">
-        <div class="summary-card">
-            <div class="summary-label">Outstanding Balance</div>
+        <div class="summary-card overdue">
+            <div class="summary-header">
+                <span class="summary-icon"><i class="bi bi-exclamation-circle"></i></span>
+                <div class="summary-label">Outstanding Balance</div>
+            </div>
             <div class="summary-value">₱{{ number_format($financialSnapshot['outstanding'] ?? 0, 2) }}</div>
             <div class="summary-meta">{{ $financialSnapshot['pending_count'] ?? 0 }} invoice(s) require follow-up</div>
         </div>
-        <div class="summary-card">
-            <div class="summary-label">Collected To Date</div>
-            <div class="summary-value text-success">₱{{ number_format($financialSnapshot['collected'] ?? 0, 2) }}</div>
+        <div class="summary-card paid">
+            <div class="summary-header">
+                <span class="summary-icon"><i class="bi bi-check-circle"></i></span>
+                <div class="summary-label">Collected To Date</div>
+            </div>
+            <div class="summary-value">₱{{ number_format($financialSnapshot['collected'] ?? 0, 2) }}</div>
             <div class="summary-meta">Includes advance and monthly rent payments</div>
         </div>
-        <div class="summary-card">
-            <div class="summary-label">Total Billed</div>
+        <div class="summary-card total">
+            <div class="summary-header">
+                <span class="summary-icon"><i class="bi bi-receipt"></i></span>
+                <div class="summary-label">Total Billed</div>
+            </div>
             <div class="summary-value">₱{{ number_format($financialSnapshot['billed'] ?? 0, 2) }}</div>
             <div class="summary-meta">Across {{ $statusCounts['total'] ?? 0 }} invoice(s)</div>
         </div>
@@ -605,7 +646,10 @@
                                     ? 'canceled'
                                     : 'partial'));
                     @endphp
-                    <tr onclick="window.location='{{ $invoice->booking ? route('bookings.show', $invoice->booking->booking_id) : '#' }}'" style="{{ !$invoice->booking ? 'cursor: default;' : '' }}">
+                    <tr id="invoice-{{ $invoice->invoice_id }}"
+                        class="{{ isset($highlightInvoiceId) && $highlightInvoiceId == $invoice->invoice_id ? 'highlight-invoice' : '' }}"
+                        onclick="window.location='{{ $invoice->booking ? route('bookings.show', $invoice->booking->booking_id) : '#' }}'"
+                        style="{{ !$invoice->booking ? 'cursor: default;' : '' }}">
                         <td>
                             <div class="invoice-metadata">
                                 <span class="invoice-type">#{{ str_pad($invoice->invoice_id, 5, '0', STR_PAD_LEFT) }}</span>
@@ -763,7 +807,6 @@
                     <!-- Hidden fields -->
                     <input type="hidden" name="booking_id" id="modalBookingId" value="">
                     <input type="hidden" name="invoice_id" id="modalInvoiceId" value="">
-                    <input type="hidden" name="payment_type" value="Rent/Utility">
 
                     <!-- Display only fields -->
                     <div class="mb-3">
@@ -920,6 +963,16 @@ document.addEventListener('DOMContentLoaded', function () {
             dateReceivedInput.value = new Date().toISOString().split('T')[0];
         }
     });
+
+    // Scroll to highlighted invoice if present
+    @if(isset($highlightInvoiceId) && $highlightInvoiceId)
+        const highlightedRow = document.getElementById('invoice-{{ $highlightInvoiceId }}');
+        if (highlightedRow) {
+            setTimeout(() => {
+                highlightedRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+        }
+    @endif
 
 });
 </script>

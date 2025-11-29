@@ -78,6 +78,12 @@
                             <span>Invoices</span>
                         </a>
                     </li>
+                    <li class="mb-1 {{ request()->routeIs('security-deposits.*') ? 'active' : '' }}">
+                        <a href="{{ route('security-deposits.index') }}" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
+                            <i class="bi bi-shield-check"></i>
+                            <span>Security Deposits</span>
+                        </a>
+                    </li>
 
                     <hr class="my-2 border-white-10">
 
@@ -105,6 +111,17 @@
                         <a href="{{ route('asset-inventory') }}" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
                             <i class="bi bi-box-seam"></i>
                             <span>Asset Inventory</span>
+                        </a>
+                    </li>
+
+                    <hr class="my-2 border-white-10">
+
+                    <!-- REPORTS -->
+                    <li class="text-white-50 small px-3 mb-2">REPORTS</li>
+                    <li class="mb-1 {{ request()->routeIs('sales.*') ? 'active' : '' }}">
+                        <a href="{{ route('sales.index') }}" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
+                            <i class="bi bi-graph-up-arrow"></i>
+                            <span>Sales & Reports</span>
                         </a>
                     </li>
 

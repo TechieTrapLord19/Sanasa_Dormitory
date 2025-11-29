@@ -38,12 +38,19 @@
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
+    .stat-card .stat-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+
     .stat-card h6 {
         font-size: 0.75rem;
         text-transform: uppercase;
         color: #64748b;
         font-weight: 600;
-        margin-bottom: 0.75rem;
+        margin: 0;
         letter-spacing: 0.5px;
     }
 
@@ -62,14 +69,21 @@
         color: #10b981;
     }
 
-    .stat-card.movement .stat-value {
+    .stat-card.collections .stat-value {
+        color: #10b981;
+    }
+
+    .stat-card.tenants .stat-value {
         color: #3b82f6;
     }
 
+    .stat-card.deposits .stat-value {
+        color: #8b5cf6;
+    }
+
     .stat-card .stat-icon {
-        font-size: 1.5rem;
+        font-size: 1.25rem;
         opacity: 0.6;
-        margin-bottom: 0.5rem;
     }
 
     /* Main Content Cards */
@@ -79,7 +93,9 @@
         padding: 1.5rem;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         border: 1px solid #e5e5e5;
-        height: 100%;
+        height: 350px;
+        display: flex;
+        flex-direction: column;
         transition: all 0.2s ease-in-out;
     }
 
@@ -94,7 +110,20 @@
         margin-bottom: 1.25rem;
         padding-bottom: 0.75rem;
         border-bottom: 2px solid #f1f5f9;
+        flex-shrink: 0;
     }
+
+    .content-card .table-responsive,
+    .content-card .checkout-list-wrapper {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+    }
+
+    .checkout-list-wrapper {
+        overflow-y: auto;
+    }
+
 
     /* Pending Payments Table */
     .payments-table {
@@ -204,8 +233,8 @@
     }
 
     .room-pills {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
         gap: 0.75rem;
         margin-top: 1rem;
     }
@@ -213,10 +242,11 @@
     .room-pill {
         display: inline-flex;
         align-items: center;
-        padding: 0.625rem 1.25rem;
-        background-color: #10b981;
+        justify-content: center;
+        padding: 0.625rem 1rem;
+        background-color: #03255b;
         color: white;
-        border-radius: 20px;
+        border-radius: 8px;
         font-weight: 600;
         font-size: 0.875rem;
         cursor: pointer;
@@ -226,10 +256,10 @@
     }
 
     .room-pill:hover {
-        background-color: #059669;
+        background-color: #021d47;
         color: white;
         transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+        box-shadow: 0 4px 8px rgba(3, 37, 91, 0.3);
     }
 
     .room-pill i {
@@ -291,31 +321,54 @@
 <!-- Top Stats Row -->
 <div class="stats-row">
     <div class="row g-3">
-        <div class="col-md-4">
+        <div class="col-6 col-md">
             <div class="stat-card outstanding">
-                <div class="stat-icon">
-                    <i class="bi bi-exclamation-circle"></i>
+                <div class="stat-header">
+                    <span class="stat-icon"><i class="bi bi-exclamation-circle"></i></span>
+                    <h6>Outstanding Balance</h6>
                 </div>
-                <h6>Outstanding Balance</h6>
                 <p class="stat-value">₱{{ number_format($outstandingBalance, 2) }}</p>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="stat-card available">
-                <div class="stat-icon">
-                    <i class="bi bi-house-door"></i>
+        <div class="col-6 col-md">
+            <div class="stat-card collections">
+                <div class="stat-header">
+                    <span class="stat-icon"><i class="bi bi-cash-coin"></i></span>
+                    <h6>Today's Collections</h6>
                 </div>
-                <h6>Rooms Available</h6>
-                <p class="stat-value">{{ $availableRooms }}</p>
+                <p class="stat-value">₱{{ number_format($todayCollections, 2) }}</p>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="stat-card movement">
-                <div class="stat-icon">
-                    <i class="bi bi-arrow-left-right"></i>
+        <div class="col-6 col-md">
+            <a href="{{ route('security-deposits.index') }}" class="text-decoration-none">
+                <div class="stat-card deposits">
+                    <div class="stat-header">
+                        <span class="stat-icon"><i class="bi bi-shield-check"></i></span>
+                        <h6>Deposits Held</h6>
+                    </div>
+                    <p class="stat-value">₱{{ number_format($totalDepositsHeld, 2) }}</p>
+                    @if($pendingDeposits > 0)
+                        <small class="text-muted">{{ $pendingDeposits }} pending</small>
+                    @endif
                 </div>
-                <h6>Movement Today</h6>
-                <p class="stat-value">{{ $todayCheckins->count() + $todayCheckouts->count() }}</p>
+            </a>
+        </div>
+        <div class="col-6 col-md">
+            <div class="stat-card tenants">
+                <div class="stat-header">
+                    <span class="stat-icon"><i class="bi bi-people"></i></span>
+                    <h6>Active Tenants</h6>
+                </div>
+                <p class="stat-value">{{ $totalTenants }}</p>
+            </div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="stat-card available">
+                <div class="stat-header">
+                    <span class="stat-icon"><i class="bi bi-house-door"></i></span>
+                    <h6>Rooms Available</h6>
+                </div>
+                <p class="stat-value">{{ $availableRooms }}</p>
             </div>
         </div>
     </div>
@@ -385,25 +438,27 @@
                     <p>No check-outs in the next 3 days</p>
                 </div>
             @else
-                <ul class="checkout-list">
-                    @foreach($upcomingCheckouts as $booking)
-                        @php
-                            $isToday = $booking->checkout_date->isToday();
-                        @endphp
-                        <li class="checkout-item {{ $isToday ? 'today' : '' }}">
-                            <div class="tenant-name">
-                                {{ $booking->tenant->full_name ?? 'Unknown' }}
-                                @if($isToday)
-                                    <span class="checkout-badge ms-2">Today</span>
-                                @endif
-                            </div>
-                            <div class="checkout-info">
-                                <span><i class="bi bi-door-open me-1"></i>Room {{ $booking->room->room_num }}</span>
-                                <span><i class="bi bi-calendar3 me-1"></i>{{ $booking->checkout_date->format('M d, Y') }}</span>
-                            </div>
-                        </li>
-                    @endforeach
-                </ul>
+                <div class="checkout-list-wrapper">
+                    <ul class="checkout-list">
+                        @foreach($upcomingCheckouts as $booking)
+                            @php
+                                $isToday = $booking->checkout_date->isToday();
+                            @endphp
+                            <li class="checkout-item {{ $isToday ? 'today' : '' }}">
+                                <div class="tenant-name">
+                                    {{ $booking->tenant->full_name ?? 'Unknown' }}
+                                    @if($isToday)
+                                        <span class="checkout-badge ms-2">Today</span>
+                                    @endif
+                                </div>
+                                <div class="checkout-info">
+                                    <span><i class="bi bi-door-open me-1"></i>Room {{ $booking->room->room_num }}</span>
+                                    <span><i class="bi bi-calendar3 me-1"></i>{{ $booking->checkout_date->format('M d, Y') }}</span>
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
             @endif
         </div>
     </div>
@@ -412,7 +467,7 @@
 <!-- Bottom Section: Quick Booking -->
 <div class="quick-booking-section">
     <div class="content-card">
-        <h5><i class="bi bi-plus-circle me-2"></i>Quick Booking</h5>
+        <h5><i class="bi bi-plus-circle me-2"></i>Quick Booking - Available Rooms</h5>
 
         @php
             $availableRoomsList = \App\Models\Room::where('status', 'available')
@@ -428,8 +483,8 @@
         @else
             <div class="room-pills">
                 @foreach($availableRoomsList as $room)
-                    <a href="{{ route('bookings.index', ['room' => $room->room_id]) }}" class="room-pill">
-                        <i class="bi bi-house-door"></i>
+                    <a href="{{ route('bookings.create', ['room_id' => $room->room_id]) }}" class="room-pill">
+                        <i class="bi bi-plus-lg"></i>
                         Room {{ $room->room_num }}
                     </a>
                 @endforeach
