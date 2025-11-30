@@ -52,7 +52,7 @@
         padding: 1.5rem;
         border-radius: 8px;
         margin-bottom: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     }
 
     .filter-group {
@@ -86,34 +86,35 @@
     }
 
     .filter-btn {
-        padding: 0.5rem 1rem;
-        border: none;
-        background-color: transparent;
-        border-radius: 6px;
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #718096;
+        border: 1px solid #cbd5e1;
+        padding: 0.45rem 1.1rem;
+        border-radius: 999px;
+        background-color: white;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #475569;
         cursor: pointer;
         transition: all 0.2s ease;
         text-decoration: none;
     }
 
     .filter-btn:hover {
-        color: #03255b;
-        background-color: #f7fafc;
+        border-color: #94a3b8;
+        color: #0f172a;
     }
 
     .filter-btn.active {
-        background-color: #03255b;
+        background: #03255b;
         color: white;
-        font-weight: 600;
+        border-color: #03255b;
+        box-shadow: 0 8px 20px rgba(3, 37, 91, 0.25);
     }
 
     /* Table Styles */
     .users-table-container {
         background-color: white;
         border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         overflow: hidden;
     }
 
@@ -170,12 +171,32 @@
         color: #1e40af;
     }
 
+    .status-badge {
+        display: inline-block;
+        padding: 0.375rem 0.875rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .status-badge.active {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-badge.archived {
+        background-color: #e5e7eb;
+        color: #6b7280;
+    }
+
     .action-buttons {
         display: flex;
         gap: 0.5rem;
     }
 
-    .btn-edit, .btn-delete {
+    .btn-edit, .btn-archive, .btn-activate {
         padding: 0.5rem 1rem;
         border: none;
         border-radius: 6px;
@@ -189,7 +210,7 @@
         gap: 0.5rem;
     }
 
-    .btn-edit i, .btn-delete i {
+    .btn-edit i, .btn-archive i, .btn-activate i {
         font-size: 1rem;
     }
 
@@ -203,14 +224,24 @@
         color: #0369a1;
     }
 
-    .btn-delete {
-        background-color: #fee2e2;
-        color: #991b1b;
+    .btn-archive {
+        background-color: #fef3c7;
+        color: #92400e;
     }
 
-    .btn-delete:hover {
-        background-color: #fecaca;
-        color: #991b1b;
+    .btn-archive:hover {
+        background-color: #fde68a;
+        color: #92400e;
+    }
+
+    .btn-activate {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+
+    .btn-activate:hover {
+        background-color: #a7f3d0;
+        color: #065f46;
     }
 
     /* Pagination Styles */
@@ -339,6 +370,7 @@
                    placeholder="Search by name or email..."
                    value="{{ $searchTerm }}">
             <input type="hidden" name="role" id="roleInput" value="{{ $selectedRole }}">
+            <input type="hidden" name="status" id="statusInput" value="{{ $selectedStatus ?? 'all' }}">
         </form>
     </div>
     <div class="filter-group mt-3">
@@ -359,6 +391,24 @@
             Caretaker ({{ $roleCounts['caretaker'] ?? 0 }})
         </button>
     </div>
+    <div class="filter-group mt-3">
+        <p class="filter-label mb-0">Filter by Status:</p>
+        <button class="filter-btn {{ ($selectedStatus ?? 'all') === 'all' ? 'active' : '' }}"
+                data-status="all"
+                onclick="filterByStatus('all')">
+            All
+        </button>
+        <button class="filter-btn {{ ($selectedStatus ?? 'all') === 'active' ? 'active' : '' }}"
+                data-status="active"
+                onclick="filterByStatus('active')">
+            Active ({{ $statusCounts['active'] ?? 0 }})
+        </button>
+        <button class="filter-btn {{ ($selectedStatus ?? 'all') === 'archived' ? 'active' : '' }}"
+                data-status="archived"
+                onclick="filterByStatus('archived')">
+            Archived ({{ $statusCounts['archived'] ?? 0 }})
+        </button>
+    </div>
 </div>
 
 <!-- Users Table -->
@@ -369,6 +419,7 @@
                 <th>Full Name</th>
                 <th>Email</th>
                 <th>Role</th>
+                <th>Status</th>
                 <th>Age</th>
                 <th>Address</th>
                 <th>Actions</th>
@@ -389,6 +440,11 @@
                         </span>
                     </td>
                     <td>
+                        <span class="status-badge {{ $user->status ?? 'active' }}">
+                            {{ ucfirst($user->status ?? 'active') }}
+                        </span>
+                    </td>
+                    <td>
                         {{ $user->age ? $user->age . ' years old' : 'N/A' }}
                     </td>
                     <td>
@@ -399,19 +455,29 @@
                             <button type="button" class="btn-edit" data-bs-toggle="modal" data-bs-target="#editUserModal{{ $user->user_id }}">
                                 <i class="bi bi-pencil"></i> Edit
                             </button>
-                            <form action="{{ route('users.destroy', $user->user_id) }}" method="POST" style="display: inline;">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn-delete" onclick="return confirm('Are you sure you want to delete this user?')">
-                                    <i class="bi bi-trash"></i> Delete
-                                </button>
-                            </form>
+                            @if($user->user_id !== auth()->user()->user_id)
+                                @if($user->status === 'active')
+                                    <form action="{{ route('users.archive', $user->user_id) }}" method="POST" style="display: inline;" id="archiveUserForm{{ $user->user_id }}">
+                                        @csrf
+                                        <button type="button" class="btn-archive" onclick="confirmAction('Are you sure you want to archive this user?', function() { document.getElementById('archiveUserForm{{ $user->user_id }}').submit(); }, { title: 'Archive User', confirmText: 'Yes, Archive', type: 'warning' })">
+                                            <i class="bi bi-archive"></i> Archive
+                                        </button>
+                                    </form>
+                                @else
+                                    <form action="{{ route('users.activate', $user->user_id) }}" method="POST" style="display: inline;" id="activateUserForm{{ $user->user_id }}">
+                                        @csrf
+                                        <button type="button" class="btn-activate" onclick="confirmAction('Are you sure you want to activate this user?', function() { document.getElementById('activateUserForm{{ $user->user_id }}').submit(); }, { title: 'Activate User', confirmText: 'Yes, Activate', type: 'info' })">
+                                            <i class="bi bi-check-circle"></i> Activate
+                                        </button>
+                                    </form>
+                                @endif
+                            @endif
                         </div>
                     </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="6" class="text-center text-muted py-4">No users found</td>
+                    <td colspan="7" class="text-center text-muted py-4">No users found</td>
                 </tr>
             @endforelse
         </tbody>
@@ -685,19 +751,11 @@ function filterByRole(role) {
     document.getElementById('roleInput').value = role;
     document.querySelector('form[action="{{ route('user-management') }}"]').submit();
 }
+
+function filterByStatus(status) {
+    document.getElementById('statusInput').value = status;
+    document.querySelector('form[action="{{ route('user-management') }}"]').submit();
+}
 </script>
-
-@if(session('success'))
-    <script>
-        alert('{{ session('success') }}');
-    </script>
-@endif
-
-@if(session('error') || $errors->any())
-    <script>
-        @if(session('error'))
-            alert('{{ session('error') }}');
-        @endif
-    </script>
-@endif
 @endsection
+

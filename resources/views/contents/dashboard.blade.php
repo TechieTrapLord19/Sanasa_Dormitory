@@ -27,7 +27,7 @@
         background: white;
         border-radius: 8px;
         padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         border: 1px solid #e5e5e5;
         height: 100%;
         transition: all 0.2s ease-in-out;
@@ -91,7 +91,7 @@
         background: white;
         border-radius: 8px;
         padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         border: 1px solid #e5e5e5;
         height: 350px;
         display: flex;
@@ -161,8 +161,8 @@
     .btn-view-invoice {
         padding: 0.375rem 1rem;
         font-size: 0.8125rem;
-        background-color: #3b82f6;
-        border-color: #3b82f6;
+        background-color: #03255b;
+        border-color: #03255b;
         color: white;
         border-radius: 6px;
         font-weight: 500;
@@ -170,11 +170,11 @@
     }
 
     .btn-view-invoice:hover {
-        background-color: #2563eb;
-        border-color: #2563eb;
+        background-color: #021d47;
+        border-color: #021d47;
         color: white;
         transform: translateY(-1px);
-        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        box-shadow: 0 2px 8px rgba(3, 37, 91, 0.3);
     }
 
     /* Upcoming Checkouts */
@@ -195,7 +195,7 @@
 
     .checkout-item:hover {
         transform: translateX(4px);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     }
 
     .checkout-item.today {
@@ -494,3 +494,4 @@
 </div>
 
 @endsection
+

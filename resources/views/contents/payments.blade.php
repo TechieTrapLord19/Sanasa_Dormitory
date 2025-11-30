@@ -21,7 +21,7 @@
         padding: 1rem 1.5rem;
         border-radius: 8px;
         margin-bottom: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     }
 
     .filter-group {
@@ -86,7 +86,7 @@
     .logs-table-container {
         background-color: white;
         border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         overflow: hidden;
     }
 
@@ -442,4 +442,5 @@
     </div>
 </div>
 @endsection
+
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ElectricReading;
 use App\Models\Room;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -31,8 +32,8 @@ class ElectricReadingController extends Controller
             ];
         });
 
-        // Get the electricity rate from session
-        $electricityRate = session('electricity_rate_per_kwh', null);
+        // Get the electricity rate from database
+        $electricityRate = Setting::get('electricity_rate_per_kwh', null);
 
         return view('contents.electric-readings', compact('roomsWithReadings', 'floors', 'electricityRate'));
     }
@@ -240,8 +241,8 @@ class ElectricReadingController extends Controller
             'electricity_rate_per_kwh.min' => 'Electricity rate must be at least 0.',
         ]);
 
-        // Store in session for use in other pages
-        session(['electricity_rate_per_kwh' => $validated['electricity_rate_per_kwh']]);
+        // Store in database for persistent use
+        Setting::set('electricity_rate_per_kwh', $validated['electricity_rate_per_kwh']);
 
         if ($request->expectsJson()) {
             return response()->json([

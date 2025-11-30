@@ -77,8 +77,9 @@
     .deposit-card {
         background: white;
         border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         overflow: hidden;
+        border: 1px solid #e5e5e5;
     }
 
     .deposit-main {
@@ -428,15 +429,19 @@
 </div>
 
 @if(session('success'))
-    <div class="alert alert-success">
-        <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
-    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            showToast('{{ session('success') }}', 'success', 4000);
+        });
+    </script>
 @endif
 
 @if(session('error'))
-    <div class="alert alert-error">
-        <i class="bi bi-exclamation-circle me-2"></i>{{ session('error') }}
-    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            showToast('{{ session('error') }}', 'error', 5000);
+        });
+    </script>
 @endif
 
 <div class="deposit-grid">
@@ -827,3 +832,4 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 @endsection
+

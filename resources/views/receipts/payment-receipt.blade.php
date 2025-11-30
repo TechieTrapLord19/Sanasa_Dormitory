@@ -23,7 +23,7 @@
             margin: 0 auto;
             background: white;
             padding: 15px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
         }
 
         .receipt-header {
@@ -38,14 +38,6 @@
             height: 70px;
             margin: 0 auto 6px;
             display: block;
-        }
-
-        .company-name {
-            font-size: 14px;
-            font-weight: bold;
-            color: #03255b;
-            margin-bottom: 2px;
-            letter-spacing: 0.5px;
         }
 
         .receipt-header h1 {
@@ -205,11 +197,6 @@
             }
         }
 
-        .two-columns {
-            display: block;
-            margin-bottom: 10px;
-        }
-
         .info-line {
             font-size: 11px;
             padding: 2px 0;
@@ -356,4 +343,3 @@
     </div>
 </body>
 </html>
-

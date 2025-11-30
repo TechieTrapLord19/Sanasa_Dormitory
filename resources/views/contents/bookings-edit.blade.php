@@ -11,7 +11,7 @@
     .booking-form-container {
         background-color: white;
         border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         padding: 2rem;
     }
 
@@ -377,7 +377,7 @@
         max-height: 300px;
         overflow-y: auto;
         z-index: 1000;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
         display: none;
     }
 
@@ -470,12 +470,6 @@
                     <li>{{ $error }}</li>
                 @endforeach
             </ul>
-        </div>
-    @endif
-
-    @if (session('success'))
-        <div class="alert alert-success mb-4">
-            {{ session('success') }}
         </div>
     @endif
 
@@ -745,22 +739,22 @@ function validateStep(step) {
         const stayLength = document.getElementById('stay_length').value;
 
         if (!checkin) {
-            alert('Please select a check-in date.');
+            showToast('Please select a check-in date.', 'warning');
             return false;
         }
 
         if (!stayLength || parseInt(stayLength, 10) < 1) {
-            alert('Please set the stay length.');
+            showToast('Please set the stay length.', 'warning');
             return false;
         }
 
         if (!roomId || roomId === '0' || roomId === '') {
-            alert('Please select a room.');
+            showToast('Please select a room.', 'warning');
             return false;
         }
 
         if (new Date(checkout) <= new Date(checkin)) {
-            alert('Check-out date must be after check-in date.');
+            showToast('Check-out date must be after check-in date.', 'warning');
             return false;
         }
 
@@ -771,12 +765,12 @@ function validateStep(step) {
         const tenantCount = getSelectedTenantCount();
 
         if (tenantCount === 0) {
-            alert('Please select at least one tenant.');
+            showToast('Please select at least one tenant.', 'warning');
             return false;
         }
 
         if (tenantCount > roomCapacityLimit) {
-            alert(`Maximum ${roomCapacityLimit} tenants allowed per booking.`);
+            showToast(`Maximum ${roomCapacityLimit} tenants allowed per booking.`, 'warning');
             return false;
         }
 
@@ -870,7 +864,7 @@ function calculatePricingSummary(days) {
 
     if (!rate) {
         if (!missingRateAlertShown) {
-            alert(`No ${duration.toLowerCase()} rate configured.`);
+            showToast(`No ${duration.toLowerCase()} rate configured.`, 'error');
             missingRateAlertShown = true;
         }
         return null;
@@ -1101,7 +1095,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (!roomId || roomId === '0' || roomId === '') {
                     e.preventDefault();
-                    alert('Please select a room.');
+                    showToast('Please select a room.', 'warning');
                     currentStep = 1;
                     changeStep(0);
                     return false;
@@ -1109,7 +1103,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (tenantCount === 0) {
                     e.preventDefault();
-                    alert('Please select at least one tenant.');
+                    showToast('Please select at least one tenant.', 'warning');
                     currentStep = 2;
                     changeStep(0);
                     return false;
@@ -1117,7 +1111,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (tenantCount > roomCapacityLimit) {
                     e.preventDefault();
-                    alert(`Maximum ${roomCapacityLimit} tenants allowed per booking.`);
+                    showToast(`Maximum ${roomCapacityLimit} tenants allowed per booking.`, 'warning');
                     currentStep = 2;
                     changeStep(0);
                     return false;
@@ -1145,7 +1139,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (!checkinDate) {
                 e.preventDefault();
-                alert('Please select a check-in date.');
+                showToast('Please select a check-in date.', 'warning');
                 currentStep = 1;
                 changeStep(0);
                 return false;
@@ -1153,7 +1147,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (!stayLength || parseInt(stayLength, 10) < 1) {
                 e.preventDefault();
-                alert('Please set the stay length.');
+                showToast('Please set the stay length.', 'warning');
                 currentStep = 1;
                 changeStep(0);
                 return false;
@@ -1161,7 +1155,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (!roomId || roomId === '0' || roomId === '') {
                 e.preventDefault();
-                alert('Please select a room.');
+                showToast('Please select a room.', 'warning');
                 currentStep = 1;
                 changeStep(0);
                 return false;
@@ -1169,7 +1163,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (!checkoutDate) {
                 e.preventDefault();
-                alert('Check-out date is missing. Please check your dates.');
+                showToast('Check-out date is missing. Please check your dates.', 'warning');
                 currentStep = 1;
                 changeStep(0);
                 return false;
@@ -1177,7 +1171,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (new Date(checkoutDate) <= new Date(checkinDate)) {
                 e.preventDefault();
-                alert('Check-out date must be after check-in date.');
+                showToast('Check-out date must be after check-in date.', 'warning');
                 currentStep = 1;
                 changeStep(0);
                 return false;
@@ -1363,7 +1357,7 @@ function enforceTenantSelectionLimit({ notify = true } = {}) {
             removed = true;
         }
         if (notify) {
-            alert(`Maximum ${roomCapacityLimit} tenants allowed per booking.`);
+            showToast(`Maximum ${roomCapacityLimit} tenants allowed per booking.`, 'warning');
         }
     }
     return removed;
@@ -1475,3 +1469,4 @@ document.addEventListener('DOMContentLoaded', function() {
 
 </script>
 @endsection
+

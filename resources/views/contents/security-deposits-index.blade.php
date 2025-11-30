@@ -25,7 +25,7 @@
         background: white;
         border-radius: 8px;
         padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         border: 1px solid #e5e5e5;
         height: 100%;
         transition: all 0.2s ease-in-out;
@@ -89,7 +89,7 @@
         padding: 1rem 1.5rem;
         border-radius: 8px;
         margin-bottom: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     }
 
     .filter-row {
@@ -130,15 +130,16 @@
     }
 
     .btn-filter {
-        padding: 0.5rem 1.5rem;
+        padding: 0.45rem 1.5rem;
         border: none;
         background-color: #03255b;
         color: white;
-        border-radius: 6px;
-        font-size: 0.875rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.2s ease;
+        box-shadow: 0 8px 20px rgba(3, 37, 91, 0.25);
     }
 
     .btn-filter:hover {
@@ -149,8 +150,9 @@
     .deposits-table-container {
         background: white;
         border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         overflow: hidden;
+        border: 1px solid #e5e5e5;
     }
 
     .deposits-table {
@@ -256,8 +258,8 @@
         align-items: center;
         gap: 0.5rem;
         padding: 0.5rem 1rem;
-        background-color: #03255b;
-        color: white;
+        background-color: #e0f2fe;
+        color: #0369a1;
         border: none;
         border-radius: 6px;
         font-size: 0.875rem;
@@ -267,8 +269,8 @@
     }
 
     .btn-view:hover {
-        background-color: #021d47;
-        color: white;
+        background-color: #bae6fd;
+        color: #0369a1;
     }
 
     /* Pagination */
@@ -468,3 +470,4 @@
     @endif
 </div>
 @endsection
+

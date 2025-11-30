@@ -49,14 +49,6 @@ class Room extends Model
     {
         return $this->hasMany(Booking::class, 'room_id', 'room_id');
     }
-    public function tenant()
-    {
-        return $this->belongsTo(\App\Models\Tenant::class, 'tenant_id', 'tenant_id');
-    }
-     public function rate(): BelongsTo
-    {
-        return $this->belongsTo(Rate::class, 'rate_id', 'rate_id');
-    }
 
     /**
      * Get all assets for this room

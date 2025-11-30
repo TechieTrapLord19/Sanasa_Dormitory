@@ -61,7 +61,7 @@
         background: white;
         border-radius: 8px;
         padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         border: 1px solid #e5e5e5;
         height: 100%;
         transition: all 0.2s ease-in-out;
@@ -194,7 +194,7 @@
     .invoices-table-card {
         background-color: white;
         border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         margin-bottom: 0;
     }
 
@@ -342,7 +342,7 @@
         flex-wrap: wrap;
         gap: 1rem;
         border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     }
     .pagination-wrapper .form-select {
         width: auto;
@@ -498,12 +498,6 @@
 </style>
 
 <div class="invoices-page">
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <strong>Success!</strong> {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
 
     @if($errors->any() && !request()->routeIs('payments.store'))
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -786,13 +780,6 @@
             <form action="{{ route('payments.store') }}" method="POST" id="paymentForm">
                 @csrf
                 <div class="modal-body">
-                    @if(session('success'))
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            {{ session('success') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    @endif
-
                     @if($errors->any())
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
                             <ul class="mb-0">
@@ -977,3 +964,4 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endsection
+

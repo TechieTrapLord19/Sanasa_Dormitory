@@ -9,7 +9,7 @@
     .booking-details-container {
         background-color: white;
         border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         padding: 1.5rem;
         display: flex;
         flex-direction: column;
@@ -89,9 +89,101 @@
         color: #92400e;
     }
 
+    /* Payment Method Badges */
+    .payment-method-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .payment-method-badge.cash {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+
+    .payment-method-badge.gcash {
+        background-color: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .payment-method-badge.bank {
+        background-color: #e0e7ff;
+        color: #4338ca;
+    }
+
+    .payment-method-badge.check {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+
+    .payment-method-badge.other {
+        background-color: #f3f4f6;
+        color: #4b5563;
+    }
+
+    /* Payment Type Badges */
+    .payment-type-badge {
+        display: inline-block;
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .payment-type-badge.rent {
+        background-color: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .payment-type-badge.utility {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+
+    .payment-type-badge.deposit {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+
+    .payment-type-badge.other {
+        background-color: #f3f4f6;
+        color: #4b5563;
+    }
+
+    .btn-receipt {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.35rem 0.75rem;
+        background-color: #03255b;
+        color: white;
+        border: none;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .btn-receipt:hover {
+        background-color: #021d47;
+        color: white;
+    }
+
     .info-section {
         margin-bottom: 1.5rem;
         flex-shrink: 0;
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+        border: 1px solid #e5e5e5;
     }
 
     .info-section-title {
@@ -225,7 +317,7 @@
     .table-container {
         background-color: white;
         border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         overflow: hidden;
         margin-bottom: 1.5rem;
         flex-shrink: 0;
@@ -384,9 +476,9 @@
 
             {{-- Check-in is always manual - no automatic check-in even when fully paid --}}
             @if(!in_array($booking->status, ['Active', 'Completed', 'Canceled']) && $canCheckIn)
-                <form action="{{ route('bookings.checkin', $booking->booking_id) }}" method="POST" style="display: inline;">
+                <form action="{{ route('bookings.checkin', $booking->booking_id) }}" method="POST" style="display: inline;" id="checkinForm">
                     @csrf
-                    <button type="submit" class="btn-action btn-checkin">
+                    <button type="button" class="btn-action btn-checkin" onclick="confirmAction('Are you sure you want to check-in this tenant? This will mark the booking as active.', function() { document.getElementById('checkinForm').submit(); }, { title: 'Confirm Check-In', confirmText: 'Yes, Check In', type: 'info' })">
                         <i class="bi bi-box-arrow-in-right"></i> Check-In Tenant
                     </button>
                 </form>
@@ -398,9 +490,9 @@
 
             {{-- Check-Out Button: Only for Active status --}}
             @if($booking->effective_status === 'Active')
-                <form action="{{ route('bookings.checkout', $booking->booking_id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to check out this tenant?');">
+                <form action="{{ route('bookings.checkout', $booking->booking_id) }}" method="POST" style="display: inline;" id="checkoutForm">
                     @csrf
-                    <button type="submit" class="btn-action btn-checkout">
+                    <button type="button" class="btn-action btn-checkout" onclick="confirmAction('Are you sure you want to check out this tenant? This will mark the booking as completed.', function() { document.getElementById('checkoutForm').submit(); }, { title: 'Confirm Check-Out', confirmText: 'Yes, Check Out', type: 'warning' })">
                         <i class="bi bi-box-arrow-right"></i> Check-Out Tenant
                     </button>
                 </form>
@@ -430,7 +522,7 @@
         </div>
     </div>
 
-    <!-- Tenant Info -->
+    <!-- Booking Details (Combined) -->
     <div class="info-section">
         <h2 class="info-section-title">Tenant Information</h2>
         @php
@@ -460,11 +552,8 @@
                 </div>
             @endforeach
         @endif
-    </div>
 
-    <!-- Booking Info -->
-    <div class="info-section">
-        <h2 class="info-section-title">Booking Information</h2>
+        <h2 class="info-section-title" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0;">Booking Information</h2>
         <div class="info-grid">
             <div class="info-item">
                 <span class="info-label">Room Number</span>
@@ -487,11 +576,8 @@
                 <span class="info-value">{{ $stayLengthDays }} night(s)</span>
             </div>
         </div>
-    </div>
 
-    <!-- Rates Info -->
-    <div class="info-section">
-        <h2 class="info-section-title">Rates Information</h2>
+        <h2 class="info-section-title" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0;">Rates Information</h2>
         <div class="info-grid">
             <div class="info-item">
                 <span class="info-label">Rate(s) Used</span>
@@ -646,6 +732,92 @@
         </div>
         @if($chargeSummary['note'])
             <div class="charge-note">{{ $chargeSummary['note'] }}</div>
+        @endif
+    </div>
+
+    <!-- Payment History -->
+    <div class="info-section">
+        <h2 class="info-section-title">
+            <i class="bi bi-credit-card me-2"></i>Payment History
+            @if($allPayments->count() > 0)
+                <span style="font-weight: 400; font-size: 0.85rem; color: #64748b;">
+                    ({{ $allPayments->count() }} {{ Str::plural('payment', $allPayments->count()) }} · Total: ₱{{ number_format($allPayments->sum('amount'), 2) }})
+                </span>
+            @endif
+        </h2>
+        @if($allPayments->count() > 0)
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Reference</th>
+                            <th>Collected By</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($allPayments->sortByDesc('date_received') as $payment)
+                            @php
+                                $methodClass = match(strtolower($payment->payment_method)) {
+                                    'cash' => 'cash',
+                                    'gcash' => 'gcash',
+                                    'bank transfer', 'bank' => 'bank',
+                                    'check', 'cheque' => 'check',
+                                    default => 'other'
+                                };
+                                $typeClass = match(true) {
+                                    str_contains(strtolower($payment->payment_type), 'rent') => 'rent',
+                                    str_contains(strtolower($payment->payment_type), 'electric') || str_contains(strtolower($payment->payment_type), 'utility') => 'utility',
+                                    str_contains(strtolower($payment->payment_type), 'deposit') => 'deposit',
+                                    default => 'other'
+                                };
+                            @endphp
+                            <tr>
+                                <td>
+                                    <strong>{{ $payment->date_received ? $payment->date_received->format('M d, Y') : 'N/A' }}</strong>
+                                    <br><small class="text-muted">{{ $payment->created_at->format('g:i A') }}</small>
+                                </td>
+                                <td>
+                                    <span class="payment-type-badge {{ $typeClass }}">{{ $payment->payment_type }}</span>
+                                </td>
+                                <td style="font-weight: 600; color: #059669;">₱{{ number_format($payment->amount, 2) }}</td>
+                                <td>
+                                    <span class="payment-method-badge {{ $methodClass }}">
+                                        @if($methodClass === 'cash')
+                                            <i class="bi bi-cash"></i>
+                                        @elseif($methodClass === 'gcash')
+                                            <i class="bi bi-phone"></i>
+                                        @elseif($methodClass === 'bank')
+                                            <i class="bi bi-bank"></i>
+                                        @elseif($methodClass === 'check')
+                                            <i class="bi bi-file-text"></i>
+                                        @else
+                                            <i class="bi bi-credit-card"></i>
+                                        @endif
+                                        {{ $payment->payment_method }}
+                                    </span>
+                                </td>
+                                <td>{{ $payment->reference_number ?? '-' }}</td>
+                                <td>{{ $payment->collectedBy->full_name ?? 'N/A' }}</td>
+                                <td>
+                                    <a href="{{ route('payments.receipt', $payment->payment_id) }}" class="btn-receipt" target="_blank">
+                                        <i class="bi bi-printer"></i> Receipt
+                                    </a>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @else
+            <div style="text-align: center; padding: 2rem; color: #64748b;">
+                <i class="bi bi-inbox" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
+                <p class="mb-0">No payments recorded for this booking yet.</p>
+            </div>
         @endif
     </div>
 
@@ -1241,3 +1413,4 @@
 </div>
 @endif
 @endsection
+

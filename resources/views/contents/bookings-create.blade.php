@@ -7,7 +7,7 @@
     .booking-form-container {
         background-color: white;
         border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         padding: 2rem;
     }
 
@@ -376,7 +376,7 @@
         max-height: 300px;
         overflow-y: auto;
         z-index: 1000;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
     }
 
     .tenant-list-container {
@@ -764,7 +764,7 @@ function enforceTenantSelectionLimit({ notify = true } = {}) {
         }
         removed = true;
         if (notify) {
-            alert(`You can select up to ${roomCapacityLimit} tenant(s) for the selected room.`);
+            showToast(`You can select up to ${roomCapacityLimit} tenant(s) for the selected room.`, 'warning');
         }
     }
     return removed;
@@ -811,17 +811,17 @@ function validateStep(step) {
         const roomId = document.getElementById('selected_room_id').value;
 
         if (!checkin) {
-            alert('Please select a check-in date.');
+            showToast('Please select a check-in date.', 'warning');
             return false;
         }
 
         if (!stayLength || parseInt(stayLength, 10) < 1) {
-            alert('Please choose the stay length.');
+            showToast('Please choose the stay length.', 'warning');
             return false;
         }
 
         if (!roomId) {
-            alert('Please select a room.');
+            showToast('Please select a room.', 'warning');
             return false;
         }
 
@@ -835,7 +835,7 @@ function validateStep(step) {
         console.log('Tenant checkboxes checked:', tenantCheckboxes.length);
 
         if (tenantCheckboxes.length === 0) {
-            alert('Please select at least one tenant.');
+            showToast('Please select at least one tenant.', 'warning');
             return false;
         }
 
@@ -901,7 +901,7 @@ function updateRateSelection(days) {
 
     if (!rate) {
         if (!missingRateAlertShown) {
-            alert(`No ${duration.toLowerCase()} rate configured. Please create one before proceeding.`);
+            showToast(`No ${duration.toLowerCase()} rate configured. Please create one before proceeding.`, 'error');
             missingRateAlertShown = true;
         }
         document.getElementById('rate_id').value = '';
@@ -1171,7 +1171,7 @@ function selectRoom(roomId) {
         roomCapacityLimit = isNaN(capacity) ? 2 : capacity;
         const removed = enforceTenantSelectionLimit({ notify: false });
         if (removed) {
-            alert(`Some tenants were unselected because the selected room allows up to ${roomCapacityLimit} tenant(s).`);
+            showToast(`Some tenants were unselected because the selected room allows up to ${roomCapacityLimit} tenant(s).`, 'warning');
         }
         if (currentStep === 3) {
             updateSummary();
@@ -1197,7 +1197,7 @@ document.getElementById('bookingForm').addEventListener('submit', function(e) {
 
     if (!checkinDate || !stayLength || !roomId || tenantCheckboxes.length === 0 || !rateId) {
         e.preventDefault();
-        alert('Please complete all required fields before confirming.');
+        showToast('Please complete all required fields before confirming.', 'error');
         return false;
     }
 
@@ -1410,4 +1410,5 @@ function updateTenantDropdownText() {
 }
 </script>
 @endsection
+
 

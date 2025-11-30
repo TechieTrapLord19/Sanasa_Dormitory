@@ -78,7 +78,8 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
     Route::get('/user-management', [UserController::class, 'index'])->name('user-management');
     Route::post('/users', [UserController::class, 'store'])->name('users.store');
     Route::put('/users/{id}', [UserController::class, 'update'])->name('users.update');
-    Route::delete('/users/{id}', [UserController::class, 'destroy'])->name('users.destroy');
+    Route::post('/users/{id}/archive', [UserController::class, 'archive'])->name('users.archive');
+    Route::post('/users/{id}/activate', [UserController::class, 'activate'])->name('users.activate');
 
     // Sales & Reports routes
     Route::get('/sales', [SalesController::class, 'index'])->name('sales.index');

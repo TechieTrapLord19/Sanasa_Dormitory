@@ -11,6 +11,7 @@ use App\Models\Invoice;
 use App\Models\InvoiceUtility;
 use App\Models\ElectricReading;
 use App\Models\SecurityDeposit;
+use App\Models\Setting;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -533,8 +534,8 @@ public function store(Request $request)
             ->orderBy('reading_id', 'desc')
             ->first();
 
-        // Get the electricity rate from session
-        $electricityRate = session('electricity_rate_per_kwh', null);
+        // Get the electricity rate from database
+        $electricityRate = Setting::get('electricity_rate_per_kwh', null);
 
         return view('contents.bookings-show', compact('booking', 'chargeSummary', 'stayLengthDays', 'allPayments', 'lastReading', 'isMonthlyStay', 'unpaidInvoices', 'electricityRate'));
     }
@@ -777,75 +778,90 @@ public function store(Request $request)
                 if ($extensionDays > 0) {
                 // Calculate rent and utilities for extension period
                 $rentSubtotal = 0;
-                $utilityWaterFee = 0;
-                $utilityWifiFee = 0;
+                $utilitiesTotal = 0;
+                $utilityFees = [];
 
                 if ($durationType === 'Monthly') {
                     // If extension is less than 30 days, use daily rate instead
                     if ($extensionDays < 30) {
                         // Get daily rate
-                        $dailyRate = Rate::where('duration_type', 'Daily')->first();
+                        $dailyRate = Rate::where('duration_type', 'Daily')->with('utilities')->first();
                         if ($dailyRate) {
                             // Daily rate includes all utilities
                             $rentSubtotal = $dailyRate->base_price * $extensionDays;
-                            $utilityWaterFee = 0; // Included in daily rate
-                            $utilityWifiFee = 0; // Included in daily rate
+                            // No separate utility fees for daily rate
                         } else {
-                            // Fallback: calculate daily rate from monthly (5000/30 = 166.67 per day)
+                            // Fallback: calculate daily rate from monthly
                             $dailyPrice = $rate->base_price / 30;
                             $rentSubtotal = $dailyPrice * $extensionDays;
-                            // For partial months, prorate utilities
-                            $utilityWaterFee = (350.00 / 30) * $extensionDays;
-                            $utilityWifiFee = (260.00 / 30) * $extensionDays;
+                            // For partial months, prorate utilities from rate
+                            foreach ($rate->utilities as $utility) {
+                                $utilityFee = ($utility->price / 30) * $extensionDays;
+                                $utilitiesTotal += $utilityFee;
+                                $utilityFees[] = [
+                                    'utility_name' => $utility->name,
+                                    'amount' => $utilityFee,
+                                ];
+                            }
                         }
                     } else {
                         // Extension is 30+ days, calculate months needed
                         $months = max(1, (int) ceil($extensionDays / 30));
                         $rentSubtotal = $rate->base_price * $months;
-                        $utilityWaterFee = 350.00 * $months;
-                        $utilityWifiFee = 260.00 * $months;
+                        // Calculate utilities from rate
+                        foreach ($rate->utilities as $utility) {
+                            $utilityFee = $utility->price * $months;
+                            $utilitiesTotal += $utilityFee;
+                            $utilityFees[] = [
+                                'utility_name' => $utility->name,
+                                'amount' => $utilityFee,
+                            ];
+                        }
                     }
                 } elseif ($durationType === 'Weekly') {
                     // If extension is less than 7 days, use daily rate instead
                     if ($extensionDays < 7) {
                         // Get daily rate
-                        $dailyRate = Rate::where('duration_type', 'Daily')->first();
+                        $dailyRate = Rate::where('duration_type', 'Daily')->with('utilities')->first();
                         if ($dailyRate) {
                             // Daily rate includes all utilities
                             $rentSubtotal = $dailyRate->base_price * $extensionDays;
-                            $utilityWaterFee = 0; // Included in daily rate
-                            $utilityWifiFee = 0; // Included in daily rate
+                            // No separate utility fees for daily rate
                         } else {
-                            // Fallback: calculate daily rate from weekly (1750/7 = 250 per day)
+                            // Fallback: calculate daily rate from weekly
                             $dailyPrice = $rate->base_price / 7;
                             $rentSubtotal = $dailyPrice * $extensionDays;
-                            $utilityWaterFee = 0; // Included in weekly rate
-                            $utilityWifiFee = 0; // Included in weekly rate
+                            // No utilities for weekly (included in rate)
                         }
                     } else {
                         // Extension is 7+ days, calculate weeks needed
                         $weeks = max(1, (int) ceil($extensionDays / 7));
                         $rentSubtotal = $rate->base_price * $weeks;
-                        $utilityWaterFee = 0; // Included in weekly rate
-                        $utilityWifiFee = 0; // Included in weekly rate
+                        // No utilities for weekly (included in rate)
                     }
                 } else { // Daily
                     $rentSubtotal = $rate->base_price * $extensionDays;
-                    $utilityWaterFee = 0; // Included in daily rate
-                    $utilityWifiFee = 0; // Included in daily rate
+                    // No utilities for daily (included in rate)
                 }
 
                 // Create invoice for extension
-                Invoice::create([
+                $extensionInvoice = Invoice::create([
                     'booking_id' => $booking->booking_id,
                     'date_generated' => now()->toDateString(),
                     'rent_subtotal' => $rentSubtotal,
-                    'utility_water_fee' => $utilityWaterFee,
-                    'utility_wifi_fee' => $utilityWifiFee,
                     'utility_electricity_fee' => 0.00, // Electricity is separate
-                    'total_due' => $rentSubtotal + $utilityWaterFee + $utilityWifiFee,
+                    'total_due' => $rentSubtotal + $utilitiesTotal,
                     'is_paid' => false,
                 ]);
+
+                // Store utilities in invoice_utilities table
+                foreach ($utilityFees as $utilityFee) {
+                    InvoiceUtility::create([
+                        'invoice_id' => $extensionInvoice->invoice_id,
+                        'utility_name' => $utilityFee['utility_name'],
+                        'amount' => $utilityFee['amount'],
+                    ]);
+                }
                 }
             } // End of non-Active booking invoice processing
 

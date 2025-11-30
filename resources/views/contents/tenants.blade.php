@@ -52,7 +52,7 @@
         padding: 1.5rem;
         border-radius: 8px;
         margin-bottom: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     }
 
     .filter-group {
@@ -86,34 +86,35 @@
     }
 
     .filter-btn {
-        padding: 0.5rem 1rem;
-        border: none;
-        background-color: transparent;
-        border-radius: 6px;
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #718096;
+        border: 1px solid #cbd5e1;
+        padding: 0.45rem 1.1rem;
+        border-radius: 999px;
+        background-color: white;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #475569;
         cursor: pointer;
         transition: all 0.2s ease;
         text-decoration: none;
     }
 
     .filter-btn:hover {
-        color: #03255b;
-        background-color: #f7fafc;
+        border-color: #94a3b8;
+        color: #0f172a;
     }
 
     .filter-btn.active {
-        background-color: #03255b;
+        background: #03255b;
         color: white;
-        font-weight: 600;
+        border-color: #03255b;
+        box-shadow: 0 8px 20px rgba(3, 37, 91, 0.25);
     }
 
     /* Table Styles */
     .tenants-table-container {
         background-color: white;
         border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         overflow: hidden;
     }
 
@@ -455,16 +456,16 @@
                                 <i class="bi bi-eye"></i> View
                             </a>
                             @if($tenant->status === 'active')
-                                <form action="{{ route('tenants.archive', $tenant->tenant_id) }}" method="POST" style="display: inline;">
+                                <form action="{{ route('tenants.archive', $tenant->tenant_id) }}" method="POST" style="display: inline;" id="archiveTenantForm{{ $tenant->tenant_id }}">
                                     @csrf
-                                    <button type="submit" class="btn-archive" onclick="return confirm('Are you sure you want to archive this tenant?')">
+                                    <button type="button" class="btn-archive" onclick="confirmAction('Are you sure you want to archive this tenant?', function() { document.getElementById('archiveTenantForm{{ $tenant->tenant_id }}').submit(); }, { title: 'Archive Tenant', confirmText: 'Yes, Archive', type: 'warning' })">
                                         <i class="bi bi-archive"></i> Archive
                                     </button>
                                 </form>
                             @else
-                                <form action="{{ route('tenants.activate', $tenant->tenant_id) }}" method="POST" style="display: inline;">
+                                <form action="{{ route('tenants.activate', $tenant->tenant_id) }}" method="POST" style="display: inline;" id="activateTenantForm{{ $tenant->tenant_id }}">
                                     @csrf
-                                    <button type="submit" class="btn-activate">
+                                    <button type="button" class="btn-activate" onclick="confirmAction('Are you sure you want to activate this tenant?', function() { document.getElementById('activateTenantForm{{ $tenant->tenant_id }}').submit(); }, { title: 'Activate Tenant', confirmText: 'Yes, Activate', type: 'info' })">
                                         <i class="bi bi-check-circle"></i> Activate
                                     </button>
                                 </form>
@@ -669,14 +670,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function editTenant(tenantId) {
     // TODO: Implement edit functionality
-    alert('Edit tenant ' + tenantId);
+    showToast('Edit tenant ' + tenantId, 'info');
 }
 
 function deleteTenant(tenantId) {
-    if (confirm('Are you sure you want to delete this tenant? This action cannot be undone.')) {
+    confirmAction('Are you sure you want to delete this tenant? This action cannot be undone.', function() {
         // TODO: Implement delete functionality
-        alert('Delete tenant ' + tenantId);
-    }
+        showToast('Delete tenant ' + tenantId, 'info');
+    }, { title: 'Delete Tenant', confirmText: 'Yes, Delete', type: 'danger' });
 }
 </script>
 @endsection
+

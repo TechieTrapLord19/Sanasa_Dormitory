@@ -139,10 +139,6 @@ class Booking extends Model
 
         return $query->exists();
     }
-    public function activeBooking()
-    {
-        return $this->hasOne(\App\Models\Booking::class, 'room_id', 'room_id')->where('status', 'active');
-    }
 
     /**
      * Get the effective status based on invoice payment status

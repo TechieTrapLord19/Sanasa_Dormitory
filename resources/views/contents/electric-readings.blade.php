@@ -21,7 +21,7 @@
         padding: 1rem 1.5rem;
         border-radius: 8px;
         margin-bottom: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     }
 
     .filter-group {
@@ -40,34 +40,35 @@
     }
 
     .filter-btn {
-        padding: 0.5rem 1rem;
-        border: none;
-        background-color: transparent;
-        border-radius: 6px;
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #718096;
+        border: 1px solid #cbd5e1;
+        padding: 0.45rem 1.1rem;
+        border-radius: 999px;
+        background-color: white;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #475569;
         cursor: pointer;
         transition: all 0.2s ease;
         text-decoration: none;
     }
 
     .filter-btn:hover {
-        color: #03255b;
-        background-color: #f7fafc;
+        border-color: #94a3b8;
+        color: #0f172a;
     }
 
     .filter-btn.active {
-        background-color: #03255b;
+        background: #03255b;
         color: white;
-        font-weight: 600;
+        border-color: #03255b;
+        box-shadow: 0 8px 20px rgba(3, 37, 91, 0.25);
     }
 
     /* Table Styles */
     .readings-table-container {
         background-color: white;
         border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         overflow: hidden;
     }
 
@@ -241,13 +242,6 @@
 </style>
 
 <div class="container-fluid">
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <strong>Success!</strong> {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
     @if($errors->any())
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <strong>Error!</strong> Please fix the following errors:
@@ -268,9 +262,9 @@
         </div>
     </div>
 
-    <!-- Electricity Rate Card -->
+    <!-- Electricity Rate and Filters Card -->
     <div class="readings-filters">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e2e8f0;">
             <div>
                 <strong>Electricity Rate per kWh</strong>
                 <p class="text-muted mb-0 small">Set the price per kWh for electricity billing.</p>
@@ -284,10 +278,6 @@
                 </button>
             </form>
         </div>
-    </div>
-
-    <!-- Filters -->
-    <div class="readings-filters" style="margin-top: 1rem;">
         <div class="filter-group">
             <label class="filter-label">Filter by Floor:</label>
             <button type="button" class="filter-btn active" data-filter="floor" data-value="all">All</button>
@@ -410,7 +400,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 if (data.success) {
                     // Show success message and reload
-                    alert(data.message || 'Electricity rate saved successfully!');
+                    showToast(data.message || 'Electricity rate saved successfully!', 'success');
                     window.location.reload();
                 } else {
                     throw new Error(data.message || 'Failed to save electricity rate');
@@ -418,16 +408,13 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Error: ' + (error.message || 'Failed to save electricity rate. Please try again.'));
+                showToast('Error: ' + (error.message || 'Failed to save electricity rate. Please try again.'), 'error');
                 submitButton.disabled = false;
                 submitButton.innerHTML = originalText;
             });
         });
     }
-});
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
     const kwhPriceInput = document.getElementById('kwh_price');
 
     // Update previews when rate changes
@@ -597,62 +584,69 @@ function saveRow(button) {
     const lastReading = parseFloat(meterInput.getAttribute('data-last-reading')) || 0;
 
     if (!meterValue) {
-        alert('Please enter the new meter reading.');
+        showToast('Please enter the new meter reading.', 'warning');
         return;
     }
 
     if (!readingDate) {
-        alert('Please select a date.');
+        showToast('Please select a date.', 'warning');
         return;
     }
     const newMeterValue = parseFloat(meterValue);
     if (isNaN(newMeterValue) || newMeterValue < 0) {
-        alert('Please enter a valid meter reading.');
+        showToast('Please enter a valid meter reading.', 'warning');
         return;
     }
 
-    const usage = newMeterValue - lastReading;
-    if (usage < 0) {
-        if (!confirm('New reading is less than the last recorded reading. This may indicate a meter reset. Proceed anyway?')) {
-            return;
-        }
-    }
+    // Function to actually submit the reading
+    const doSave = () => {
+        // Create form data for single row
+        const formData = new FormData();
+        formData.append('_token', document.querySelector('input[name="_token"]').value);
+        formData.append('room_id', roomId);
+        formData.append('reading_date', readingDate);
+        formData.append('meter_value_kwh', newMeterValue);
 
-    // Create form data for single row
-    const formData = new FormData();
-    formData.append('_token', document.querySelector('input[name="_token"]').value);
-    formData.append('room_id', roomId);
-    formData.append('reading_date', readingDate);
-    formData.append('meter_value_kwh', newMeterValue);
+        // Disable button during submission
+        button.disabled = true;
+        button.textContent = 'Saving...';
 
-    // Disable button during submission
-    button.disabled = true;
-    button.textContent = 'Saving...';
-
-    fetch('{{ route("electric-readings.store") }}', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Reload page to show updated readings
-            window.location.reload();
-        } else {
-            alert('Error: ' + (data.message || 'Failed to save reading'));
+        fetch('{{ route("electric-readings.store") }}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Reload page to show updated readings
+                window.location.reload();
+            } else {
+                showToast('Error: ' + (data.message || 'Failed to save reading'), 'error');
+                button.disabled = false;
+                button.textContent = 'Save';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('An error occurred while saving. Please try again.', 'error');
             button.disabled = false;
             button.textContent = 'Save';
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while saving. Please try again.');
-        button.disabled = false;
-        button.textContent = 'Save';
-    });
+        });
+    };
+
+    const usage = newMeterValue - lastReading;
+    if (usage < 0) {
+        confirmAction('New reading is less than the last recorded reading. This may indicate a meter reset. Proceed anyway?', doSave, {
+            title: 'Confirm Reading',
+            confirmText: 'Yes, Save',
+            type: 'warning'
+        });
+    } else {
+        doSave();
+    }
 }
 
 // Handle form submission for bulk save
@@ -698,90 +692,98 @@ document.getElementById('readingsForm').addEventListener('submit', function(e) {
     const hasRate = kwhPriceInput && kwhPriceInput.value && parseFloat(kwhPriceInput.value) > 0;
 
     if (!hasReadings && !hasRate) {
-        alert('Please enter at least one reading or set a price/kWh rate before saving.');
+        showToast('Please enter at least one reading or set a price/kWh rate before saving.', 'warning');
         return;
     }
 
-    // Warn about readings that are lower than last reading
-    if (invalidReadings.length > 0) {
-        let warningMessage = 'Warning: The following rooms have readings lower than their last reading:\n\n';
-        invalidReadings.forEach(item => {
-            warningMessage += `${item.room}: ${item.newReading.toFixed(2)} kWh (last: ${item.lastReading.toFixed(2)} kWh)\n`;
-        });
-        warningMessage += '\nThis may indicate meter resets or data entry errors.\n\nDo you want to proceed anyway?';
+    // Function to actually submit the readings
+    const submitReadings = () => {
+        // Prepare form data
+        const submitData = new FormData();
+        submitData.append('_token', formData.get('_token'));
 
-        if (!confirm(warningMessage)) {
-            return;
+        // Add electricity rate
+        if (kwhPriceInput && kwhPriceInput.value) {
+            submitData.append('electricity_rate_per_kwh', kwhPriceInput.value);
         }
-    }
 
-    // Prepare form data
-    const submitData = new FormData();
-    submitData.append('_token', formData.get('_token'));
-
-    // Add electricity rate
-    if (kwhPriceInput && kwhPriceInput.value) {
-        submitData.append('electricity_rate_per_kwh', kwhPriceInput.value);
-    }
-
-    // Add readings array in the correct format (send cumulative meter values)
-    if (readings.length > 0) {
-        readings.forEach((reading, index) => {
-            submitData.append(`readings[${index}][room_id]`, reading.room_id);
-            submitData.append(`readings[${index}][reading_date]`, reading.reading_date);
-            submitData.append(`readings[${index}][meter_value_kwh]`, reading.meter_value_kwh);
-        });
-    }
-
-    const submitButton = this.querySelector('.btn-save-all');
-    submitButton.disabled = true;
-    submitButton.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving...';
-
-    fetch(this.action, {
-        method: 'POST',
-        body: submitData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'application/json'
+        // Add readings array in the correct format (send cumulative meter values)
+        if (readings.length > 0) {
+            readings.forEach((reading, index) => {
+                submitData.append(`readings[${index}][room_id]`, reading.room_id);
+                submitData.append(`readings[${index}][reading_date]`, reading.reading_date);
+                submitData.append(`readings[${index}][meter_value_kwh]`, reading.meter_value_kwh);
+            });
         }
-    })
-    .then(async response => {
-        // Check if response is successful (200-299)
-        if (response.ok) {
-            // Try to parse as JSON
-            try {
-                const data = await response.json();
-                if (data.success) {
-                    // Success - reload page
+
+        const submitButton = document.querySelector('.btn-save-all');
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving...';
+
+        fetch(document.getElementById('readingsForm').action, {
+            method: 'POST',
+            body: submitData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(async response => {
+            // Check if response is successful (200-299)
+            if (response.ok) {
+                // Try to parse as JSON
+                try {
+                    const data = await response.json();
+                    if (data.success) {
+                        // Success - reload page
+                        window.location.reload();
+                        return;
+                    } else {
+                        throw new Error(data.message || 'Failed to save readings');
+                    }
+                } catch (e) {
+                    // If JSON parsing fails but status is ok, assume success and reload
                     window.location.reload();
                     return;
-                } else {
-                    throw new Error(data.message || 'Failed to save readings');
                 }
-            } catch (e) {
-                // If JSON parsing fails but status is ok, assume success and reload
-                window.location.reload();
-                return;
             }
-        }
 
-        // If not ok, try to get error message
-        try {
-            const data = await response.json();
-            throw new Error(data.message || 'Failed to save readings');
-        } catch (e) {
-            if (e.message) {
-                throw e;
+            // If not ok, try to get error message
+            try {
+                const data = await response.json();
+                throw new Error(data.message || 'Failed to save readings');
+            } catch (e) {
+                if (e.message) {
+                    throw e;
+                }
+                throw new Error('Failed to save readings. Status: ' + response.status);
             }
-            throw new Error('Failed to save readings. Status: ' + response.status);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error: ' + (error.message || 'An error occurred while saving. Please try again.'));
-        submitButton.disabled = false;
-        submitButton.innerHTML = '<i class="bi bi-save"></i> Save All Readings';
-    });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Error: ' + (error.message || 'An error occurred while saving. Please try again.'), 'error');
+            submitButton.disabled = false;
+            submitButton.innerHTML = '<i class="bi bi-save"></i> Save All Readings';
+        });
+    };
+
+    // Warn about readings that are lower than last reading
+    if (invalidReadings.length > 0) {
+        let warningMessage = 'The following rooms have readings lower than their last reading:<br><br>';
+        invalidReadings.forEach(item => {
+            warningMessage += `<strong>${item.room}</strong>: ${item.newReading.toFixed(2)} kWh (last: ${item.lastReading.toFixed(2)} kWh)<br>`;
+        });
+        warningMessage += '<br>This may indicate meter resets or data entry errors.';
+
+        confirmAction(warningMessage, submitReadings, {
+            title: 'Confirm Meter Readings',
+            confirmText: 'Yes, Save Anyway',
+            type: 'warning'
+        });
+    } else {
+        submitReadings();
+    }
 });
 </script>
 @endsection
+

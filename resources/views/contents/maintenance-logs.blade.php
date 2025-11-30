@@ -46,7 +46,7 @@
         padding: 1rem 1.5rem;
         border-radius: 8px;
         margin-bottom: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     }
 
     .filter-group {
@@ -83,15 +83,16 @@
     }
 
     .filter-btn {
-        padding: 0.5rem 1.5rem;
+        padding: 0.45rem 1.5rem;
         border: none;
         background-color: #03255b;
         color: white;
-        border-radius: 6px;
-        font-size: 0.875rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.2s ease;
+        box-shadow: 0 8px 20px rgba(3, 37, 91, 0.25);
     }
 
     .filter-btn:hover {
@@ -99,19 +100,22 @@
     }
 
     .filter-btn-clear {
-        background-color: #e2e8f0;
-        color: #4a5568;
+        background-color: white;
+        color: #475569;
+        border: 1px solid #cbd5e1;
+        box-shadow: none;
     }
 
     .filter-btn-clear:hover {
-        background-color: #cbd5e0;
+        border-color: #94a3b8;
+        color: #0f172a;
     }
 
     /* Table Styles */
     .logs-table-container {
         background-color: white;
         border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         overflow: hidden;
     }
 
@@ -331,13 +335,6 @@
 </style>
 
 <div class="container-fluid">
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <strong>Success!</strong> {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
     @if($errors->any())
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <strong>Error!</strong> Please fix the following errors:
@@ -539,7 +536,7 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="bi bi-x-circle"></i> Cancel
                     </button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary" style="background-color: #03255b; border-color: #03255b;">
                         <i class="bi bi-plus-circle"></i> Log Issue
                     </button>
                 </div>
@@ -649,3 +646,4 @@
     });
 </script>
 @endsection
+

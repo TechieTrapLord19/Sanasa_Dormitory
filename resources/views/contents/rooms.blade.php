@@ -56,9 +56,9 @@
     }
 
     .room-card {
-        border: none;
+        border: 1px solid #e5e5e5;
         border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         transition: all 0.3s ease;
         position: relative;
         overflow: hidden;
@@ -158,7 +158,7 @@
         justify-content: center;
         cursor: pointer;
         transition: all 0.2s ease;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
     }
 
     .room-action-btn:hover {
@@ -177,7 +177,7 @@
         padding: 1.5rem;
         border-radius: 8px;
         margin-bottom: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     }
 
     .filter-group {
@@ -196,27 +196,28 @@
     }
 
     .filter-btn {
-        padding: 0.5rem 1rem;
-        border: none;
-        background-color: transparent;
-        border-radius: 6px;
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #718096;
+        border: 1px solid #cbd5e1;
+        padding: 0.45rem 1.1rem;
+        border-radius: 999px;
+        background-color: white;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #475569;
         cursor: pointer;
         transition: all 0.2s ease;
         text-decoration: none;
     }
 
     .filter-btn:hover {
-        color: #03255b;
-        background-color: #f7fafc;
+        border-color: #94a3b8;
+        color: #0f172a;
     }
 
     .filter-btn.active {
-        background-color: #03255b;
+        background: #03255b;
         color: white;
-        font-weight: 600;
+        border-color: #03255b;
+        box-shadow: 0 8px 20px rgba(3, 37, 91, 0.25);
     }
 
     .filter-select {
@@ -464,3 +465,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endsection
+

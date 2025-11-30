@@ -52,7 +52,7 @@
         padding: 1.5rem;
         border-radius: 8px;
         margin-bottom: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     }
 
     .filter-group {
@@ -106,7 +106,7 @@
     .rates-table-container {
         background-color: white;
         border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         margin-bottom: 2rem;
         overflow: hidden;
     }
@@ -932,12 +932,12 @@ async function editRate(rateId) {
         editModal.show();
     } catch (error) {
         console.error('Error fetching rate:', error);
-        alert('Failed to load rate data. Please try again.');
+        showToast('Failed to load rate data. Please try again.', 'error');
     }
 }
 
 function archiveRate(rateId) {
-    if (confirm('Are you sure you want to archive/restore this rate?')) {
+    confirmAction('Are you sure you want to archive/restore this rate?', function() {
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = `/rates/${rateId}`;
@@ -959,19 +959,20 @@ function archiveRate(rateId) {
 
         document.body.appendChild(form);
         form.submit();
-    }
+    }, { title: 'Archive/Restore Rate', confirmText: 'Yes, Proceed', type: 'warning' });
 }
 
 function editRoomRate(roomId, rateId) {
     // TODO: Implement edit room rate functionality
-    alert('Edit room ' + roomId + ' rate ' + rateId);
+    showToast('Edit room ' + roomId + ' rate ' + rateId, 'info');
 }
 
 function deleteRoomRate(roomId, rateId) {
-    if (confirm('Are you sure you want to delete this room rate?')) {
+    confirmAction('Are you sure you want to delete this room rate?', function() {
         // TODO: Implement delete room rate functionality
-        alert('Delete room ' + roomId + ' rate ' + rateId);
-    }
+        showToast('Delete room ' + roomId + ' rate ' + rateId, 'info');
+    }, { title: 'Delete Room Rate', confirmText: 'Yes, Delete', type: 'danger' });
 }
 </script>
 @endsection
+

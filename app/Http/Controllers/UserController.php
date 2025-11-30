@@ -38,6 +38,11 @@ class UserController extends Controller
             $query->where('role', $request->role);
         }
 
+        // Filter by status
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
         // Pagination
         $perPage = (int) $request->input('per_page', 25);
         if (!in_array($perPage, [10, 25, 50, 100], true)) {
@@ -56,10 +61,17 @@ class UserController extends Controller
             'total' => User::count(),
         ];
 
+        // Get counts for status indicators
+        $statusCounts = [
+            'active' => User::where('status', 'active')->count(),
+            'archived' => User::where('status', 'archived')->count(),
+        ];
+
         $selectedRole = $request->input('role', 'all');
+        $selectedStatus = $request->input('status', 'all');
         $searchTerm = $request->input('search', '');
 
-        return view('contents.user-management', compact('users', 'roleCounts', 'selectedRole', 'searchTerm', 'perPage'));
+        return view('contents.user-management', compact('users', 'roleCounts', 'statusCounts', 'selectedRole', 'selectedStatus', 'searchTerm', 'perPage'));
     }
 
     /**
@@ -157,24 +169,38 @@ class UserController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Archive the specified user.
      */
-    public function destroy(string $id)
+    public function archive(string $id)
     {
         $this->requireOwner();
 
         $user = User::findOrFail($id);
         $currentUser = Auth::user();
 
-        // Prevent deleting the currently logged-in user
+        // Prevent archiving the currently logged-in user
         if ($user->user_id === $currentUser->user_id) {
             return redirect()->route('user-management')
-                            ->withErrors(['error' => 'You cannot delete your own account.']);
+                            ->withErrors(['error' => 'You cannot archive your own account.']);
         }
 
-        $user->delete();
+        $user->update(['status' => 'archived']);
 
         return redirect()->route('user-management')
-                        ->with('success', 'User deleted successfully!');
+                        ->with('success', 'User archived successfully!');
+    }
+
+    /**
+     * Activate the specified user.
+     */
+    public function activate(string $id)
+    {
+        $this->requireOwner();
+
+        $user = User::findOrFail($id);
+        $user->update(['status' => 'active']);
+
+        return redirect()->route('user-management')
+                        ->with('success', 'User activated successfully!');
     }
 }

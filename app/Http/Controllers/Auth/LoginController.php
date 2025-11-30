@@ -28,6 +28,17 @@ class LoginController extends Controller
         ]);
 
         if (Auth::attempt($request->only('email', 'password'), $request->boolean('remember'))) {
+            // Check if user is archived
+            if (Auth::user()->status === 'archived') {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                throw ValidationException::withMessages([
+                    'email' => ['Your account has been deactivated. Please contact the administrator.'],
+                ]);
+            }
+
             $request->session()->regenerate();
 
             return redirect()->intended('/dashboard');

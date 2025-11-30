@@ -7,7 +7,7 @@
     .tenant-details-container {
         background-color: white;
         border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         padding: 1.5rem;
         display: flex;
         flex-direction: column;
@@ -55,6 +55,10 @@
     .info-section {
         margin-bottom: 1.5rem;
         flex-shrink: 0;
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     }
 
     .info-section-title {
@@ -193,10 +197,97 @@
         display: inline-block;
     }
 
+    /* Payment Method Badges */
+    .payment-method-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .payment-method-badge.cash {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+
+    .payment-method-badge.gcash {
+        background-color: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .payment-method-badge.bank {
+        background-color: #e0e7ff;
+        color: #4338ca;
+    }
+
+    .payment-method-badge.check {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+
+    .payment-method-badge.other {
+        background-color: #f3f4f6;
+        color: #4b5563;
+    }
+
+    /* Payment Type Badges */
+    .payment-type-badge {
+        display: inline-block;
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .payment-type-badge.rent {
+        background-color: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .payment-type-badge.utility {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+
+    .payment-type-badge.deposit {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+
+    .payment-type-badge.other {
+        background-color: #f3f4f6;
+        color: #4b5563;
+    }
+
+    .btn-receipt {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.35rem 0.75rem;
+        background-color: #03255b;
+        color: white;
+        border: none;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .btn-receipt:hover {
+        background-color: #021d47;
+        color: white;
+    }
+
     .bookings-table-container {
         background-color: white;
         border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         overflow: hidden;
         margin-top: 1.5rem;
     }
@@ -281,11 +372,11 @@
                 @endphp
                 <form action="{{ route('tenants.archive', $tenant->tenant_id) }}" method="POST" style="display: inline;" id="archiveForm">
                     @csrf
-                    <button type="submit"
+                    <button type="button"
                             class="btn-action btn-archive"
                             @if($hasActiveBooking) disabled @endif
                             title="{{ $hasActiveBooking ? 'Cannot archive tenant while they have an active booking' : 'Archive this tenant' }}"
-                            onclick="return {{ $hasActiveBooking ? 'false' : 'confirm(\'Are you sure you want to archive this tenant?\')' }}">
+                            onclick="{{ $hasActiveBooking ? '' : 'confirmAction(\'Are you sure you want to archive this tenant?\', function() { document.getElementById(\'archiveForm\').submit(); }, { title: \'Archive Tenant\', confirmText: \'Yes, Archive\', type: \'warning\' })' }}">
                         <i class="bi bi-archive"></i> Archive
                     </button>
                 </form>
@@ -293,20 +384,13 @@
             @else
                 <form action="{{ route('tenants.activate', $tenant->tenant_id) }}" method="POST" style="display: inline;" id="activateForm">
                     @csrf
-                    <button type="submit" class="btn-action btn-activate">
+                    <button type="button" class="btn-action btn-activate" onclick="confirmAction('Are you sure you want to activate this tenant?', function() { document.getElementById('activateForm').submit(); }, { title: 'Activate Tenant', confirmText: 'Yes, Activate', type: 'info' })">
                         <i class="bi bi-check-circle"></i> Activate
                     </button>
                 </form>
             @endif
         </div>
     </div>
-
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <strong>Success!</strong> {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
 
     @if($errors->any())
         <div class="alert alert-danger mb-4">
@@ -453,14 +537,19 @@
 
     <!-- Payment History -->
     <div class="info-section">
-        <h2 class="info-section-title">Payment History ({{ $payments->count() }} payments · Total: ₱{{ number_format($totalPaid, 2) }})</h2>
+        <h2 class="info-section-title">
+            <i class="bi bi-credit-card me-2"></i>Payment History
+            <span style="font-weight: 400; font-size: 0.85rem; color: #64748b;">
+                ({{ $payments->count() }} {{ Str::plural('payment', $payments->count()) }} · Total: ₱{{ number_format($totalPaid, 2) }})
+            </span>
+        </h2>
         @if($payments->count() > 0)
             <div class="bookings-table-container">
                 <table class="bookings-table">
                     <thead>
                         <tr>
-                            <th>Date Received</th>
-                            <th>Payment Type</th>
+                            <th>Date</th>
+                            <th>Type</th>
                             <th>Room</th>
                             <th>Amount</th>
                             <th>Method</th>
@@ -471,12 +560,29 @@
                     </thead>
                     <tbody>
                         @foreach($payments as $payment)
+                            @php
+                                $methodClass = match(strtolower($payment->payment_method ?? '')) {
+                                    'cash' => 'cash',
+                                    'gcash' => 'gcash',
+                                    'bank transfer', 'bank' => 'bank',
+                                    'check', 'cheque' => 'check',
+                                    default => 'other'
+                                };
+                                $typeClass = match(true) {
+                                    str_contains(strtolower($payment->payment_type ?? ''), 'rent') => 'rent',
+                                    str_contains(strtolower($payment->payment_type ?? ''), 'electric') || str_contains(strtolower($payment->payment_type ?? ''), 'utility') => 'utility',
+                                    str_contains(strtolower($payment->payment_type ?? ''), 'deposit') => 'deposit',
+                                    default => 'other'
+                                };
+                            @endphp
                             <tr>
                                 <td>
                                     <strong>{{ $payment->date_received ? $payment->date_received->format('M d, Y') : 'N/A' }}</strong>
                                     <br><small class="text-muted">{{ $payment->created_at->format('g:i A') }}</small>
                                 </td>
-                                <td>{{ $payment->payment_type }}</td>
+                                <td>
+                                    <span class="payment-type-badge {{ $typeClass }}">{{ $payment->payment_type }}</span>
+                                </td>
                                 <td>
                                     @if($payment->booking && $payment->booking->room)
                                         Room {{ $payment->booking->room->room_num }}
@@ -484,14 +590,34 @@
                                         <span class="text-muted">N/A</span>
                                     @endif
                                 </td>
-                                <td><strong>₱{{ number_format($payment->amount, 2) }}</strong></td>
-                                <td>{{ $payment->payment_method }}</td>
-                                <td>{{ $payment->reference_number ?? 'N/A' }}</td>
+                                <td style="font-weight: 600; color: #059669;">₱{{ number_format($payment->amount, 2) }}</td>
+                                <td>
+                                    <span class="payment-method-badge {{ $methodClass }}">
+                                        @if($methodClass === 'cash')
+                                            <i class="bi bi-cash"></i>
+                                        @elseif($methodClass === 'gcash')
+                                            <i class="bi bi-phone"></i>
+                                        @elseif($methodClass === 'bank')
+                                            <i class="bi bi-bank"></i>
+                                        @elseif($methodClass === 'check')
+                                            <i class="bi bi-file-text"></i>
+                                        @else
+                                            <i class="bi bi-credit-card"></i>
+                                        @endif
+                                        {{ $payment->payment_method }}
+                                    </span>
+                                </td>
+                                <td>{{ $payment->reference_number ?? '-' }}</td>
                                 <td>{{ $payment->collectedBy->full_name ?? 'N/A' }}</td>
                                 <td>
-                                    @if($payment->booking)
-                                        <a href="{{ route('bookings.show', $payment->booking->booking_id) }}" class="btn-view">View Booking</a>
-                                    @endif
+                                    <div class="d-flex gap-2">
+                                        <a href="{{ route('payments.receipt', $payment->payment_id) }}" class="btn-receipt" target="_blank">
+                                            <i class="bi bi-printer"></i> Receipt
+                                        </a>
+                                        @if($payment->booking)
+                                            <a href="{{ route('bookings.show', $payment->booking->booking_id) }}" class="btn-view">View</a>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
@@ -499,7 +625,10 @@
                 </table>
             </div>
         @else
-            <p class="text-muted">No payment records found for this tenant.</p>
+            <div style="text-align: center; padding: 2rem; color: #64748b;">
+                <i class="bi bi-inbox" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
+                <p class="mb-0">No payment records found for this tenant.</p>
+            </div>
         @endif
     </div>
 
@@ -612,3 +741,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endsection
+

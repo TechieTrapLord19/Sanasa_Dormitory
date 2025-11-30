@@ -7,7 +7,7 @@
     .tenant-edit-container {
         background-color: white;
         border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         padding: 1.5rem;
         max-width: 900px;
         margin: 0 auto;
@@ -180,4 +180,5 @@
     </form>
 </div>
 @endsection
+
 

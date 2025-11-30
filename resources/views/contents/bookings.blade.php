@@ -54,23 +54,23 @@
         padding: 1.5rem;
         border-radius: 8px;
         margin-bottom: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     }
 
     .tab-buttons {
         display: flex;
-        gap: 0.5rem;
+        gap: 0.6rem;
         flex-wrap: wrap;
     }
 
     .tab-btn {
-        padding: 0.75rem 1.5rem;
-        border: 2px solid #e2e8f0;
+        border: 1px solid #cbd5e1;
+        padding: 0.45rem 1.1rem;
+        border-radius: 999px;
         background-color: white;
-        border-radius: 8px;
-        font-size: 0.875rem;
+        font-size: 0.85rem;
         font-weight: 600;
-        color: #4a5568;
+        color: #475569;
         cursor: pointer;
         transition: all 0.2s ease;
         text-decoration: none;
@@ -78,23 +78,24 @@
     }
 
     .tab-btn:hover {
-        background-color: #f7fafc;
-        border-color: #cbd5e0;
-        color: #03255b;
+        border-color: #94a3b8;
+        color: #0f172a;
     }
 
     .tab-btn.active {
-        background-color: #03255b;
+        background: #03255b;
         color: white;
         border-color: #03255b;
+        box-shadow: 0 8px 20px rgba(3, 37, 91, 0.25);
     }
 
     /* Table Styles */
     .bookings-table-container {
         background-color: white;
         border-radius: 8px;
-        box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         overflow: hidden;
+        border: 1px solid #e5e5e5;
     }
 
     .bookings-table {
@@ -277,27 +278,28 @@
         box-shadow: 0 0 0 3px rgba(3, 37, 91, 0.1);
     }
         .filter-btn {
-        padding: 0.5rem 1rem;
-        border: none;
-        background-color: transparent;
-        border-radius: 6px;
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #718096;
+        border: 1px solid #cbd5e1;
+        padding: 0.45rem 1.1rem;
+        border-radius: 999px;
+        background-color: white;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #475569;
         cursor: pointer;
         transition: all 0.2s ease;
         text-decoration: none;
     }
 
     .filter-btn:hover {
-        color: #03255b;
-        background-color: #f7fafc;
+        border-color: #94a3b8;
+        color: #0f172a;
     }
 
     .filter-btn.active {
-        background-color: #03255b;
+        background: #03255b;
         color: white;
-        font-weight: 600;
+        border-color: #03255b;
+        box-shadow: 0 8px 20px rgba(3, 37, 91, 0.25);
     }
 
     /* Pagination Styles */
@@ -644,3 +646,4 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 @endsection
+

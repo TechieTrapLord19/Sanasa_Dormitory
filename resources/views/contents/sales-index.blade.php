@@ -41,7 +41,7 @@
         padding: 1rem 1.5rem;
         border-radius: 8px;
         margin-bottom: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     }
 
     .filter-row {
@@ -81,15 +81,16 @@
     }
 
     .btn-filter {
-        padding: 0.5rem 1.5rem;
+        padding: 0.45rem 1.5rem;
         border: none;
         background-color: #03255b;
         color: white;
-        border-radius: 6px;
-        font-size: 0.875rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.2s ease;
+        box-shadow: 0 8px 20px rgba(3, 37, 91, 0.25);
     }
 
     .btn-filter:hover {
@@ -106,21 +107,27 @@
     }
 
     .btn-preset {
-        padding: 0.5rem 1rem;
-        border: 1px solid #e2e8f0;
+        padding: 0.45rem 1.1rem;
+        border: 1px solid #cbd5e1;
         background-color: white;
-        border-radius: 6px;
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #4a5568;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #475569;
         cursor: pointer;
         transition: all 0.2s ease;
     }
 
     .btn-preset:hover {
-        background-color: #f7fafc;
+        border-color: #94a3b8;
+        color: #0f172a;
+    }
+
+    .btn-preset.active {
+        background: #03255b;
+        color: white;
         border-color: #03255b;
-        color: #03255b;
+        box-shadow: 0 8px 20px rgba(3, 37, 91, 0.25);
     }
 
     /* Stats Cards */
@@ -132,7 +139,7 @@
         background: white;
         border-radius: 8px;
         padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         border: 1px solid #e5e5e5;
         height: 100%;
         transition: all 0.2s ease-in-out;
@@ -194,7 +201,7 @@
     .sales-table-container {
         background-color: white;
         border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         overflow: hidden;
     }
 
@@ -233,37 +240,92 @@
 
     .payment-type-badge {
         display: inline-block;
-        padding: 0.375rem 0.875rem;
-        border-radius: 20px;
-        font-size: 0.75rem;
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.7rem;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.3px;
     }
 
-    .payment-type-badge.rentutility {
+    .payment-type-badge.rent {
+        background-color: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .payment-type-badge.utility {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+
+    .payment-type-badge.deposit {
         background-color: #d1fae5;
         color: #065f46;
     }
 
-    .payment-type-badge.securitydeposit {
-        background-color: #dbeafe;
-        color: #0369a1;
-    }
-
-    .payment-type-badge.depositdeduction {
+    .payment-type-badge.deduction {
         background-color: #fce7f3;
         color: #9d174d;
     }
 
+    .payment-type-badge.other {
+        background-color: #f3f4f6;
+        color: #4b5563;
+    }
+
     .payment-method-badge {
-        display: inline-block;
-        padding: 0.25rem 0.5rem;
-        border-radius: 4px;
-        font-size: 0.7rem;
-        font-weight: 500;
-        background-color: #f1f5f9;
-        color: #64748b;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .payment-method-badge.cash {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+
+    .payment-method-badge.gcash {
+        background-color: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .payment-method-badge.bank {
+        background-color: #e0e7ff;
+        color: #4338ca;
+    }
+
+    .payment-method-badge.check {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+
+    .payment-method-badge.other {
+        background-color: #f3f4f6;
+        color: #4b5563;
+    }
+
+    .btn-receipt {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.35rem 0.75rem;
+        background-color: #03255b;
+        color: white;
+        border: none;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .btn-receipt:hover {
+        background-color: #021d47;
+        color: white;
     }
 
     /* Pagination Styles */
@@ -276,7 +338,7 @@
         flex-wrap: wrap;
         gap: 1rem;
         border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         margin-top: 1.5rem;
     }
     .pagination-wrapper .form-select {
@@ -377,7 +439,7 @@
         background: white;
         border-radius: 8px;
         padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         border: 1px solid #e5e5e5;
     }
 
@@ -539,14 +601,35 @@
                 <th>Tenant(s)</th>
                 <th>Room</th>
                 <th>Payment Type</th>
+                <th>Method</th>
                 <th>Amount</th>
                 <th>Collected By</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
             @forelse($payments as $payment)
+                @php
+                    $methodClass = match(strtolower($payment->payment_method ?? '')) {
+                        'cash' => 'cash',
+                        'gcash' => 'gcash',
+                        'bank transfer', 'bank' => 'bank',
+                        'check', 'cheque' => 'check',
+                        default => 'other'
+                    };
+                    $typeClass = match(true) {
+                        str_contains(strtolower($payment->payment_type ?? ''), 'rent') => 'rent',
+                        str_contains(strtolower($payment->payment_type ?? ''), 'electric') || str_contains(strtolower($payment->payment_type ?? ''), 'utility') => 'utility',
+                        str_contains(strtolower($payment->payment_type ?? ''), 'deposit') && !str_contains(strtolower($payment->payment_type ?? ''), 'deduction') => 'deposit',
+                        str_contains(strtolower($payment->payment_type ?? ''), 'deduction') => 'deduction',
+                        default => 'other'
+                    };
+                @endphp
                 <tr>
-                    <td>{{ $payment->date_received->format('M d, Y') }}</td>
+                    <td>
+                        <strong>{{ $payment->date_received->format('M d, Y') }}</strong>
+                        <br><small class="text-muted">{{ $payment->created_at->format('g:i A') }}</small>
+                    </td>
                     <td>
                         @if($payment->booking_id)
                             <a href="{{ route('bookings.show', $payment->booking_id) }}" style="color: #03255b; font-weight: 600;">
@@ -570,8 +653,26 @@
                             <span style="color: #94a3b8;">N/A</span>
                         @endif
                     </td>
-                    <td>{{ $payment->payment_type }}</td>
-                    <td style="font-weight: 700; color: #03255b;">₱{{ number_format($payment->amount, 2) }}</td>
+                    <td>
+                        <span class="payment-type-badge {{ $typeClass }}">{{ $payment->payment_type }}</span>
+                    </td>
+                    <td>
+                        <span class="payment-method-badge {{ $methodClass }}">
+                            @if($methodClass === 'cash')
+                                <i class="bi bi-cash"></i>
+                            @elseif($methodClass === 'gcash')
+                                <i class="bi bi-phone"></i>
+                            @elseif($methodClass === 'bank')
+                                <i class="bi bi-bank"></i>
+                            @elseif($methodClass === 'check')
+                                <i class="bi bi-file-text"></i>
+                            @else
+                                <i class="bi bi-credit-card"></i>
+                            @endif
+                            {{ $payment->payment_method ?? 'N/A' }}
+                        </span>
+                    </td>
+                    <td style="font-weight: 700; color: #059669;">₱{{ number_format($payment->amount, 2) }}</td>
                     <td>
                         @if($payment->collectedBy)
                             {{ $payment->collectedBy->full_name }}
@@ -579,10 +680,15 @@
                             <span style="color: #94a3b8;">N/A</span>
                         @endif
                     </td>
+                    <td>
+                        <a href="{{ route('payments.receipt', $payment->payment_id) }}" class="btn-receipt" target="_blank">
+                            <i class="bi bi-printer"></i> Receipt
+                        </a>
+                    </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" style="text-align: center; color: #718096; padding: 3rem;">
+                    <td colspan="9" style="text-align: center; color: #718096; padding: 3rem;">
                         No payment transactions found for the selected period.
                     </td>
                 </tr>
@@ -808,3 +914,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endsection
+

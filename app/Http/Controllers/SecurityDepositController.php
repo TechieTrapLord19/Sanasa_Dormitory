@@ -36,7 +36,7 @@ class SecurityDepositController extends Controller
                 $q->where('first_name', 'like', "%{$search}%")
                   ->orWhere('last_name', 'like', "%{$search}%");
             })->orWhereHas('booking.room', function ($q) use ($search) {
-                $q->where('room_number', 'like', "%{$search}%");
+                $q->where('room_num', 'like', "%{$search}%");
             });
         }
 
@@ -161,7 +161,7 @@ class SecurityDepositController extends Controller
             $tenantName = $booking->tenant->first_name . ' ' . $booking->tenant->last_name;
             $this->logActivity(
                 'Security Deposit Deduction',
-                "Applied ₱" . number_format($amount, 2) . " deduction ({$category}) from security deposit for {$tenantName} in Room {$booking->room->room_number}",
+                "Applied ₱" . number_format($amount, 2) . " deduction ({$category}) from security deposit for {$tenantName} in Room {$booking->room->room_num}",
                 $securityDeposit
             );
 
@@ -239,7 +239,7 @@ class SecurityDepositController extends Controller
             $tenantName = $booking->tenant->first_name . ' ' . $booking->tenant->last_name;
             $this->logActivity(
                 'Security Deposit Refund',
-                "Refunded ₱" . number_format($validated['refund_amount'], 2) . " from security deposit to {$tenantName} in Room {$booking->room->room_number} via {$validated['refund_method']}",
+                "Refunded ₱" . number_format($validated['refund_amount'], 2) . " from security deposit to {$tenantName} in Room {$booking->room->room_num} via {$validated['refund_method']}",
                 $securityDeposit
             );
 
@@ -301,7 +301,7 @@ class SecurityDepositController extends Controller
             $tenantName = $booking->tenant->first_name . ' ' . $booking->tenant->last_name;
             $this->logActivity(
                 'Security Deposit Forfeited',
-                "Forfeited ₱" . number_format($forfeitedAmount, 2) . " security deposit from {$tenantName} in Room {$booking->room->room_number}. Reason: {$validated['reason']}",
+                "Forfeited ₱" . number_format($forfeitedAmount, 2) . " security deposit from {$tenantName} in Room {$booking->room->room_num}. Reason: {$validated['reason']}",
                 $securityDeposit
             );
 
@@ -423,7 +423,7 @@ class SecurityDepositController extends Controller
             $tenantName = $booking->tenant->first_name . ' ' . $booking->tenant->last_name;
             $this->logActivity(
                 'Security Deposit Top Up',
-                "Topped up security deposit by ₱" . number_format($amount, 2) . " for {$tenantName} in Room {$booking->room->room_number} via {$validated['payment_method']}. New balance: ₱" . number_format($securityDeposit->calculateRefundable(), 2),
+                "Topped up security deposit by ₱" . number_format($amount, 2) . " for {$tenantName} in Room {$booking->room->room_num} via {$validated['payment_method']}. New balance: ₱" . number_format($securityDeposit->calculateRefundable(), 2),
                 $securityDeposit
             );
 

@@ -7,7 +7,7 @@
     .room-details-container {
         background-color: white;
         border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         padding: 1.5rem;
         display: flex;
         flex-direction: column;
@@ -64,6 +64,10 @@
     .info-section {
         margin-bottom: 1.5rem;
         flex-shrink: 0;
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     }
 
     .info-section-title {
@@ -141,7 +145,7 @@
     .assets-table-container {
         background-color: white;
         border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         overflow: hidden;
     }
 
@@ -293,7 +297,7 @@
     }
 
     .tenant-card:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         border-color: #cbd5e0;
         transform: translateY(-2px);
     }
@@ -354,12 +358,6 @@
             </a>
         </div>
     </div>
-
-    @if (session('success'))
-        <div class="alert alert-success mb-4">
-            {{ session('success') }}
-        </div>
-    @endif
 
     @if ($errors->any())
         <div class="alert alert-danger mb-4">
@@ -736,4 +734,5 @@
     </div>
 </div>
 @endsection
+
 
