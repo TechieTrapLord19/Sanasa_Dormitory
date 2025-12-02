@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Invoice;
+use App\Traits\LogsActivity;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
 class InvoiceController extends Controller
 {
+    use LogsActivity;
     /**
      * Display a listing of invoices with summary statistics.
      */
@@ -294,5 +296,77 @@ public function index(Request $request): View
             'outstanding' => $outstanding,
             'pending_count' => $pendingCount,
         ];
+    }
+
+    /**
+     * Apply penalty to an overdue invoice
+     */
+    public function applyPenalty($id)
+    {
+        $invoice = Invoice::with(['booking.tenant'])->findOrFail($id);
+
+        if (!$invoice->is_overdue) {
+            return redirect()->back()->with('error', 'This invoice is not overdue.');
+        }
+
+        $previousPenalty = $invoice->penalty_amount;
+        $invoice->applyPenalty();
+        $newPenalty = $invoice->penalty_amount;
+
+        if ($newPenalty > $previousPenalty) {
+            $tenantName = $invoice->booking?->tenant?->full_name ?? 'Unknown';
+            $this->logActivity(
+                'Invoice',
+                "Applied late penalty of P" . number_format($newPenalty - $previousPenalty, 2) .
+                " to Invoice #{$id} for {$tenantName}"
+            );
+
+            return redirect()->back()->with('success',
+                'Penalty of P' . number_format($newPenalty - $previousPenalty, 2) . ' applied successfully.');
+        }
+
+        return redirect()->back()->with('info', 'No additional penalty to apply.');
+    }
+
+    /**
+     * Apply penalties to all overdue invoices
+     */
+    public function applyAllPenalties()
+    {
+        $overdueInvoices = Invoice::with(['booking.tenant'])
+            ->whereHas('booking', function ($query) {
+                $query->where('status', '!=', 'Canceled');
+            })
+            ->where('is_paid', false)
+            ->get()
+            ->filter(function ($invoice) {
+                return $invoice->is_overdue;
+            });
+
+        $appliedCount = 0;
+        $totalPenalty = 0;
+
+        foreach ($overdueInvoices as $invoice) {
+            $previousPenalty = $invoice->penalty_amount ?? 0;
+            $invoice->applyPenalty();
+            $newPenalty = $invoice->penalty_amount ?? 0;
+
+            if ($newPenalty > $previousPenalty) {
+                $appliedCount++;
+                $totalPenalty += ($newPenalty - $previousPenalty);
+            }
+        }
+
+        if ($appliedCount > 0) {
+            $this->logActivity(
+                'Invoice',
+                "Applied penalties to {$appliedCount} overdue invoices. Total: P" . number_format($totalPenalty, 2)
+            );
+
+            return redirect()->back()->with('success',
+                "Penalties applied to {$appliedCount} invoices. Total: P" . number_format($totalPenalty, 2));
+        }
+
+        return redirect()->back()->with('info', 'No overdue invoices require penalties.');
     }
 }

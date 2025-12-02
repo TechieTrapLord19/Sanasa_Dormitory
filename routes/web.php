@@ -19,6 +19,7 @@ use App\Http\Controllers\MaintenanceLogController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\SecurityDepositController;
+use App\Http\Controllers\SettingsController;
 //default page to login
 Route::get('/', [IndexController::class, 'index'])->name('home');
 
@@ -59,6 +60,8 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
     Route::post('/tenants/{id}/activate', [TenantController::class, 'activate'])->name('tenants.activate');
     Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices');
     Route::get('/invoices/{id}', [InvoiceController::class, 'show'])->name('invoices.show');
+    Route::post('/invoices/{id}/apply-penalty', [InvoiceController::class, 'applyPenalty'])->name('invoices.apply-penalty');
+    Route::post('/invoices/apply-all-penalties', [InvoiceController::class, 'applyAllPenalties'])->name('invoices.apply-all-penalties');
     Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
     Route::get('/payments/{id}/receipt', [PaymentController::class, 'showReceipt'])->name('payments.receipt');
     Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs');
@@ -84,6 +87,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
     // Sales & Reports routes
     Route::get('/sales', [SalesController::class, 'index'])->name('sales.index');
     Route::get('/sales/export', [SalesController::class, 'export'])->name('sales.export');
+    Route::get('/sales/consolidated', [SalesController::class, 'exportConsolidated'])->name('sales.consolidated');
 
     // Security Deposits routes
     Route::get('/security-deposits', [SecurityDepositController::class, 'index'])->name('security-deposits.index');
@@ -94,5 +98,9 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
     Route::post('/security-deposits/{securityDeposit}/rollover', [SecurityDepositController::class, 'rollover'])->name('security-deposits.rollover');
     Route::post('/security-deposits/{securityDeposit}/top-up', [SecurityDepositController::class, 'topUp'])->name('security-deposits.top-up');
     Route::get('/api/bookings/{booking}/security-deposit', [SecurityDepositController::class, 'getForBooking'])->name('security-deposits.for-booking');
+
+    // Settings routes
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
 
 });

@@ -491,6 +491,30 @@
         font-size: 0.875rem;
     }
 
+    .btn-consolidated {
+        background-color: #03255b;
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: background-color 0.3s ease;
+        text-decoration: none;
+    }
+
+    .btn-consolidated:hover {
+        background-color: #021d47;
+        color: white;
+    }
+
+    .export-buttons {
+        display: flex;
+        gap: 0.75rem;
+    }
+
     @media (max-width: 992px) {
         .charts-section {
             grid-template-columns: 1fr;
@@ -501,9 +525,14 @@
 <!-- Header -->
 <div class="sales-header d-flex justify-content-between align-items-center">
     <h1 class="sales-title">Sales & Reports</h1>
-    <a href="{{ route('sales.export', ['start_date' => $startDate, 'end_date' => $endDate]) }}" class="btn-export">
-        <i class="bi bi-file-earmark-pdf"></i> Export to PDF
-    </a>
+    <div class="export-buttons">
+        <a href="{{ route('sales.consolidated', ['start_date' => $startDate, 'end_date' => $endDate]) }}" class="btn-consolidated">
+            <i class="bi bi-file-earmark-text"></i> Consolidated Report
+        </a>
+        <a href="{{ route('sales.export', ['start_date' => $startDate, 'end_date' => $endDate]) }}" class="btn-export">
+            <i class="bi bi-file-earmark-pdf"></i> Sales Report
+        </a>
+    </div>
 </div>
 
 <!-- Filter Section -->

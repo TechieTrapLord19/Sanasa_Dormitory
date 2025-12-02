@@ -267,6 +267,65 @@
         background: #fee2e2;
         color: #991b1b;
     }
+    .badge-status.overdue {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+    .overdue-indicator {
+        font-size: 0.7rem;
+        color: #dc2626;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    .penalty-amount {
+        color: #dc2626;
+        font-weight: 600;
+        font-size: 0.75rem;
+    }
+    .due-date-info {
+        font-size: 0.72rem;
+        color: #94a3b8;
+    }
+    .due-date-info.overdue {
+        color: #dc2626;
+        font-weight: 600;
+    }
+    .btn-apply-penalty {
+        padding: 0.3rem 0.6rem;
+        border: none;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background-color: #fef3c7;
+        color: #c26a09;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+    .btn-apply-penalty:hover {
+        background-color: #fcd34d;
+    }
+    .btn-apply-all-penalties {
+        background-color: #fef3c7;
+        color: #c26a09;
+        border: 1px solid #fcd34d;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+    }
+    .btn-apply-all-penalties:hover {
+        background-color: #fcd34d;
+        color: #92400e;
+    }
     .tenant-meta {
         display: flex;
         flex-direction: column;
@@ -511,9 +570,41 @@
         </div>
     @endif
 
-    <div class="invoices-header mb-4">
+    <div class="invoices-header mb-4 d-flex justify-content-between align-items-center">
         <h1 class="invoices-title">Invoices Management</h1>
+        <div class="d-flex gap-2">
+            <form action="{{ route('invoices.apply-all-penalties') }}" method="POST" style="display: inline;">
+                @csrf
+                <button type="submit" class="btn-apply-all-penalties" onclick="return confirm('Apply penalties to all overdue invoices?')">
+                    <i class="bi bi-clock-history"></i> Apply All Penalties
+                </button>
+            </form>
+            <a href="{{ route('settings.index') }}" class="btn btn-outline-secondary" style="border-radius: 8px;">
+                <i class="bi bi-gear"></i> Settings
+            </a>
+        </div>
     </div>
+
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-circle me-2"></i>{{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    @if(session('info'))
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <i class="bi bi-info-circle me-2"></i>{{ session('info') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
 
     <div class="summary-cards">
         <div class="summary-card overdue">
@@ -607,6 +698,7 @@
                         <th style="width: 50px;">Type</th>
                         <th>Details</th>
                         <th>Total Due</th>
+                        <th>Penalty</th>
                         <th>Collected</th>
                         <th style="text-align: center;">Status</th>
                         <th style="text-align: center;">Actions</th>
@@ -632,13 +724,22 @@
                         }
 
                         $statusLabel = $invoice->status_label;
+
+                        // Check if overdue (unpaid/partial and past due date)
+                        $isOverdue = $invoice->is_overdue;
+
                         $badgeClass = $statusLabel === 'Paid'
                             ? 'paid'
                             : ($statusLabel === 'Pending'
-                                ? 'pending'
+                                ? ($isOverdue ? 'overdue' : 'pending')
                                 : ($statusLabel === 'Canceled'
                                     ? 'canceled'
-                                    : 'partial'));
+                                    : ($isOverdue ? 'overdue' : 'partial')));
+
+                        // Override status label if overdue
+                        $displayStatus = ($isOverdue && $statusLabel !== 'Paid' && $statusLabel !== 'Canceled')
+                            ? 'Overdue'
+                            : $statusLabel;
                     @endphp
                     <tr id="invoice-{{ $invoice->invoice_id }}"
                         class="{{ isset($highlightInvoiceId) && $highlightInvoiceId == $invoice->invoice_id ? 'highlight-invoice' : '' }}"
@@ -689,10 +790,26 @@
                             @endif
                         </td>
                         <td class="amount-col">₱{{ number_format($invoice->total_due ?? 0, 2) }}</td>
+                        <td>
+                            @if($invoice->penalty_amount > 0)
+                                <span class="penalty-amount">+₱{{ number_format($invoice->penalty_amount, 2) }}</span>
+                            @elseif($invoice->is_overdue)
+                                <span class="overdue-indicator">
+                                    <i class="bi bi-exclamation-triangle"></i> Overdue
+                                </span>
+                            @else
+                                <span style="color: #94a3b8;">—</span>
+                            @endif
+                            @if($invoice->due_date)
+                                <div class="due-date-info {{ $invoice->is_overdue ? 'overdue' : '' }}">
+                                    Due: {{ $invoice->due_date->format('M d') }}
+                                </div>
+                            @endif
+                        </td>
                         <td class="amount-col text-success">₱{{ number_format($invoice->total_collected ?? 0, 2) }}</td>
                         <td style="text-align: center;">
                             <span class="badge-status {{ $badgeClass }}">
-                                {{ $statusLabel }}
+                                {{ $displayStatus }}
                             </span>
                         </td>
                         <td onclick="event.stopPropagation();">
@@ -723,7 +840,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="9">
+                        <td colspan="10">
                             <div class="no-data-state">
                                 <strong>No invoices found</strong>
                                 Adjust your filters or switch back to "All" to see every invoice in the system.

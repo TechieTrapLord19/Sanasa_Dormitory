@@ -136,6 +136,12 @@
                             <span>User Management</span>
                         </a>
                     </li>
+                    <li class="mb-1 {{ request()->routeIs('settings.*') ? 'active' : '' }}">
+                        <a href="{{ route('settings.index') }}" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
+                            <i class="bi bi-gear"></i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
                     @endif
                 </ul>
             </nav>

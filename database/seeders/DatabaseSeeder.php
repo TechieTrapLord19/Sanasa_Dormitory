@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             TenantSeeder::class, // <-- Call the TenantSeeder here
             RoomAssetSeeder::class, // <-- Call the RoomAssetSeeder here
             RateSeeder::class,      // Add this
+            SettingSeeder::class,   // Penalty settings
         ]);
     }
 }
