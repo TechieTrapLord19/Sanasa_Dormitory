@@ -54,6 +54,26 @@ class Tenant extends Model
     }
 
     /**
+     * Get the current active booking for this tenant (as primary or secondary tenant)
+     */
+    public function currentBooking()
+    {
+        return $this->hasOne(Booking::class, 'tenant_id', 'tenant_id')
+                    ->whereIn('status', ['Active', 'Pending Payment'])
+                    ->with('room')
+                    ->latest('checkin_date');
+    }
+
+    /**
+     * Get the assigned room number for this tenant
+     */
+    public function getAssignedRoomNumberAttribute()
+    {
+        $booking = $this->currentBooking;
+        return $booking && $booking->room ? $booking->room->room_num : null;
+    }
+
+    /**
      * Get all payments for this tenant across all bookings
      */
     public function payments()

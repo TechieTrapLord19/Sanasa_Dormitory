@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Invoice;
+use App\Models\Setting;
 use App\Traits\LogsActivity;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -16,6 +17,9 @@ class InvoiceController extends Controller
 
 public function index(Request $request): View
 {
+    // Auto-apply penalties if enabled
+    $this->autoApplyPenaltiesIfEnabled();
+
     $activeStatus = $request->input('status', 'all');
     $searchTerm = trim((string) $request->input('search', ''));
     $perPage = (int) $request->input('per_page', 10);
@@ -368,5 +372,30 @@ public function index(Request $request): View
         }
 
         return redirect()->back()->with('info', 'No overdue invoices require penalties.');
+    }
+
+    /**
+     * Auto-apply penalties if the setting is enabled
+     */
+    private function autoApplyPenaltiesIfEnabled(): void
+    {
+        if (!Setting::get('auto_apply_penalties', false)) {
+            return;
+        }
+
+        $overdueInvoices = Invoice::where('is_paid', false)
+            ->where('due_date', '<', now()->startOfDay())
+            ->get();
+
+        foreach ($overdueInvoices as $invoice) {
+            $newPenalty = $invoice->calculatePenalty();
+            $currentPenalty = $invoice->penalty_amount ?? 0;
+
+            if ($newPenalty > $currentPenalty) {
+                $invoice->penalty_amount = $newPenalty;
+                $invoice->days_overdue = $invoice->calculated_days_overdue;
+                $invoice->save();
+            }
+        }
     }
 }

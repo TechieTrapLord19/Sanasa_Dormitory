@@ -87,6 +87,30 @@
         background-color: #021d47;
         color: white;
     }
+    .form-switch-custom {
+        padding-left: 2.5em;
+    }
+    .form-switch-custom .form-check-input {
+        width: 3em;
+        height: 1.5em;
+        cursor: pointer;
+        background-color: #dee2e6;
+        border: none;
+    }
+    .form-switch-custom .form-check-input:checked {
+        background-color: #03255b;
+        border-color: #03255b;
+    }
+    .form-switch-custom .form-check-input:focus {
+        box-shadow: 0 0 0 0.2rem rgba(3, 37, 91, 0.25);
+        border-color: #03255b;
+    }
+    .form-switch-custom .form-check-label {
+        font-weight: 600;
+        color: #495057;
+        cursor: pointer;
+        margin-left: 0.5rem;
+    }
     .penalty-preview {
         background-color: #f8f9fa;
         border-radius: 8px;
@@ -117,25 +141,6 @@
         <h1 class="settings-title">System Settings</h1>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    @if($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="bi bi-exclamation-circle me-2"></i>
-            <ul class="mb-0">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
     <form action="{{ route('settings.update') }}" method="POST">
         @csrf
         @method('PUT')
@@ -152,6 +157,21 @@
             <div class="alert-info-custom">
                 <i class="bi bi-info-circle me-2"></i>
                 Configure how late payment penalties are calculated and applied to overdue invoices.
+            </div>
+
+            <!-- Auto-Apply Toggle -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="form-check form-switch form-switch-custom">
+                        <input class="form-check-input" type="checkbox" role="switch"
+                               name="auto_apply_penalties" id="auto_apply_penalties"
+                               value="1" {{ $settings['auto_apply_penalties'] ? 'checked' : '' }}>
+                        <label class="form-check-label" for="auto_apply_penalties">
+                            Auto-apply penalties to overdue invoices
+                        </label>
+                    </div>
+                    <div class="form-help-text ms-5">When enabled, penalties will be automatically calculated and applied when viewing invoices.</div>
+                </div>
             </div>
 
             <div class="row">
@@ -271,14 +291,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Calculate example penalty
-        const exampleTotal = 5000; // Example P5,000 invoice
-        let penalty = 0;
+        const exampleTotal = 5660; // Example rent amount
+        let dailyPenalty = 0;
         let freqText = '';
 
         if (type === 'percentage') {
-            penalty = (exampleTotal * rate) / 100;
+            dailyPenalty = (exampleTotal * rate) / 100;
         } else {
-            penalty = rate;
+            dailyPenalty = rate;
         }
 
         switch (freq) {
@@ -297,19 +317,36 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Generate preview text
-        let preview = `For an invoice of P${exampleTotal.toLocaleString()}, `;
-        preview += `if payment is not received within ${grace} days after the due date, `;
-        preview += `a penalty of P${penalty.toFixed(2)} ${freqText} will be applied.`;
+        const exampleDaysOverdue = 10;
+        let effectiveDays = Math.max(0, exampleDaysOverdue - grace);
+        let totalPenalty = 0;
 
         if (freq === 'daily') {
-            preview += ` After 10 days overdue, total penalty would be P${(penalty * Math.max(0, 10 - grace)).toFixed(2)}.`;
+            totalPenalty = dailyPenalty * effectiveDays;
         } else if (freq === 'weekly') {
-            preview += ` After 2 weeks overdue, total penalty would be P${(penalty * Math.max(0, Math.ceil((14 - grace) / 7))).toFixed(2)}.`;
+            totalPenalty = dailyPenalty * Math.ceil(effectiveDays / 7);
         } else if (freq === 'monthly') {
-            preview += ` After 1 month overdue, total penalty would be P${(penalty * Math.max(0, Math.ceil((30 - grace) / 30))).toFixed(2)}.`;
+            totalPenalty = dailyPenalty * Math.ceil(effectiveDays / 30);
+        } else {
+            totalPenalty = dailyPenalty; // one-time
         }
 
-        penaltyPreview.textContent = preview;
+        let preview = `For a ₱${exampleTotal.toLocaleString()} invoice`;
+
+        if (grace > 0) {
+            preview += ` with ${grace} grace days`;
+        }
+
+        preview += `, penalty is ₱${dailyPenalty.toFixed(2)} ${freqText}. `;
+        preview += `After ${exampleDaysOverdue} days overdue`;
+
+        if (grace > 0) {
+            preview += ` (${effectiveDays} effective days after grace)`;
+        }
+
+        preview += `, total penalty = ₱${totalPenalty.toFixed(2)}.`;
+
+        penaltyPreview.innerHTML = preview;
     }
 
     // Update on change

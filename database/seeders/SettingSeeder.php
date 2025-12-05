@@ -17,7 +17,7 @@ class SettingSeeder extends Seeder
             // Penalty Settings
             [
                 'key' => 'late_penalty_rate',
-                'value' => '5', // 5% or 5 pesos depending on type
+                'value' => '1', // 1% per day as per caretaker
             ],
             [
                 'key' => 'late_penalty_type',
@@ -25,11 +25,15 @@ class SettingSeeder extends Seeder
             ],
             [
                 'key' => 'late_penalty_grace_days',
-                'value' => '7', // 7 days grace period
+                'value' => '0', // No grace period - penalty starts immediately after due date
             ],
             [
                 'key' => 'late_penalty_frequency',
-                'value' => 'once', // 'once', 'daily', 'weekly', 'monthly'
+                'value' => 'daily', // Compounds daily as per caretaker
+            ],
+            [
+                'key' => 'auto_apply_penalties',
+                'value' => '1', // Auto-apply enabled by default
             ],
             // Invoice Due Date Settings
             [

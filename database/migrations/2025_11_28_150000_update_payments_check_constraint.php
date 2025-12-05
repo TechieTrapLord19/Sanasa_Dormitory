@@ -35,6 +35,11 @@ return new class extends Migration
             DROP CONSTRAINT IF EXISTS CHK_PaymentType
         ");
 
+        // Delete any payment types that would violate the old constraint
+        DB::table('payments')
+            ->whereNotIn('payment_type', ['Rent/Utility', 'Security Deposit'])
+            ->delete();
+
         DB::unprepared("
             ALTER TABLE payments
             ADD CONSTRAINT CHK_PaymentType

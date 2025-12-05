@@ -40,7 +40,8 @@ class TenantController extends Controller
             $perPage = 10;
         }
 
-        $tenants = $query->withCount('bookings')
+        $tenants = $query->with(['currentBooking.room'])
+                         ->withCount('bookings')
                          ->orderBy('created_at', 'desc')
                          ->orderBy('tenant_id', 'desc')
                          ->paginate($perPage)

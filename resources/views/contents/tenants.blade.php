@@ -157,21 +157,27 @@
         border-bottom: 2px solid #e2e8f0;
     }
 
-    /* Age column - center */
-    .tenants-table th:nth-child(4),
-    .tenants-table td:nth-child(4) {
+    /* Room column - center */
+    .tenants-table th:nth-child(2),
+    .tenants-table td:nth-child(2) {
         text-align: center;
     }
 
-    /* Status column - center */
+    /* Age column - center */
     .tenants-table th:nth-child(5),
     .tenants-table td:nth-child(5) {
         text-align: center;
     }
 
-    /* Actions column - center and fit content */
+    /* Status column - center */
     .tenants-table th:nth-child(6),
     .tenants-table td:nth-child(6) {
+        text-align: center;
+    }
+
+    /* Actions column - center and fit content */
+    .tenants-table th:nth-child(7),
+    .tenants-table td:nth-child(7) {
         text-align: center;
         width: 1%;
         white-space: nowrap;
@@ -423,6 +429,7 @@
         <thead>
             <tr>
                 <th>Name</th>
+                <th>Room</th>
                 <th>Contact Number</th>
                 <th>Emergency Contact</th>
                 <th>Age</th>
@@ -435,6 +442,9 @@
                 <tr>
                     <td>
                         <strong>{{ $tenant->full_name }}</strong>
+                    </td>
+                    <td>
+                        {{ $tenant->currentBooking && $tenant->currentBooking->room ? $tenant->currentBooking->room->room_num : 'N/A' }}
                     </td>
                     <td>
                         {{ $tenant->contact_num ?? 'N/A' }}
@@ -475,7 +485,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="6" class="text-center text-muted py-4">No tenants found</td>
+                    <td colspan="7" class="text-center text-muted py-4">No tenants found</td>
                 </tr>
             @endforelse
         </tbody>

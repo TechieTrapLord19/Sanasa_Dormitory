@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Setting;
+use App\Models\Invoice;
 use Illuminate\Http\Request;
 use App\Traits\LogsActivity;
 
@@ -16,11 +17,12 @@ class SettingsController extends Controller
     public function index()
     {
         $settings = [
-            'late_penalty_rate' => Setting::get('late_penalty_rate', 5),
+            'late_penalty_rate' => Setting::get('late_penalty_rate', 1),
             'late_penalty_type' => Setting::get('late_penalty_type', 'percentage'),
-            'late_penalty_grace_days' => Setting::get('late_penalty_grace_days', 7),
-            'late_penalty_frequency' => Setting::get('late_penalty_frequency', 'once'),
+            'late_penalty_grace_days' => Setting::get('late_penalty_grace_days', 0),
+            'late_penalty_frequency' => Setting::get('late_penalty_frequency', 'daily'),
             'invoice_due_days' => Setting::get('invoice_due_days', 15),
+            'auto_apply_penalties' => Setting::get('auto_apply_penalties', false),
         ];
 
         return view('contents.settings-index', compact('settings'));
@@ -50,6 +52,9 @@ class SettingsController extends Controller
         foreach ($settingsToUpdate as $key) {
             Setting::set($key, $request->input($key));
         }
+
+        // Handle the toggle (checkbox sends value only when checked)
+        Setting::set('auto_apply_penalties', $request->has('auto_apply_penalties') ? '1' : '0');
 
         $this->logActivity('Settings', 'Updated penalty settings');
 
