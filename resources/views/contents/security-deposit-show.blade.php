@@ -525,11 +525,21 @@
                     </tr>
                     <tr>
                         <td>Check-in</td>
-                        <td>{{ $securityDeposit->booking->checkin_date?->format('M d, Y') ?? 'N/A' }}</td>
+                        <td>
+                            {{ $securityDeposit->booking->checkin_date?->format('M d, Y') ?? 'N/A' }}
+                            @if($securityDeposit->booking->checked_in_at)
+                                <small class="text-success">({{ $securityDeposit->booking->checked_in_at->format('g:i A') }})</small>
+                            @endif
+                        </td>
                     </tr>
                     <tr>
                         <td>Check-out</td>
-                        <td>{{ $securityDeposit->booking->checkout_date?->format('M d, Y') ?? 'N/A' }}</td>
+                        <td>
+                            {{ $securityDeposit->booking->checkout_date?->format('M d, Y') ?? 'N/A' }}
+                            @if($securityDeposit->booking->checked_out_at)
+                                <small class="text-success">({{ $securityDeposit->booking->checked_out_at->format('g:i A') }})</small>
+                            @endif
+                        </td>
                     </tr>
                     <tr>
                         <td>Booking Status</td>

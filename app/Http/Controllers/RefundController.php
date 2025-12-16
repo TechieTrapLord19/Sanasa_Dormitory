@@ -66,6 +66,11 @@ class RefundController extends Controller
                 'status' => 'Processed',
             ]);
 
+            // Check if this is a security deposit payment and update the security deposit record
+            if ($payment->payment_type === 'Security Deposit' && $booking->securityDeposit) {
+                $booking->securityDeposit->processRefund($request->refund_amount, Auth::id());
+            }
+
             // Check if payment is fully refunded
             $payment->refresh();
             if ($payment->total_refunded >= $payment->amount) {
@@ -86,8 +91,8 @@ class RefundController extends Controller
             $room = $booking->room;
             $this->logActivity(
                 'Processed Refund',
-                "Processed refund of ₱" . number_format($refund->refund_amount, 2) . " via {$refund->refund_method}" . 
-                ($refund->reference_number ? " (Ref: {$refund->reference_number})" : "") . 
+                "Processed refund of ₱" . number_format($refund->refund_amount, 2) . " via {$refund->refund_method}" .
+                ($refund->reference_number ? " (Ref: {$refund->reference_number})" : "") .
                 " for booking #{$booking->booking_id} - {$tenant->full_name} in room {$room->room_num}. Reason: {$refund->cancellation_reason}",
                 $refund
             );

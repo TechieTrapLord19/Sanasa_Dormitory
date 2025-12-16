@@ -73,18 +73,40 @@ class TenantController extends Controller
      */
     public function store(Request $request)
     {
+        // Calculate the maximum birth date (must be at least 12 years old)
+        $maxBirthDate = now()->subYears(12)->format('Y-m-d');
+
         $validatedData = $request->validate([
             'first_name' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
             'address' => 'nullable|string',
-            'birth_date' => 'nullable|date',
-            'id_document' => 'nullable|string|max:255',
-            'contact_num' => 'nullable|string|max:20',
-            'emer_contact_num' => 'nullable|string|max:20',
+            'birth_date' => ['required', 'date', 'before_or_equal:' . $maxBirthDate],
+            'id_document' => ['required', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5120'],
+            'contact_num' => ['required', 'string', 'max:20'],
+            'emer_contact_num' => ['required', 'string', 'max:20'],
+            'emer_contact_name' => ['required', 'string', 'max:255'],
             'status' => 'required|in:active,inactive',
+        ], [
+            'birth_date.required' => 'Birth date is required.',
+            'birth_date.before_or_equal' => 'Tenant must be at least 12 years old.',
+            'id_document.required' => 'ID document image is required for verification.',
+            'id_document.image' => 'ID document must be an image file.',
+            'id_document.mimes' => 'ID document must be a JPEG, PNG, JPG, or GIF file.',
+            'id_document.max' => 'ID document image must not exceed 5MB.',
+            'contact_num.required' => 'Contact number is required.',
+            'emer_contact_num.required' => 'Emergency contact number is required.',
+            'emer_contact_name.required' => 'Emergency contact name is required.',
         ]);
+
+        // Handle ID document image upload
+        if ($request->hasFile('id_document')) {
+            $image = $request->file('id_document');
+            $filename = 'id_' . time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+            $image->move(public_path('uploads/id_documents'), $filename);
+            $validatedData['id_document'] = 'uploads/id_documents/' . $filename;
+        }
 
         $tenant = Tenant::create($validatedData);
 
@@ -154,20 +176,56 @@ class TenantController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        // Calculate the maximum birth date (must be at least 12 years old)
+        $maxBirthDate = now()->subYears(12)->format('Y-m-d');
+
+        $tenant = Tenant::findOrFail($id);
+
+        // ID document is optional on update if tenant already has one
+        $idDocumentRules = $tenant->id_document
+            ? ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5120']
+            : ['required', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5120'];
+
         $validatedData = $request->validate([
             'first_name' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
             'address' => 'nullable|string',
-            'birth_date' => 'nullable|date',
-            'id_document' => 'nullable|string|max:255',
-            'contact_num' => 'nullable|string|max:20',
-            'emer_contact_num' => 'nullable|string|max:20',
+            'birth_date' => ['required', 'date', 'before_or_equal:' . $maxBirthDate],
+            'id_document' => $idDocumentRules,
+            'contact_num' => ['required', 'string', 'max:20'],
+            'emer_contact_num' => ['required', 'string', 'max:20'],
+            'emer_contact_name' => ['required', 'string', 'max:255'],
             'status' => 'required|in:active,inactive',
+        ], [
+            'birth_date.required' => 'Birth date is required.',
+            'birth_date.before_or_equal' => 'Tenant must be at least 12 years old.',
+            'id_document.required' => 'ID document image is required for verification.',
+            'id_document.image' => 'ID document must be an image file.',
+            'id_document.mimes' => 'ID document must be a JPEG, PNG, JPG, or GIF file.',
+            'id_document.max' => 'ID document image must not exceed 5MB.',
+            'contact_num.required' => 'Contact number is required.',
+            'emer_contact_num.required' => 'Emergency contact number is required.',
+            'emer_contact_name.required' => 'Emergency contact name is required.',
         ]);
 
-        $tenant = Tenant::findOrFail($id);
+        // Handle ID document image upload
+        if ($request->hasFile('id_document')) {
+            // Delete old image if exists
+            if ($tenant->id_document && file_exists(public_path($tenant->id_document))) {
+                unlink(public_path($tenant->id_document));
+            }
+
+            $image = $request->file('id_document');
+            $filename = 'id_' . time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+            $image->move(public_path('uploads/id_documents'), $filename);
+            $validatedData['id_document'] = 'uploads/id_documents/' . $filename;
+        } else {
+            // Keep existing id_document if no new file uploaded
+            unset($validatedData['id_document']);
+        }
+
         $oldStatus = $tenant->status;
 
         // Check if tenant has active booking before allowing status change to inactive

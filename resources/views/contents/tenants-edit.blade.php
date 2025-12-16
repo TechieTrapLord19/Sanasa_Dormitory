@@ -63,7 +63,7 @@
         </div>
     @endif
 
-    <form action="{{ route('tenants.update', $tenant->tenant_id) }}" method="POST">
+    <form action="{{ route('tenants.update', $tenant->tenant_id) }}" method="POST" enctype="multipart/form-data">
         @csrf
         @method('PUT')
 
@@ -104,9 +104,9 @@
                 @enderror
             </div>
             <div class="col-md-6 mb-3">
-                <label for="contact_num" class="form-label">Contact Number</label>
+                <label for="contact_num" class="form-label">Contact Number <span class="text-danger">*</span></label>
                 <input type="text" class="form-control @error('contact_num') is-invalid @enderror"
-                       id="contact_num" name="contact_num" value="{{ old('contact_num', $tenant->contact_num) }}">
+                       id="contact_num" name="contact_num" value="{{ old('contact_num', $tenant->contact_num) }}" required>
                 @error('contact_num')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
@@ -115,37 +115,56 @@
 
         <div class="row">
             <div class="col-md-6 mb-3">
-                <label for="emer_contact_num" class="form-label">Emergency Contact Number</label>
+                <label for="emer_contact_num" class="form-label">Emergency Contact Number <span class="text-danger">*</span></label>
                 <input type="text" class="form-control @error('emer_contact_num') is-invalid @enderror"
-                       id="emer_contact_num" name="emer_contact_num" value="{{ old('emer_contact_num', $tenant->emer_contact_num) }}">
+                       id="emer_contact_num" name="emer_contact_num" value="{{ old('emer_contact_num', $tenant->emer_contact_num) }}" required>
                 @error('emer_contact_num')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
             <div class="col-md-6 mb-3">
-                <label for="birth_date" class="form-label">Birth Date</label>
-                <input type="date" class="form-control @error('birth_date') is-invalid @enderror"
-                       id="birth_date" name="birth_date" value="{{ old('birth_date', $tenant->birth_date ? $tenant->birth_date->format('Y-m-d') : '') }}">
-                @error('birth_date')
+                <label for="emer_contact_name" class="form-label">Emergency Contact Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control @error('emer_contact_name') is-invalid @enderror"
+                       id="emer_contact_name" name="emer_contact_name" value="{{ old('emer_contact_name', $tenant->emer_contact_name) }}"
+                       placeholder="e.g., Parent, Spouse, Sibling" required>
+                @error('emer_contact_name')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
         </div>
 
-        <div class="mb-3">
-            <label for="address" class="form-label">Address</label>
-            <textarea class="form-control @error('address') is-invalid @enderror"
-                      id="address" name="address" rows="2">{{ old('address', $tenant->address) }}</textarea>
-            @error('address')
-                <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="birth_date" class="form-label">Birth Date <span class="text-danger">*</span></label>
+                <input type="date" class="form-control @error('birth_date') is-invalid @enderror"
+                       id="birth_date" name="birth_date" value="{{ old('birth_date', $tenant->birth_date ? $tenant->birth_date->format('Y-m-d') : '') }}"
+                       max="{{ now()->subYears(12)->format('Y-m-d') }}" required>
+                @error('birth_date')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="address" class="form-label">Address</label>
+                <textarea class="form-control @error('address') is-invalid @enderror"
+                          id="address" name="address" rows="2">{{ old('address', $tenant->address) }}</textarea>
+                @error('address')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
         </div>
 
         <div class="row">
             <div class="col-md-6 mb-3">
-                <label for="id_document" class="form-label">ID Document</label>
-                <input type="text" class="form-control @error('id_document') is-invalid @enderror"
-                       id="id_document" name="id_document" value="{{ old('id_document', $tenant->id_document) }}">
+                <label for="id_document" class="form-label">ID Document @if(!$tenant->id_document)<span class="text-danger">*</span>@endif</label>
+                @if($tenant->id_document)
+                    <div class="mb-2">
+                        <img src="{{ asset($tenant->id_document) }}" alt="Current ID Document" class="img-thumbnail" style="max-height: 100px;">
+                        <small class="d-block text-muted">Current ID Document</small>
+                    </div>
+                @endif
+                <input type="file" class="form-control @error('id_document') is-invalid @enderror"
+                       id="id_document" name="id_document" accept="image/*" {{ !$tenant->id_document ? 'required' : '' }}>
+                <small class="text-muted">{{ $tenant->id_document ? 'Upload new image to replace' : 'Upload a photo of valid ID' }}</small>
                 @error('id_document')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror

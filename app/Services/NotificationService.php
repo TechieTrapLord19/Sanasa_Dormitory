@@ -229,6 +229,9 @@ class NotificationService
     {
         return Invoice::with(['booking.tenant', 'booking.room', 'payments'])
             ->where('is_paid', false)
+            ->whereHas('booking', function($q) {
+                $q->whereNotIn('status', ['Canceled', 'Completed']);
+            })
             ->orderBy('date_generated', 'asc')
             ->limit(10)
             ->get()

@@ -554,6 +554,120 @@
             background-color: transparent;
         }
     }
+
+    /* Date Filter Dropdown */
+    .date-filter-dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .date-filter-btn {
+        background-color: white;
+        border: 1px solid #e2e8f0;
+        color: #475569;
+        padding: 0.6rem 1rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .date-filter-btn:hover {
+        background-color: #f8fafc;
+        border-color: #cbd5e1;
+    }
+
+    .date-filter-btn.active {
+        background-color: #03255b;
+        border-color: #03255b;
+        color: white;
+    }
+
+    .date-filter-menu {
+        position: absolute;
+        top: calc(100% + 0.5rem);
+        right: 0;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        min-width: 250px;
+        z-index: 1000;
+        display: none;
+    }
+
+    .date-filter-menu.show {
+        display: block;
+    }
+
+    .date-filter-option {
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        font-size: 0.875rem;
+        color: #475569;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .date-filter-option:last-child {
+        border-bottom: none;
+    }
+
+    .date-filter-option:hover {
+        background-color: #f8fafc;
+    }
+
+    .date-filter-option.active {
+        background-color: #e0f2fe;
+        color: #03255b;
+        font-weight: 600;
+    }
+
+    .custom-date-inputs {
+        padding: 1rem;
+        border-top: 1px solid #e2e8f0;
+        display: none;
+    }
+
+    .custom-date-inputs.show {
+        display: block;
+    }
+
+    .custom-date-inputs label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748b;
+        margin-bottom: 0.25rem;
+        display: block;
+    }
+
+    .custom-date-inputs input {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .custom-date-inputs button {
+        width: 100%;
+        padding: 0.5rem;
+        background-color: #03255b;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .custom-date-inputs button:hover {
+        background-color: #021d47;
+    }
 </style>
 
 <div class="invoices-page">
@@ -573,12 +687,102 @@
     <div class="invoices-header mb-4 d-flex justify-content-between align-items-center">
         <h1 class="invoices-title">Invoices Management</h1>
         <div class="d-flex gap-2">
+            <!-- Date Filter Dropdown -->
+            <div class="date-filter-dropdown">
+                <button type="button" class="date-filter-btn {{ $dateFilter !== 'all' ? 'active' : '' }}" id="dateFilterBtn">
+                    <i class="bi bi-calendar3"></i>
+                    <span id="dateFilterLabel">
+                        @if($dateFilter === 'today')
+                            Today
+                        @elseif($dateFilter === 'this_week')
+                            This Week
+                        @elseif($dateFilter === 'this_month')
+                            This Month
+                        @elseif($dateFilter === 'last_month')
+                            Last Month
+                        @elseif($dateFilter === 'this_year')
+                            This Year
+                        @elseif($dateFilter === 'custom')
+                            Custom Range
+                        @else
+                            Date Filter
+                        @endif
+                    </span>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div class="date-filter-menu" id="dateFilterMenu">
+                    <div class="date-filter-option {{ $dateFilter === 'all' ? 'active' : '' }}" data-filter="all">
+                        <i class="bi bi-infinity"></i> All Time
+                    </div>
+                    <div class="date-filter-option {{ $dateFilter === 'today' ? 'active' : '' }}" data-filter="today">
+                        <i class="bi bi-calendar-day"></i> Today
+                    </div>
+                    <div class="date-filter-option {{ $dateFilter === 'this_week' ? 'active' : '' }}" data-filter="this_week">
+                        <i class="bi bi-calendar-week"></i> This Week
+                    </div>
+                    <div class="date-filter-option {{ $dateFilter === 'this_month' ? 'active' : '' }}" data-filter="this_month">
+                        <i class="bi bi-calendar-month"></i> This Month
+                    </div>
+                    <div class="date-filter-option {{ $dateFilter === 'last_month' ? 'active' : '' }}" data-filter="last_month">
+                        <i class="bi bi-calendar-minus"></i> Last Month
+                    </div>
+                    <div class="date-filter-option {{ $dateFilter === 'this_year' ? 'active' : '' }}" data-filter="this_year">
+                        <i class="bi bi-calendar-range"></i> This Year
+                    </div>
+                    <div class="date-filter-option {{ $dateFilter === 'custom' ? 'active' : '' }}" data-filter="custom">
+                        <i class="bi bi-calendar2-range"></i> Custom Range
+                    </div>
+                    <div class="custom-date-inputs {{ $dateFilter === 'custom' ? 'show' : '' }}" id="customDateInputs">
+                        <form method="GET" action="{{ route('invoices') }}" id="customDateForm">
+                            <input type="hidden" name="date_filter" value="custom">
+                            <input type="hidden" name="status" value="{{ $activeStatus }}">
+                            <input type="hidden" name="search" value="{{ $searchTerm }}">
+                            <input type="hidden" name="per_page" value="{{ $perPage }}">
+                            @if(request('booking_id'))
+                                <input type="hidden" name="booking_id" value="{{ request('booking_id') }}">
+                            @endif
+                            <label>From Date</label>
+                            <input type="date" name="date_from" value="{{ $dateFrom }}" required>
+                            <label>To Date</label>
+                            <input type="date" name="date_to" value="{{ $dateTo }}" required>
+                            <button type="submit">Apply</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+
             <form action="{{ route('invoices.apply-all-penalties') }}" method="POST" style="display: inline;">
                 @csrf
                 <button type="submit" class="btn-apply-all-penalties" onclick="return confirm('Apply penalties to all overdue invoices?')">
                     <i class="bi bi-clock-history"></i> Apply All Penalties
                 </button>
             </form>
+
+            <!-- Reports Dropdown -->
+            <div class="dropdown">
+                <button class="btn btn-outline-primary dropdown-toggle" type="button" id="reportsDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 8px;">
+                    <i class="bi bi-file-earmark-text"></i> Reports
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
+                    <li>
+                        <a class="dropdown-item" href="{{ route('reports.financial-summary.pdf', ['date_filter' => $dateFilter, 'date_from' => $dateFrom, 'date_to' => $dateTo]) }}" target="_blank">
+                            <i class="bi bi-file-earmark-pdf"></i> Financial Summary (PDF)
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{{ route('reports.payment-history.pdf', ['date_filter' => $dateFilter, 'date_from' => $dateFrom, 'date_to' => $dateTo]) }}" target="_blank">
+                            <i class="bi bi-file-earmark-pdf"></i> Payment History (PDF)
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{{ route('reports.payment-history.excel', ['date_filter' => $dateFilter, 'date_from' => $dateFrom, 'date_to' => $dateTo]) }}">
+                            <i class="bi bi-file-earmark-excel"></i> Payment History (Excel)
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
             <a href="{{ route('settings.index') }}" class="btn btn-outline-secondary" style="border-radius: 8px;">
                 <i class="bi bi-gear"></i> Settings
             </a>
@@ -617,6 +821,11 @@
     <form method="GET" action="{{ route('invoices') }}" class="filters-card">
         @if(request('booking_id'))
             <input type="hidden" name="booking_id" value="{{ request('booking_id') }}">
+        @endif
+        <input type="hidden" name="date_filter" value="{{ $dateFilter }}">
+        @if($dateFilter === 'custom')
+            <input type="hidden" name="date_from" value="{{ $dateFrom }}">
+            <input type="hidden" name="date_to" value="{{ $dateTo }}">
         @endif
         <div class="status-filters">
             <button type="submit"
@@ -661,6 +870,11 @@
             </svg>
         </div>
         <input type="hidden" name="per_page" value="{{ $perPage }}">
+        <input type="hidden" name="date_filter" value="{{ $dateFilter }}">
+        @if($dateFilter === 'custom')
+            <input type="hidden" name="date_from" value="{{ $dateFrom }}">
+            <input type="hidden" name="date_to" value="{{ $dateTo }}">
+        @endif
         @if(request('booking_id'))
             <input type="hidden" name="booking_id" value="{{ request('booking_id') }}">
         @endif
@@ -679,6 +893,7 @@
                         <th>Total Due</th>
                         <th>Penalty</th>
                         <th>Collected</th>
+                        <th>Balance</th>
                         <th style="text-align: center;">Status</th>
                         <th style="text-align: center;">Actions</th>
                     </tr>
@@ -786,6 +1001,13 @@
                             @endif
                         </td>
                         <td class="amount-col text-success">₱{{ number_format($invoice->total_collected ?? 0, 2) }}</td>
+                        <td class="amount-col" style="color: {{ $invoice->remaining_balance > 0 ? '#ef4444' : '#94a3b8' }};">
+                            @if($invoice->remaining_balance > 0)
+                                ₱{{ number_format($invoice->remaining_balance, 2) }}
+                            @else
+                                —
+                            @endif
+                        </td>
                         <td style="text-align: center;">
                             <span class="badge-status {{ $badgeClass }}">
                                 {{ $displayStatus }}
@@ -819,7 +1041,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="10">
+                        <td colspan="11">
                             <div class="no-data-state">
                                 <strong>No invoices found</strong>
                                 Adjust your filters or switch back to "All" to see every invoice in the system.
@@ -916,8 +1138,13 @@
                                    name="amount"
                                    step="0.01"
                                    min="0.01"
+                                   max="0"
                                    required
-                                   placeholder="0.00">
+                                   placeholder="0.00"
+                                   oninput="validity.valid||(value='');">
+                        </div>
+                        <div class="invalid-feedback" id="amountError" style="display: none;">
+                            Payment amount cannot exceed the outstanding balance.
                         </div>
                         @error('amount')
                             <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -985,6 +1212,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const referenceNumberGroup = document.getElementById('referenceNumberGroup');
     const referenceNumberInput = document.getElementById('reference_number');
     const dateReceivedInput = document.getElementById('date_received');
+    const amountInput = document.getElementById('amount');
+    const amountError = document.getElementById('amountError');
+    const paymentForm = document.getElementById('paymentForm');
+    let maxOutstandingBalance = 0;
 
     // Set default date to today if not set
     if (!dateReceivedInput.value) {
@@ -1000,6 +1231,46 @@ document.addEventListener('DOMContentLoaded', function () {
             referenceNumberGroup.style.display = 'none';
             referenceNumberInput.removeAttribute('required');
             referenceNumberInput.value = '';
+        }
+    });
+
+    // Validate amount input in real-time
+    amountInput.addEventListener('input', function() {
+        const enteredAmount = parseFloat(this.value) || 0;
+
+        // Check if amount exceeds outstanding balance
+        if (enteredAmount > maxOutstandingBalance) {
+            amountInput.classList.add('is-invalid');
+            amountError.style.display = 'block';
+        } else if (enteredAmount <= 0) {
+            amountInput.classList.add('is-invalid');
+            amountError.textContent = 'Payment amount must be greater than zero.';
+            amountError.style.display = 'block';
+        } else {
+            amountInput.classList.remove('is-invalid');
+            amountError.style.display = 'none';
+            amountError.textContent = 'Payment amount cannot exceed the outstanding balance.';
+        }
+    });
+
+    // Validate form before submission
+    paymentForm.addEventListener('submit', function(e) {
+        const enteredAmount = parseFloat(amountInput.value) || 0;
+
+        if (enteredAmount <= 0) {
+            e.preventDefault();
+            amountInput.classList.add('is-invalid');
+            amountError.textContent = 'Payment amount must be greater than zero.';
+            amountError.style.display = 'block';
+            return false;
+        }
+
+        if (enteredAmount > maxOutstandingBalance) {
+            e.preventDefault();
+            amountInput.classList.add('is-invalid');
+            amountError.textContent = 'Payment amount cannot exceed the outstanding balance.';
+            amountError.style.display = 'block';
+            return false;
         }
     });
 
@@ -1026,7 +1297,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Set amount field to outstanding balance (remove ₱ and commas)
         const amountValue = outstanding.replace(/[₱,]/g, '');
+        maxOutstandingBalance = parseFloat(amountValue) || 0;
         document.getElementById('amount').value = amountValue;
+        document.getElementById('amount').setAttribute('max', maxOutstandingBalance);
+
+        // Reset validation state
+        amountInput.classList.remove('is-invalid');
+        amountError.style.display = 'none';
 
         // Reset form fields
         paymentMethodSelect.value = '';
@@ -1056,6 +1333,63 @@ document.addEventListener('DOMContentLoaded', function () {
             }, 300);
         }
     @endif
+
+    // Date Filter Dropdown
+    const dateFilterBtn = document.getElementById('dateFilterBtn');
+    const dateFilterMenu = document.getElementById('dateFilterMenu');
+    const dateFilterOptions = document.querySelectorAll('.date-filter-option');
+    const customDateInputs = document.getElementById('customDateInputs');
+    const dateFilterLabel = document.getElementById('dateFilterLabel');
+
+    // Toggle dropdown
+    dateFilterBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        dateFilterMenu.classList.toggle('show');
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!dateFilterBtn.contains(e.target) && !dateFilterMenu.contains(e.target)) {
+            dateFilterMenu.classList.remove('show');
+        }
+    });
+
+    // Handle date filter options
+    dateFilterOptions.forEach(option => {
+        option.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const filterValue = this.getAttribute('data-filter');
+
+            if (filterValue === 'custom') {
+                // Show custom date inputs
+                customDateInputs.classList.toggle('show');
+                return;
+            }
+
+            // Hide custom inputs if visible
+            customDateInputs.classList.remove('show');
+
+            // Build URL with current filters
+            const url = new URL(window.location.href);
+            url.searchParams.set('date_filter', filterValue);
+
+            // Remove custom date params if switching away from custom
+            if (filterValue !== 'custom') {
+                url.searchParams.delete('date_from');
+                url.searchParams.delete('date_to');
+            }
+
+            // Navigate to filtered URL
+            window.location.href = url.toString();
+        });
+    });
+
+    // Prevent custom date inputs from closing dropdown
+    if (customDateInputs) {
+        customDateInputs.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    }
 
 });
 </script>

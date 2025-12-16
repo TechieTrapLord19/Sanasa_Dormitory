@@ -23,7 +23,7 @@ return new class extends Migration
         DB::statement("
             ALTER TABLE rooms
             ADD CONSTRAINT CHK_RoomStatus
-            CHECK (status IN ('available', 'occupied', 'maintenance'))
+            CHECK (status IN ('available', 'occupied', 'maintenance', 'cleaning', 'pending'))
         ");
     }
 

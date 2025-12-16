@@ -150,7 +150,17 @@ class BookingController extends Controller
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->get();
-        $rooms = Room::all();
+
+        // Get only rooms with 'available' status and no active/pending bookings
+        $allRooms = Room::where('status', 'available')->orderByRaw('CAST(room_num AS INT)')->get();
+        $rooms = $allRooms->filter(function($room) {
+            // Check if room has any active or pending bookings
+            $hasActiveBooking = Booking::where('room_id', $room->room_id)
+                ->whereIn('status', ['Active', 'Pending Payment'])
+                ->exists();
+            return !$hasActiveBooking;
+        })->values(); // Re-index the collection to avoid key issues
+
         $ratesByDuration = Rate::whereIn('duration_type', ['Daily', 'Weekly', 'Monthly'])
             ->with('utilities')
             ->orderByDesc('updated_at')
@@ -189,12 +199,13 @@ public function store(Request $request)
         ],
         'rate_id' => 'required|exists:rates,rate_id',
         'checkin_date' => 'required|date|after_or_equal:today',
-        'stay_length' => 'required|integer|min:1',
+        'stay_length' => 'required|integer|min:1|max:30',
     ], [
         'tenant_ids.required' => 'Please select at least one tenant.',
         'tenant_ids.array' => 'Invalid tenant selection.',
         'tenant_ids.min' => 'Please select at least one tenant.',
         'tenant_ids.*.distinct' => 'Duplicate tenants are not allowed.',
+        'stay_length.max' => 'Maximum stay length is 30 days. For longer stays, book 1 month first, then renew as needed.',
     ]);
 
     $checkinDate = Carbon::parse($validatedData['checkin_date']);
@@ -251,13 +262,12 @@ public function store(Request $request)
             'checkin_date' => $validatedData['checkin_date'],
             'checkout_date' => $checkoutDate->toDateString(),
             'total_calculated_fee' => $totalFee,
-            'status' => 'Pending Payment', // Start as Pending Payment
+            'status' => 'Pending Payment',
         ]);
-        $room->update(['status' => 'pending']);
+        $room->update(['status' => 'pending']); // Room is pending until payment confirmed and check-in
 
         // Create invoices based on booking type
         $months = max(1, (int) ceil($stayLength / 30));
-        $weeks = max(1, (int) ceil($stayLength / 7));
         $days = max(1, $stayLength);
 
         if ($durationType === 'Monthly') {
@@ -378,7 +388,10 @@ public function store(Request $request)
         } else {
             // Daily/Weekly: One invoice with rent only (utilities included)
             if ($durationType === 'Weekly') {
-                $rentSubtotal = $rate->base_price * $weeks;
+                $fullWeeks = (int) floor($stayLength / 7);
+                $remainingDays = $stayLength % 7;
+                $dailyRate = $rate->base_price / 7;
+                $rentSubtotal = ($fullWeeks * $rate->base_price) + ($remainingDays * $dailyRate);
             } else { // Daily
                 $rentSubtotal = $rate->base_price * $days;
             }
@@ -834,9 +847,11 @@ public function store(Request $request)
                             // No utilities for weekly (included in rate)
                         }
                     } else {
-                        // Extension is 7+ days, calculate weeks needed
-                        $weeks = max(1, (int) ceil($extensionDays / 7));
-                        $rentSubtotal = $rate->base_price * $weeks;
+                        // Extension is 7+ days, calculate actual weeks + remaining days
+                        $fullWeeks = (int) floor($extensionDays / 7);
+                        $remainingDays = $extensionDays % 7;
+                        $dailyRate = $rate->base_price / 7;
+                        $rentSubtotal = ($fullWeeks * $rate->base_price) + ($remainingDays * $dailyRate);
                         // No utilities for weekly (included in rate)
                     }
                 } else { // Daily
@@ -1003,7 +1018,11 @@ public function checkin(string $id)
     DB::beginTransaction();
     try {
         // Manually set booking to Active (check-in is always manual)
-        $booking->update(['status' => 'Active']);
+        // Record the actual timestamp when check-in happened
+        $booking->update([
+            'status' => 'Active',
+            'checked_in_at' => now(),
+        ]);
         $booking->room->update(['status' => 'occupied']);
 
         DB::commit();
@@ -1235,13 +1254,24 @@ public function checkin(string $id)
 
                 // If no security deposit invoice exists, create one
                 if (!$hasSecurityDeposit) {
-                    Invoice::create([
+                    $securityDepositInvoice = Invoice::create([
                         'booking_id' => $booking->booking_id,
                         'date_generated' => now()->toDateString(),
                         'rent_subtotal' => 0,
                         'utility_electricity_fee' => self::MONTHLY_SECURITY_DEPOSIT,
                         'total_due' => self::MONTHLY_SECURITY_DEPOSIT,
                         'is_paid' => false,
+                    ]);
+
+                    // Create SecurityDeposit record
+                    SecurityDeposit::create([
+                        'booking_id' => $booking->booking_id,
+                        'invoice_id' => $securityDepositInvoice->invoice_id,
+                        'amount_required' => self::MONTHLY_SECURITY_DEPOSIT,
+                        'amount_paid' => 0,
+                        'amount_deducted' => 0,
+                        'amount_refunded' => 0,
+                        'status' => SecurityDeposit::STATUS_PENDING,
                     ]);
                 }
             }
@@ -1305,8 +1335,12 @@ public function checkin(string $id)
 
         DB::beginTransaction();
         try {
-            $booking->update(['status' => 'Completed']);
-            $booking->room->update(['status' => 'maintenance']); // Using 'maintenance' as closest to 'Cleaning'
+            // Record the actual timestamp when check-out happened
+            $booking->update([
+                'status' => 'Completed',
+                'checked_out_at' => now(),
+            ]);
+            $booking->room->update(['status' => 'cleaning']); // Room needs cleaning after checkout
 
             DB::commit();
 
@@ -1334,8 +1368,8 @@ public function checkin(string $id)
         $availableRooms = collect();
 
         foreach ($allRooms as $room) {
-            // Check if room is available (not in maintenance)
-            if ($room->status === 'maintenance') {
+            // Check if room status allows booking (only 'available' rooms can be booked)
+            if ($room->status !== 'available') {
                 continue;
             }
 
@@ -1357,8 +1391,10 @@ public function checkin(string $id)
 
         switch ($rate->duration_type) {
             case 'Weekly':
-                $weeks = (int) ceil($days / 7);
-                return $rate->base_price * $weeks;
+                $fullWeeks = (int) floor($days / 7);
+                $remainingDays = $days % 7;
+                $dailyRate = $rate->base_price / 7;
+                return ($fullWeeks * $rate->base_price) + ($remainingDays * $dailyRate);
             case 'Monthly':
                 $months = (int) ceil($days / 30);
                 return $rate->base_price * max(1, $months);
@@ -1475,9 +1511,14 @@ public function checkin(string $id)
             $securityDeposit = self::MONTHLY_SECURITY_DEPOSIT;
             $note = 'Security deposit and utilities are itemized separately for monthly stays.';
         } elseif ($duration === 'Weekly') {
-            $weeks = max(1, (int) ceil($days / 7));
-            $units = "{$weeks} week(s)";
-            $rateTotal = $rate->base_price * $weeks;
+            $fullWeeks = (int) floor($days / 7);
+            $remainingDays = $days % 7;
+
+            // Calculate weekly rate (₱1,750/week = ₱250/day)
+            $dailyRate = $rate->base_price / 7;
+            $rateTotal = ($fullWeeks * $rate->base_price) + ($remainingDays * $dailyRate);
+
+            $units = $remainingDays > 0 ? "{$fullWeeks} week(s) + {$remainingDays} day(s)" : "{$fullWeeks} week(s)";
             $ratesUsed[] = "Weekly (₱" . number_format($rate->base_price, 2) . ")";
             $note = 'Water and Wi-Fi are included in the weekly package.';
         } else {
@@ -1581,8 +1622,12 @@ public function checkin(string $id)
 
             $securityDeposit = self::MONTHLY_SECURITY_DEPOSIT;
         } elseif ($durationType === 'Weekly') {
-            $weeks = max(1, (int) ceil($days / 7));
-            $rentSubtotal = $rate->base_price * $weeks;
+            $fullWeeks = (int) floor($days / 7);
+            $remainingDays = $days % 7;
+
+            // Calculate weekly rate (₱1,750/week = ₱250/day)
+            $dailyRate = $rate->base_price / 7;
+            $rentSubtotal = ($fullWeeks * $rate->base_price) + ($remainingDays * $dailyRate);
             // Utilities included in weekly rate
         } else { // Daily
             $rentSubtotal = $rate->base_price * $days;

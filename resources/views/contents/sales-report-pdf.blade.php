@@ -116,6 +116,15 @@
             border-radius: 0 8px 8px 0;
         }
 
+        .summary-card.revenue {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            border-color: #3b82f6;
+        }
+
+        .summary-card.revenue .summary-value {
+            color: #1d4ed8;
+        }
+
         .summary-card.highlight {
             background: linear-gradient(135deg, #03255b 0%, #1e40af 100%);
             color: white;
@@ -456,7 +465,7 @@
             <div class="section-title">Financial Summary</div>
             <div class="summary-grid">
                 <div class="summary-row">
-                    <div class="summary-card highlight">
+                    <div class="summary-card revenue">
                         <div class="summary-label">Total Revenue</div>
                         <div class="summary-value">P{{ number_format($totalSales, 2) }}</div>
                         <div class="summary-subtext">Rent/Utility + Deductions</div>

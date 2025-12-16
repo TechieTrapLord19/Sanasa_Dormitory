@@ -9,6 +9,7 @@ use App\Http\Controllers\RateController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\ActivityLogController;
@@ -59,13 +60,16 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
     Route::post('/tenants/{id}/archive', [TenantController::class, 'archive'])->name('tenants.archive');
     Route::post('/tenants/{id}/activate', [TenantController::class, 'activate'])->name('tenants.activate');
     Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices');
+    Route::get('/invoices/all-payments', [InvoiceController::class, 'getAllPayments'])->name('invoices.all-payments');
     Route::get('/invoices/{id}', [InvoiceController::class, 'show'])->name('invoices.show');
+    Route::get('/invoices/{id}/payments', [InvoiceController::class, 'getPayments'])->name('invoices.payments');
     Route::post('/invoices/{id}/apply-penalty', [InvoiceController::class, 'applyPenalty'])->name('invoices.apply-penalty');
     Route::post('/invoices/apply-all-penalties', [InvoiceController::class, 'applyAllPenalties'])->name('invoices.apply-all-penalties');
     Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
     Route::get('/payments/{id}/receipt', [PaymentController::class, 'showReceipt'])->name('payments.receipt');
     Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs');
     Route::resource('rooms', RoomController::class);
+    Route::post('/rooms/{id}/mark-cleaned', [RoomController::class, 'markAsCleaned'])->name('rooms.mark-cleaned');
     Route::resource('rates', RateController::class);
     Route::post('/assets', [AssetController::class, 'store'])->name('assets.store');
     Route::put('/assets/{id}', [AssetController::class, 'update'])->name('assets.update');
@@ -89,6 +93,10 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
     Route::get('/sales/export', [SalesController::class, 'export'])->name('sales.export');
     Route::get('/sales/consolidated', [SalesController::class, 'exportConsolidated'])->name('sales.consolidated');
 
+    // Reports
+    Route::get('/reports/financial-summary/pdf', [ReportController::class, 'financialSummaryPdf'])->name('reports.financial-summary.pdf');
+    Route::get('/reports/payment-history/pdf', [ReportController::class, 'paymentHistoryPdf'])->name('reports.payment-history.pdf');
+    Route::get('/reports/payment-history/excel', [ReportController::class, 'paymentHistoryExcel'])->name('reports.payment-history.excel');
     // Security Deposits routes
     Route::get('/security-deposits', [SecurityDepositController::class, 'index'])->name('security-deposits.index');
     Route::get('/security-deposits/{securityDeposit}', [SecurityDepositController::class, 'show'])->name('security-deposits.show');

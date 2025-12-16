@@ -111,6 +111,10 @@
         background-color: #fef3c7;
         color: #92400e;
     }
+    .room-status-badge.cleaning {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
     .room-status-badge.pending {
         background-color: #fef3c7;
         color: #92400e;
@@ -271,6 +275,7 @@
         <button class="filter-btn" data-filter="status" data-value="available">Available ({{ $roomCounts['available'] ?? 0 }})</button>
         <button class="filter-btn" data-filter="status" data-value="pending">Pending ({{ $roomCounts['pending'] ?? 0 }})</button>
         <button class="filter-btn" data-filter="status" data-value="occupied">Occupied ({{ $roomCounts['occupied'] ?? 0 }})</button>
+        <button class="filter-btn" data-filter="status" data-value="cleaning">Cleaning ({{ $roomCounts['cleaning'] ?? 0 }})</button>
         <button class="filter-btn" data-filter="status" data-value="maintenance">Maintenance ({{ $roomCounts['maintenance'] ?? 0 }})</button>
     </div>
 </div>
@@ -343,11 +348,20 @@
                     </div>
 
                     <div class="room-card-actions" onclick="event.stopPropagation();">
-                            <button class="room-action-btn" type="button" title="More options" onclick="event.stopPropagation();">
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                    <path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
-                                </svg>
-                            </button>
+                            @if($room->status === 'cleaning')
+                                <form action="{{ route('rooms.mark-cleaned', $room->room_id) }}" method="POST" style="display: inline;">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-success" title="Mark as Cleaned" onclick="event.preventDefault(); event.stopPropagation(); if(confirm('Mark this room as cleaned and available?')) this.form.submit();">
+                                        <i class="bi bi-check-circle"></i> Mark Cleaned
+                                    </button>
+                                </form>
+                            @else
+                                <button class="room-action-btn" type="button" title="More options" onclick="event.stopPropagation();">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
+                                    </svg>
+                                </button>
+                            @endif
                     </div>
                 </div>
             </div>

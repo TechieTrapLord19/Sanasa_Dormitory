@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Payment extends Model
 {
     protected $primaryKey = 'payment_id';
-    
+
     protected $fillable = [
         'booking_id',
         'invoice_id',
@@ -23,7 +23,7 @@ class Payment extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
-        'date_received' => 'date',
+        'date_received' => 'datetime',
     ];
 
     /**

@@ -531,7 +531,7 @@
                 <h5 class="modal-title" id="createTenantModalLabel">Add New Tenant</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('tenants.store') }}" method="POST">
+            <form action="{{ route('tenants.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body">
                     <div class="row">
@@ -570,10 +570,10 @@
                             @enderror
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="contact_num" class="form-label">Contact Number</label>
+                            <label for="contact_num" class="form-label">Contact Number <span class="text-danger">*</span></label>
                             <input type="text" class="form-control @error('contact_num') is-invalid @enderror"
                                    id="contact_num" name="contact_num" value="{{ old('contact_num') }}"
-                                   placeholder="0912-345-6789">
+                                   placeholder="0912-345-6789" required>
                             @error('contact_num')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -581,37 +581,49 @@
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="emer_contact_num" class="form-label">Emergency Contact Number</label>
+                            <label for="emer_contact_num" class="form-label">Emergency Contact Number <span class="text-danger">*</span></label>
                             <input type="text" class="form-control @error('emer_contact_num') is-invalid @enderror"
                                    id="emer_contact_num" name="emer_contact_num" value="{{ old('emer_contact_num') }}"
-                                   placeholder="0917-969-4567">
+                                   placeholder="0917-969-4567" required>
                             @error('emer_contact_num')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="birth_date" class="form-label">Birth Date</label>
-                            <input type="date" class="form-control @error('birth_date') is-invalid @enderror"
-                                   id="birth_date" name="birth_date" value="{{ old('birth_date') }}">
-                            @error('birth_date')
+                            <label for="emer_contact_name" class="form-label">Emergency Contact Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control @error('emer_contact_name') is-invalid @enderror"
+                                   id="emer_contact_name" name="emer_contact_name" value="{{ old('emer_contact_name') }}"
+                                   placeholder="e.g., Parent, Spouse, Sibling" required>
+                            @error('emer_contact_name')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="address" class="form-label">Address</label>
-                        <textarea class="form-control @error('address') is-invalid @enderror"
-                                  id="address" name="address" rows="2">{{ old('address') }}</textarea>
-                        @error('address')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="birth_date" class="form-label">Birth Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control @error('birth_date') is-invalid @enderror"
+                                   id="birth_date" name="birth_date" value="{{ old('birth_date') }}"
+                                   max="{{ now()->subYears(12)->format('Y-m-d') }}" required>
+                            @error('birth_date')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="address" class="form-label">Address</label>
+                            <textarea class="form-control @error('address') is-invalid @enderror"
+                                      id="address" name="address" rows="2">{{ old('address') }}</textarea>
+                            @error('address')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="id_document" class="form-label">ID Document</label>
-                            <input type="text" class="form-control @error('id_document') is-invalid @enderror"
-                                   id="id_document" name="id_document" value="{{ old('id_document') }}"
-                                   placeholder="e.g., Driver's License, Passport">
+                            <label for="id_document" class="form-label">ID Document <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control @error('id_document') is-invalid @enderror"
+                                   id="id_document" name="id_document" accept="image/*" required>
+                            <small class="text-muted">Upload a photo of valid ID (Driver's License, Passport, etc.)</small>
                             @error('id_document')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror

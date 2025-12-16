@@ -32,6 +32,7 @@ class RoomController extends Controller
             'occupied' => Room::where('status', 'occupied')->count(),
             'pending' => Room::where('status', 'pending')->count(),
             'maintenance' => Room::where('status', 'maintenance')->count(),
+            'cleaning' => Room::where('status', 'cleaning')->count(),
         ];
         $floors = Room::select('floor')->distinct()->orderBy('floor')->pluck('floor');
 
@@ -114,7 +115,7 @@ class RoomController extends Controller
         $validatedData = $request->validate([
             'status' => [
                 'required',
-                Rule::in(['available', 'pending', 'occupied', 'maintenance'])
+                Rule::in(['available', 'pending', 'occupied', 'maintenance', 'cleaning'])
             ]
         ]);
 
@@ -127,6 +128,28 @@ class RoomController extends Controller
         );
 
         return redirect()->back()->with('success', 'Room status updated successfully!');
+    }
+
+    /**
+     * Mark a room as cleaned and set it back to available
+     */
+    public function markAsCleaned(string $id)
+    {
+        $room = Room::findOrFail($id);
+
+        if ($room->status !== 'cleaning') {
+            return redirect()->back()->with('error', 'This room is not in cleaning status.');
+        }
+
+        $room->update(['status' => 'available']);
+
+        $this->logActivity(
+            'Room Cleaned',
+            "Marked room {$room->room_num} as cleaned and available",
+            $room
+        );
+
+        return redirect()->back()->with('success', "Room {$room->room_num} has been marked as cleaned and is now available!");
     }
 
     /**

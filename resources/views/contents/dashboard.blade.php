@@ -185,7 +185,7 @@
     }
 
     .checkout-item {
-        padding: 1rem;
+        padding: 0;
         border-left: 3px solid #e5e7eb;
         background-color: #fafafa;
         margin-bottom: 0.75rem;
@@ -201,6 +201,18 @@
     .checkout-item.today {
         border-left-color: #eab308;
         background-color: #fefce8;
+    }
+
+    .checkout-link {
+        display: block;
+        padding: 1rem;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .checkout-link:hover {
+        text-decoration: none;
+        color: inherit;
     }
 
     .checkout-item .tenant-name {
@@ -445,16 +457,18 @@
                                 $isToday = $booking->checkout_date->isToday();
                             @endphp
                             <li class="checkout-item {{ $isToday ? 'today' : '' }}">
-                                <div class="tenant-name">
-                                    {{ $booking->tenant->full_name ?? 'Unknown' }}
-                                    @if($isToday)
-                                        <span class="checkout-badge ms-2">Today</span>
-                                    @endif
-                                </div>
-                                <div class="checkout-info">
-                                    <span><i class="bi bi-door-open me-1"></i>Room {{ $booking->room->room_num }}</span>
-                                    <span><i class="bi bi-calendar3 me-1"></i>{{ $booking->checkout_date->format('M d, Y') }}</span>
-                                </div>
+                                <a href="{{ route('bookings.show', $booking->booking_id) }}" class="checkout-link">
+                                    <div class="tenant-name">
+                                        {{ $booking->tenant->full_name ?? 'Unknown' }}
+                                        @if($isToday)
+                                            <span class="checkout-badge ms-2">Today</span>
+                                        @endif
+                                    </div>
+                                    <div class="checkout-info">
+                                        <span><i class="bi bi-door-open me-1"></i>Room {{ $booking->room->room_num }}</span>
+                                        <span><i class="bi bi-calendar3 me-1"></i>{{ $booking->checkout_date->format('M d, Y') }}</span>
+                                    </div>
+                                </a>
                             </li>
                         @endforeach
                     </ul>

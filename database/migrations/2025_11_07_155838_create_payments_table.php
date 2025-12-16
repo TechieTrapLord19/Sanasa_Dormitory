@@ -20,7 +20,7 @@ return new class extends Migration
             $table->decimal('amount', 10, 2);
             $table->string('payment_method'); // 'Cash', 'GCash'
             $table->string('reference_number')->nullable();     // e.g., GCash transaction ID
-            $table->date('date_received');
+            $table->dateTime('date_received');
             $table->timestamps();
         });
         DB::statement("

@@ -546,8 +546,8 @@
                         <span class="info-value">{{ $occupant->contact_num ?? 'N/A' }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Emergency Contact</span>
-                        <span class="info-value">{{ $occupant->emer_contact_num ?? 'N/A' }}</span>
+                        <span class="info-label">Age</span>
+                        <span class="info-value">{{ $occupant->birth_date ? $occupant->birth_date->age . ' years old' : 'N/A' }}</span>
                     </div>
                 </div>
             @endforeach
@@ -564,145 +564,27 @@
                 <span class="info-value">{{ $booking->room->floor }}</span>
             </div>
             <div class="info-item">
-                <span class="info-label">Check-in Date</span>
-                <span class="info-value">{{ $booking->checkin_date->format('M d, Y') }}</span>
+                <span class="info-label">Check-in Date and Time</span>
+                @if($booking->checked_in_at)
+                    <span class="info-value" style="color: #10b981; font-weight: 600;">{{ $booking->checked_in_at->format('M d, Y - g:i A') }}</span>
+                @else
+                    <span class="info-value">{{ $booking->checkin_date->format('M d, Y') }} <small style="color: #6b7280;">(Not yet arrived)</small></span>
+                @endif
             </div>
             <div class="info-item">
-                <span class="info-label">Check-out Date</span>
-                <span class="info-value">{{ $booking->checkout_date->format('M d, Y') }}</span>
+                <span class="info-label">Check-out Date and Time</span>
+                @if($booking->checked_out_at)
+                    <span class="info-value" style="color: #10b981; font-weight: 600;">{{ $booking->checked_out_at->format('M d, Y - g:i A') }}</span>
+                @else
+                    <span class="info-value">{{ $booking->checkout_date->format('M d, Y') }} <small style="color: #6b7280;">(Scheduled)</small></span>
+                @endif
             </div>
             <div class="info-item">
                 <span class="info-label">Stay Length</span>
-                <span class="info-value">{{ $stayLengthDays }} night(s)</span>
+                <span class="info-value">{{ $stayLengthDays }} day(s)</span>
             </div>
         </div>
 
-        <h2 class="info-section-title" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0;">Rates Information</h2>
-        <div class="info-grid">
-            <div class="info-item">
-                <span class="info-label">Rate(s) Used</span>
-                <span class="info-value">{{ $chargeSummary['rates_used'] }}</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Rate Breakdown</span>
-                <span class="info-value">{{ $chargeSummary['units'] }}</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Rate Total (Current Stay)</span>
-                <span class="info-value"><strong>₱{{ number_format($chargeSummary['rate_total'], 2) }}</strong></span>
-            </div>
-            @php
-                // Get ALL invoices that have Rent+Utilities (including extension invoices)
-                $rentUtilitiesInvoices = $booking->invoices->filter(function($invoice) {
-                    return $invoice->rent_subtotal > 0 || $invoice->utility_water_fee > 0 || $invoice->utility_wifi_fee > 0;
-                });
-
-                // Get Security Deposit invoice (should only be one)
-                $securityDepositInvoice = $booking->invoices->first(function($invoice) {
-                    return $invoice->rent_subtotal == 0 &&
-                           $invoice->utility_water_fee == 0 &&
-                           $invoice->utility_wifi_fee == 0 &&
-                           $invoice->utility_electricity_fee > 0;
-                });
-
-                // Calculate payment status for Rent + Utilities (aggregate ALL invoices)
-                $rentUtilitiesStatus = 'N/A';
-                $rentUtilitiesPaid = 0;
-                $rentUtilitiesDue = 0;
-                if ($rentUtilitiesInvoices->isNotEmpty()) {
-                    // Sum up total due and payments across ALL rent/utilities invoices
-                    $rentUtilitiesDue = $rentUtilitiesInvoices->sum('total_due');
-                    $rentUtilitiesPaid = $rentUtilitiesInvoices->sum(function($invoice) {
-                        return $invoice->payments->sum('amount');
-                    });
-
-                    if ($rentUtilitiesPaid == 0) {
-                        $rentUtilitiesStatus = 'Pending Payment';
-                    } elseif ($rentUtilitiesPaid >= $rentUtilitiesDue) {
-                        $rentUtilitiesStatus = 'Paid';
-                    } else {
-                        $rentUtilitiesStatus = 'Partial Payment';
-                    }
-                }
-
-                // Calculate payment status for Security Deposit
-                $securityDepositStatus = 'N/A';
-                $securityDepositPaid = 0;
-                $securityDepositDue = 0;
-                if ($securityDepositInvoice) {
-                    $securityDepositDue = $securityDepositInvoice->total_due;
-                    $securityDepositPaid = $securityDepositInvoice->payments->sum('amount');
-                    if ($securityDepositPaid == 0) {
-                        $securityDepositStatus = 'Pending Payment';
-                    } elseif ($securityDepositPaid >= $securityDepositDue) {
-                        $securityDepositStatus = 'Paid';
-                    } else {
-                        $securityDepositStatus = 'Partial Payment';
-                    }
-                }
-            @endphp
-            <div class="info-item">
-                <span class="info-label">Payment Status</span>
-                <span class="info-value">
-                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                        @if($rentUtilitiesInvoices->isNotEmpty())
-                            <div style="display: flex; flex-direction: column; gap: 0.35rem;">
-                                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <span style="font-weight: 500; color: #2d3748;">{{ $chargeSummary['duration_type'] }} Rent @if(isset($chargeSummary['utilities']) && count($chargeSummary['utilities']) > 0)+ Utilities @endif:</span>
-                                    <span class="status-badge {{ str_replace(' ', '-', $rentUtilitiesStatus) }}">{{ $rentUtilitiesStatus }}</span>
-                                </div>
-                                <span style="font-size: 0.875rem; color: #4a5568; margin-left: 0;">
-                                    ₱{{ number_format($rentUtilitiesPaid, 2) }} / ₱{{ number_format($rentUtilitiesDue, 2) }}
-                                </span>
-                            </div>
-                        @endif
-                        @if($securityDepositInvoice)
-                            @php
-                                // Get the actual current balance from SecurityDeposit model
-                                $deposit = $booking->securityDeposit;
-                                $currentBalance = $deposit ? $deposit->calculateRefundable() : $securityDepositPaid;
-                                $hasDeductions = $deposit && $deposit->amount_deducted > 0;
-                                $isFullyFunded = $currentBalance >= $deposit->amount_required;
-
-                                // Determine status based on actual balance
-                                if ($deposit) {
-                                    if ($deposit->status === 'Forfeited') {
-                                        $securityDepositStatus = 'Forfeited';
-                                    } elseif ($deposit->status === 'Refunded') {
-                                        $securityDepositStatus = 'Refunded';
-                                    } elseif ($currentBalance <= 0) {
-                                        $securityDepositStatus = 'Depleted';
-                                    } elseif ($isFullyFunded) {
-                                        $securityDepositStatus = 'Paid';
-                                    } elseif ($hasDeductions && $currentBalance < $deposit->amount_required) {
-                                        $securityDepositStatus = 'Partially Used';
-                                    } elseif ($securityDepositPaid > 0) {
-                                        $securityDepositStatus = 'Partial Payment';
-                                    } else {
-                                        $securityDepositStatus = 'Pending Payment';
-                                    }
-                                }
-                            @endphp
-                            <div style="display: flex; flex-direction: column; gap: 0.35rem;">
-                                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <span style="font-weight: 500; color: #2d3748;">Security Deposit:</span>
-                                    <span class="status-badge {{ str_replace(' ', '-', $securityDepositStatus) }}">{{ $securityDepositStatus }}</span>
-                                </div>
-                                @if($hasDeductions)
-                                    <span style="font-size: 0.875rem; color: #4a5568; margin-left: 0;">
-                                        Balance: ₱{{ number_format($currentBalance, 2) }} / ₱{{ number_format($securityDepositDue, 2) }}
-                                        <span style="color: #6b7280;">(₱{{ number_format($deposit->amount_deducted, 2) }} used)</span>
-                                    </span>
-                                @else
-                                    <span style="font-size: 0.875rem; color: #4a5568; margin-left: 0;">
-                                        ₱{{ number_format($securityDepositPaid, 2) }} / ₱{{ number_format($securityDepositDue, 2) }}
-                                    </span>
-                                @endif
-                            </div>
-                        @endif
-                    </div>
-                </span>
-            </div>
         </div>
     </div>
     <!-- Charges Summary -->
@@ -715,7 +597,7 @@
         @if(isset($chargeSummary['utilities']) && count($chargeSummary['utilities']) > 0)
             @foreach($chargeSummary['utilities'] as $utility)
             <div class="charge-row">
-                <span>{{ $utility['name'] }}</span>
+                <span>{{ str_replace('Garbage', 'Garbage Collection', $utility['name']) }}</span>
                 <span>₱{{ number_format($utility['amount'], 2) }}</span>
             </div>
             @endforeach
@@ -727,7 +609,13 @@
         </div>
         @endif
         <div class="charge-row total">
-            <span>Total Due</span>
+            <span>
+                @if(in_array($booking->status, ['Pending Payment', 'Reserved']))
+                    Initial Payment Required
+                @else
+                    Total Amount
+                @endif
+            </span>
             <span>₱{{ number_format($chargeSummary['total_due'], 2) }}</span>
         </div>
         @if($chargeSummary['note'])
@@ -753,6 +641,8 @@
                             <th>Date</th>
                             <th>Type</th>
                             <th>Amount</th>
+                            <th>Status</th>
+                            <th>Balance</th>
                             <th>Method</th>
                             <th>Reference</th>
                             <th>Collected By</th>
@@ -775,6 +665,34 @@
                                     str_contains(strtolower($payment->payment_type), 'deposit') => 'deposit',
                                     default => 'other'
                                 };
+
+                                // Format payment type display name
+                                $displayPaymentType = str_replace('Garbage', 'Garbage Collection', $payment->payment_type);
+
+                                // Get invoice and calculate balance
+                                $invoice = $payment->invoice;
+                                if ($invoice) {
+                                    // Get all payments for this invoice up to and including current payment
+                                    $paymentsUpToCurrent = $invoice->payments()
+                                        ->where('date_received', '<=', $payment->date_received)
+                                        ->where(function($q) use ($payment) {
+                                            $q->where('date_received', '<', $payment->date_received)
+                                              ->orWhere(function($q2) use ($payment) {
+                                                  $q2->where('date_received', '=', $payment->date_received)
+                                                     ->where('payment_id', '<=', $payment->payment_id);
+                                              });
+                                        })
+                                        ->sum('amount');
+
+                                    $invoiceTotal = $invoice->total_due;
+                                    $balanceAfter = $invoiceTotal - $paymentsUpToCurrent;
+
+                                    // Check if this payment completed the invoice (made is_paid = true)
+                                    $isPaidAfterThisPayment = $balanceAfter <= 0;
+                                } else {
+                                    $isPaidAfterThisPayment = false;
+                                    $balanceAfter = 0;
+                                }
                             @endphp
                             <tr>
                                 <td>
@@ -782,9 +700,29 @@
                                     <br><small class="text-muted">{{ $payment->created_at->format('g:i A') }}</small>
                                 </td>
                                 <td>
-                                    <span class="payment-type-badge {{ $typeClass }}">{{ $payment->payment_type }}</span>
+                                    <span class="payment-type-badge {{ $typeClass }}">{{ $displayPaymentType }}</span>
                                 </td>
                                 <td style="font-weight: 600; color: #059669;">₱{{ number_format($payment->amount, 2) }}</td>
+                                <td>
+                                    @if($invoice)
+                                        @if($isPaidAfterThisPayment)
+                                            <span class="badge bg-success">Paid</span>
+                                        @else
+                                            <span class="badge bg-warning text-dark">Partial</span>
+                                        @endif
+                                    @else
+                                        <span class="badge bg-secondary">-</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($invoice)
+                                        <span style="font-weight: 500; {{ $balanceAfter > 0 ? 'color: #dc2626;' : 'color: #059669;' }}">
+                                            ₱{{ number_format(max(0, $balanceAfter), 2) }}
+                                        </span>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
                                 <td>
                                     <span class="payment-method-badge {{ $methodClass }}">
                                         @if($methodClass === 'cash')
@@ -918,7 +856,7 @@
                         <td>{{ $refund->reference_number ?? 'N/A' }}</td>
                         <td>
                             <span class="badge bg-{{ $refund->status === 'Completed' ? 'success' : ($refund->status === 'Processed' ? 'warning' : 'secondary') }}">
-                                {{ $refund->status }}
+                                {{ $refund->status === 'Processed' ? 'Refunded' : $refund->status }}
                             </span>
                         </td>
                         <td>{{ $refund->refundedBy->full_name ?? 'N/A' }}</td>
@@ -1138,12 +1076,13 @@
                                name="extension_days"
                                value="{{ $booking->rate->duration_type === 'Monthly' ? '30' : '' }}"
                                min="1"
+                               max="30"
                                required>
                         <small class="text-muted">
                             @if($booking->rate->duration_type === 'Monthly')
                                 Default: 30 days. If past due, days past due will be deducted from extension period (within 3-day grace period).
                             @else
-                                Enter number of days to extend the booking
+                                Enter number of days to extend the booking (maximum 30 days)
                             @endif
                         </small>
                     </div>
@@ -1161,6 +1100,34 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const extensionDaysInput = document.getElementById('extension_days');
+
+        if (extensionDaysInput) {
+            extensionDaysInput.addEventListener('input', function() {
+                let value = parseInt(this.value);
+
+                if (value > 30) {
+                    this.value = 30;
+                } else if (value < 1 && this.value !== '') {
+                    this.value = 1;
+                }
+            });
+
+            extensionDaysInput.addEventListener('change', function() {
+                let value = parseInt(this.value);
+
+                if (value > 30) {
+                    this.value = 30;
+                } else if (value < 1 || isNaN(value)) {
+                    this.value = 1;
+                }
+            });
+        }
+    });
+</script>
 
 @endif
 

@@ -857,8 +857,8 @@
                     <tbody>
                         @foreach($newBookingsInPeriod->take(15) as $booking)
                             <tr>
-                                <td>{{ $booking->checkin_date->format('M d, Y') }}</td>
-                                <td>{{ $booking->checkout_date ? $booking->checkout_date->format('M d, Y') : 'N/A' }}</td>
+                                <td>{{ $booking->checkin_date->format('M d, Y') }}@if($booking->checked_in_at)<br><small class="text-success">{{ $booking->checked_in_at->format('g:i A') }}</small>@endif</td>
+                                <td>{{ $booking->checkout_date ? $booking->checkout_date->format('M d, Y') : 'N/A' }}@if($booking->checked_out_at)<br><small class="text-success">{{ $booking->checked_out_at->format('g:i A') }}</small>@endif</td>
                                 <td class="font-bold">{{ $booking->tenant ? $booking->tenant->full_name : 'N/A' }}</td>
                                 <td>{{ $booking->room ? $booking->room->room_num : 'N/A' }}</td>
                                 <td>{{ $booking->rate ? $booking->rate->duration_type : 'N/A' }}</td>
@@ -895,7 +895,7 @@
                     <tbody>
                         @foreach($checkoutsInPeriod->take(10) as $booking)
                             <tr>
-                                <td>{{ $booking->checkout_date->format('M d, Y') }}</td>
+                                <td>{{ $booking->checkout_date->format('M d, Y') }}@if($booking->checked_out_at)<br><small class="text-success">{{ $booking->checked_out_at->format('g:i A') }}</small>@endif</td>
                                 <td class="font-bold">{{ $booking->tenant ? $booking->tenant->full_name : 'N/A' }}</td>
                                 <td>{{ $booking->room ? $booking->room->room_num : 'N/A' }}</td>
                                 <td><span class="badge badge-completed">Completed</span></td>

@@ -56,6 +56,11 @@
         color: #92400e;
     }
 
+    .status-badge.cleaning {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+
     .status-badge.pending {
         background-color: #fef3c7;
         color: #92400e;
@@ -130,6 +135,11 @@
     .btn-action.btn-back:hover {
         background-color: #e2e8f0;
         color: #334155;
+    }
+
+    .btn-action.btn-booking {
+        background-color: #f1f5f9;
+        color: #475569;
     }
 
     .btn-action.btn-add-asset {
@@ -356,6 +366,11 @@
             <a href="{{ route('rooms.index') }}" class="btn-action btn-back">
                 <i class="bi bi-arrow-left"></i> Back to Rooms
             </a>
+            @if($room->activeBooking)
+                <a href="{{ route('bookings.show', $room->activeBooking->booking_id) }}" class="btn-action btn-booking">
+                    <i class="bi bi-file-earmark-text"></i> View Booking Details
+                </a>
+            @endif
         </div>
     </div>
 
@@ -390,13 +405,22 @@
                 <span class="info-label">Status</span>
                 <span class="info-value" style="display: flex; align-items: center; gap: 0.5rem;">
                     <span class="status-badge {{ $room->status }}">{{ ucfirst($room->status) }}</span>
-                    <button type="button"
-                            class="btn-edit-status"
-                            data-bs-toggle="modal"
-                            data-bs-target="#editStatusModal"
-                            title="Edit Status">
-                        <i class="bi bi-pencil-square"></i>
-                    </button>
+                    @if($room->status === 'cleaning')
+                        <form action="{{ route('rooms.mark-cleaned', $room->room_id) }}" method="POST" style="display: inline;">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Mark this room as cleaned and available?')">
+                                <i class="bi bi-check-circle"></i> Mark as Cleaned
+                            </button>
+                        </form>
+                    @else
+                        <button type="button"
+                                class="btn-edit-status"
+                                data-bs-toggle="modal"
+                                data-bs-target="#editStatusModal"
+                                title="Edit Status">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                    @endif
                 </span>
             </div>
             <div class="info-item">
@@ -712,12 +736,13 @@
                                     required>
                                 <option value="available" {{ old('status', $room->status) === 'available' ? 'selected' : '' }}>Available</option>
                                 <option value="occupied" {{ old('status', $room->status) === 'occupied' ? 'selected' : '' }}>Occupied</option>
+                                <option value="cleaning" {{ old('status', $room->status) === 'cleaning' ? 'selected' : '' }}>Cleaning</option>
                                 <option value="maintenance" {{ old('status', $room->status) === 'maintenance' ? 'selected' : '' }}>Maintenance</option>
                             </select>
                             @error('status')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <small class="text-muted">Select "Maintenance" if the room needs repair (e.g., broken aircon, damage, etc.)</small>
+                            <small class="text-muted">Select "Cleaning" if room needs cleaning, or "Maintenance" if it needs repair.</small>
                         </div>
                     @endif
                 </div>

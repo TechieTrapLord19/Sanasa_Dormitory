@@ -25,6 +25,11 @@ public function index(Request $request): View
     $perPage = (int) $request->input('per_page', 10);
     $bookingId = $request->get('booking_id');
 
+    // Date filtering
+    $dateFilter = $request->input('date_filter', 'all');
+    $dateFrom = $request->input('date_from');
+    $dateTo = $request->input('date_to');
+
     if (! in_array($perPage, [10, 25, 50], true)) {
         $perPage = 10;
     }
@@ -91,6 +96,42 @@ public function index(Request $request): View
         $invoiceQuery->whereHas('booking', function ($query) {
             $query->where('status', 'Canceled');
         });
+    }
+
+    // Date filtering
+    if ($dateFilter !== 'all') {
+        $now = now();
+        switch ($dateFilter) {
+            case 'today':
+                $invoiceQuery->whereDate('date_generated', $now->toDateString());
+                break;
+            case 'this_week':
+                $invoiceQuery->whereBetween('date_generated', [
+                    $now->startOfWeek()->toDateString(),
+                    $now->endOfWeek()->toDateString()
+                ]);
+                break;
+            case 'this_month':
+                $invoiceQuery->whereYear('date_generated', $now->year)
+                    ->whereMonth('date_generated', $now->month);
+                break;
+            case 'last_month':
+                $lastMonth = $now->copy()->subMonth();
+                $invoiceQuery->whereYear('date_generated', $lastMonth->year)
+                    ->whereMonth('date_generated', $lastMonth->month);
+                break;
+            case 'this_year':
+                $invoiceQuery->whereYear('date_generated', $now->year);
+                break;
+            case 'custom':
+                if ($dateFrom) {
+                    $invoiceQuery->whereDate('date_generated', '>=', $dateFrom);
+                }
+                if ($dateTo) {
+                    $invoiceQuery->whereDate('date_generated', '<=', $dateTo);
+                }
+                break;
+        }
     }
 
     if ($searchTerm !== '') {
@@ -244,6 +285,9 @@ public function index(Request $request): View
         'searchTerm' => $searchTerm,
         'perPage' => $perPage,
         'highlightInvoiceId' => $highlightInvoiceId,
+        'dateFilter' => $dateFilter,
+        'dateFrom' => $dateFrom,
+        'dateTo' => $dateTo,
     ]);
 }
 

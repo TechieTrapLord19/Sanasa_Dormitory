@@ -18,6 +18,8 @@ class Booking extends Model
         'recorded_by_user_id',
         'checkin_date',
         'checkout_date',
+        'checked_in_at',
+        'checked_out_at',
         'total_calculated_fee',
         'status',
         'cancellation_reason',
@@ -27,6 +29,8 @@ class Booking extends Model
     protected $casts = [
         'checkin_date' => 'date',
         'checkout_date' => 'date',
+        'checked_in_at' => 'datetime',
+        'checked_out_at' => 'datetime',
         'total_calculated_fee' => 'decimal:2',
     ];
 

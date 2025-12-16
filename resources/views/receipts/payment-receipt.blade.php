@@ -249,11 +249,11 @@
             <div class="receipt-section-content">
                 <div class="receipt-row">
                     <span class="receipt-label">Check-In Date:</span>
-                    <span class="receipt-value">{{ $booking->checkin_date->format('M d, Y') }}</span>
+                    <span class="receipt-value">{{ $booking->checkin_date->format('M d, Y') }}@if($booking->checked_in_at) (Arrived: {{ $booking->checked_in_at->format('g:i A') }})@endif</span>
                 </div>
                 <div class="receipt-row">
                     <span class="receipt-label">Check-Out Date:</span>
-                    <span class="receipt-value">{{ $booking->checkout_date->format('M d, Y') }}</span>
+                    <span class="receipt-value">{{ $booking->checkout_date->format('M d, Y') }}@if($booking->checked_out_at) (Left: {{ $booking->checked_out_at->format('g:i A') }})@endif</span>
                 </div>
             </div>
         </div>

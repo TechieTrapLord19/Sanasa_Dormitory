@@ -508,10 +508,20 @@
                         {{ $booking->room->room_num }}
                     </td>
                     <td>
-                        {{ $booking->checkin_date->format('M d, Y') }}
+                        @if($booking->checked_in_at)
+                            {{ $booking->checked_in_at->format('M d, Y') }}
+                            <br><small class="text-success">{{ $booking->checked_in_at->format('g:i A') }}</small>
+                        @else
+                            {{ $booking->checkin_date->format('M d, Y') }}
+                        @endif
                     </td>
                     <td>
-                        {{ $booking->checkout_date->format('M d, Y') }}
+                        @if($booking->checked_out_at)
+                            {{ $booking->checked_out_at->format('M d, Y') }}
+                            <br><small class="text-success">{{ $booking->checked_out_at->format('g:i A') }}</small>
+                        @else
+                            {{ $booking->checkout_date->format('M d, Y') }}
+                        @endif
                     </td>
                     <td>
                         {{ $booking->rate->duration_type }} - ₱{{ number_format($booking->rate->base_price, 2) }}

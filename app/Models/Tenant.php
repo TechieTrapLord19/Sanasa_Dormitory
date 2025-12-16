@@ -18,6 +18,7 @@ class Tenant extends Model
         'id_document',
         'contact_num',
         'emer_contact_num',
+        'emer_contact_name',
         'status',
     ];
 

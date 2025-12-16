@@ -25,19 +25,22 @@ class SalesController extends Controller
 
         // Get total REVENUE (Rent/Utility + Deposit Deductions - these are actual income)
         $totalSales = Payment::whereIn('payment_type', ['Rent/Utility', 'Deposit Deduction'])
-            ->whereBetween('date_received', [$startDate, $endDate])
+            ->whereDate('date_received', '>=', $startDate)
+            ->whereDate('date_received', '<=', $endDate)
             ->sum('amount');
 
         // Get revenue transactions only (exclude Security Deposit payments from table)
         $payments = Payment::with(['invoice.booking.tenant', 'invoice.booking.secondaryTenant', 'invoice.booking.room', 'collectedBy'])
             ->whereIn('payment_type', ['Rent/Utility', 'Deposit Deduction'])
-            ->whereBetween('date_received', [$startDate, $endDate])
+            ->whereDate('date_received', '>=', $startDate)
+            ->whereDate('date_received', '<=', $endDate)
             ->orderBy('date_received', 'desc')
             ->paginate($perPage);
 
         // Calculate counts (revenue transactions only)
         $totalTransactions = Payment::whereIn('payment_type', ['Rent/Utility', 'Deposit Deduction'])
-            ->whereBetween('date_received', [$startDate, $endDate])
+            ->whereDate('date_received', '>=', $startDate)
+            ->whereDate('date_received', '<=', $endDate)
             ->count();
 
         // Get outstanding balance (unpaid invoices)
@@ -49,7 +52,8 @@ class SalesController extends Controller
                 DB::raw('SUM(amount) as total')
             )
             ->whereIn('payment_type', ['Rent/Utility', 'Deposit Deduction'])
-            ->whereBetween('date_received', [$startDate, $endDate])
+            ->whereDate('date_received', '>=', $startDate)
+            ->whereDate('date_received', '<=', $endDate)
             ->groupBy(DB::raw('CAST(date_received AS DATE)'))
             ->orderBy('date')
             ->get();
@@ -61,11 +65,13 @@ class SalesController extends Controller
 
         // Prepare payment type chart data (for Doughnut Chart) - Revenue breakdown
         $rentUtilityTotal = Payment::where('payment_type', 'Rent/Utility')
-            ->whereBetween('date_received', [$startDate, $endDate])
+            ->whereDate('date_received', '>=', $startDate)
+            ->whereDate('date_received', '<=', $endDate)
             ->sum('amount');
 
         $depositDeductionTotal = Payment::where('payment_type', 'Deposit Deduction')
-            ->whereBetween('date_received', [$startDate, $endDate])
+            ->whereDate('date_received', '>=', $startDate)
+            ->whereDate('date_received', '<=', $endDate)
             ->sum('amount');
 
         $paymentTypeChart = [
@@ -93,24 +99,28 @@ class SalesController extends Controller
 
         // Get total REVENUE (Rent/Utility + Deposit Deductions - these are actual income)
         $totalSales = Payment::whereIn('payment_type', ['Rent/Utility', 'Deposit Deduction'])
-            ->whereBetween('date_received', [$startDate, $endDate])
+            ->whereDate('date_received', '>=', $startDate)
+            ->whereDate('date_received', '<=', $endDate)
             ->sum('amount');
 
         // Get total Security Deposits received (liability, not revenue)
         $totalSecurityDeposits = Payment::where('payment_type', 'Security Deposit')
-            ->whereBetween('date_received', [$startDate, $endDate])
+            ->whereDate('date_received', '>=', $startDate)
+            ->whereDate('date_received', '<=', $endDate)
             ->sum('amount');
 
         // Get sales by payment type
         $salesByType = Payment::select('payment_type', DB::raw('SUM(amount) as total'))
-            ->whereBetween('date_received', [$startDate, $endDate])
+            ->whereDate('date_received', '>=', $startDate)
+            ->whereDate('date_received', '<=', $endDate)
             ->groupBy('payment_type')
             ->get()
             ->pluck('total', 'payment_type');
 
         // Get all payment transactions
         $payments = Payment::with(['invoice.booking.tenant', 'invoice.booking.secondaryTenant', 'invoice.booking.room', 'collectedBy'])
-            ->whereBetween('date_received', [$startDate, $endDate])
+            ->whereDate('date_received', '>=', $startDate)
+            ->whereDate('date_received', '<=', $endDate)
             ->orderBy('date_received', 'desc')
             ->get();
 
@@ -143,24 +153,28 @@ class SalesController extends Controller
         // ============ 1. FINANCIAL SUMMARY ============
         // Total Revenue (Rent/Utility + Deposit Deductions)
         $totalRevenue = Payment::whereIn('payment_type', ['Rent/Utility', 'Deposit Deduction'])
-            ->whereBetween('date_received', [$startDate, $endDate])
+            ->whereDate('date_received', '>=', $startDate)
+            ->whereDate('date_received', '<=', $endDate)
             ->sum('amount');
 
         // Total Security Deposits received (liability)
         $totalSecurityDeposits = Payment::where('payment_type', 'Security Deposit')
-            ->whereBetween('date_received', [$startDate, $endDate])
+            ->whereDate('date_received', '>=', $startDate)
+            ->whereDate('date_received', '<=', $endDate)
             ->sum('amount');
 
         // Revenue by payment type
         $revenueByType = Payment::select('payment_type', DB::raw('SUM(amount) as total'))
-            ->whereBetween('date_received', [$startDate, $endDate])
+            ->whereDate('date_received', '>=', $startDate)
+            ->whereDate('date_received', '<=', $endDate)
             ->groupBy('payment_type')
             ->get()
             ->pluck('total', 'payment_type');
 
         // Payment methods breakdown
         $paymentsByMethod = Payment::select('payment_method', DB::raw('COUNT(*) as count'), DB::raw('SUM(amount) as total'))
-            ->whereBetween('date_received', [$startDate, $endDate])
+            ->whereDate('date_received', '>=', $startDate)
+            ->whereDate('date_received', '<=', $endDate)
             ->groupBy('payment_method')
             ->get();
 
@@ -172,11 +186,12 @@ class SalesController extends Controller
         });
 
         // Total transactions
-        $totalTransactions = Payment::whereBetween('date_received', [$startDate, $endDate])->count();
+        $totalTransactions = Payment::whereDate('date_received', '>=', $startDate)->whereDate('date_received', '<=', $endDate)->count();
 
         // Get payment transactions for detail table
         $payments = Payment::with(['invoice.booking.tenant', 'invoice.booking.secondaryTenant', 'invoice.booking.room', 'collectedBy'])
-            ->whereBetween('date_received', [$startDate, $endDate])
+            ->whereDate('date_received', '>=', $startDate)
+            ->whereDate('date_received', '<=', $endDate)
             ->orderBy('date_received', 'desc')
             ->get();
 

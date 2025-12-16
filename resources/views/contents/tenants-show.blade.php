@@ -403,7 +403,7 @@
         </div>
     @endif
 
-    <form action="{{ route('tenants.update', $tenant->tenant_id) }}" method="POST" id="tenantForm">
+    <form action="{{ route('tenants.update', $tenant->tenant_id) }}" method="POST" id="tenantForm" enctype="multipart/form-data">
         @csrf
         @method('PUT')
 
@@ -475,7 +475,17 @@
                 <!-- Column 3: Additional Info (Stacked) -->
                 <div style="display: flex; flex-direction: column; gap: 1rem;">
                     <div class="info-item">
-                        <span class="info-label">Emergency Contact</span>
+                        <span class="info-label">Emergency Contact Name</span>
+                        <span class="info-value info-value-view">{{ $tenant->emer_contact_name ?? 'N/A' }}</span>
+                        <input type="text" class="form-control info-value-edit @error('emer_contact_name') is-invalid @enderror"
+                               name="emer_contact_name" value="{{ old('emer_contact_name', $tenant->emer_contact_name) }}"
+                               placeholder="e.g., Juan Dela Cruz (Father)">
+                        @error('emer_contact_name')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Emergency Contact Number</span>
                         <span class="info-value info-value-view">{{ $tenant->emer_contact_num ?? 'N/A' }}</span>
                         <input type="text" class="form-control info-value-edit @error('emer_contact_num') is-invalid @enderror"
                                name="emer_contact_num" value="{{ old('emer_contact_num', $tenant->emer_contact_num) }}">
@@ -494,9 +504,25 @@
                     </div>
                     <div class="info-item">
                         <span class="info-label">ID Document</span>
-                        <span class="info-value info-value-view">{{ $tenant->id_document ?? 'N/A' }}</span>
-                        <input type="text" class="form-control info-value-edit @error('id_document') is-invalid @enderror"
-                               name="id_document" value="{{ old('id_document', $tenant->id_document) }}">
+                        <span class="info-value info-value-view">
+                            @if($tenant->id_document)
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#idDocumentModal">
+                                    <i class="bi bi-eye"></i> View ID
+                                </button>
+                            @else
+                                <span class="text-muted">No ID uploaded</span>
+                            @endif
+                        </span>
+                        <div class="info-value-edit">
+                            @if($tenant->id_document)
+                                <div class="mb-2">
+                                    <img src="{{ asset($tenant->id_document) }}" alt="Current ID" class="img-thumbnail" style="max-height: 80px;">
+                                </div>
+                            @endif
+                            <input type="file" class="form-control @error('id_document') is-invalid @enderror"
+                                   name="id_document" accept="image/*">
+                            <small class="text-muted">{{ $tenant->id_document ? 'Upload new to replace' : 'Upload ID image' }}</small>
+                        </div>
                         @error('id_document')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -654,8 +680,18 @@
                                 <td>
                                     <strong>Room {{ $booking->room->room_num ?? 'N/A' }}</strong>
                                 </td>
-                                <td>{{ $booking->checkin_date->format('M d, Y') }}</td>
-                                <td>{{ $booking->checkout_date->format('M d, Y') }}</td>
+                                <td>
+                                    {{ $booking->checkin_date->format('M d, Y') }}
+                                    @if($booking->checked_in_at)
+                                        <br><small class="text-success">{{ $booking->checked_in_at->format('g:i A') }}</small>
+                                    @endif
+                                </td>
+                                <td>
+                                    {{ $booking->checkout_date->format('M d, Y') }}
+                                    @if($booking->checked_out_at)
+                                        <br><small class="text-success">{{ $booking->checked_out_at->format('g:i A') }}</small>
+                                    @endif
+                                </td>
                                 <td>{{ $booking->rate->duration_type ?? 'N/A' }} &middot; ₱{{ number_format($booking->rate->base_price ?? 0, 2) }}</td>
                                 <td>
                                     <span class="status-badge {{ str_replace(' ', '-', $booking->effective_status) }}">
@@ -740,5 +776,28 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<!-- ID Document View Modal -->
+@if($tenant->id_document)
+<div class="modal fade" id="idDocumentModal" tabindex="-1" aria-labelledby="idDocumentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="idDocumentModalLabel">ID Document - {{ $tenant->full_name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img src="{{ asset($tenant->id_document) }}" alt="ID Document" class="img-fluid" style="max-height: 70vh;">
+            </div>
+            <div class="modal-footer">
+                <a href="{{ asset($tenant->id_document) }}" target="_blank" class="btn btn-outline-primary">
+                    <i class="bi bi-box-arrow-up-right"></i> Open in New Tab
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 @endsection
 

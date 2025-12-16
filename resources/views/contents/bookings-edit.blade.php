@@ -494,6 +494,9 @@
                         @error('checkin_date')
                             <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
+                        @if($booking->checked_in_at)
+                            <small class="text-success">Arrived: {{ $booking->checked_in_at->format('M d, Y - g:i A') }}</small>
+                        @endif
                     </div>
                 </div>
 
@@ -505,7 +508,9 @@
                                id="checkout_display"
                                readonly>
                         <input type="hidden" name="checkout_date" id="checkout_date" value="{{ old('checkout_date', $booking->checkout_date->format('Y-m-d')) }}">
-
+                        @if($booking->checked_out_at)
+                            <small class="text-success">Left: {{ $booking->checked_out_at->format('M d, Y - g:i A') }}</small>
+                        @endif
                     </div>
                 </div>
 
@@ -937,8 +942,12 @@ function calculatePricingSummary(days) {
         securityDeposit = monthlySecurityDeposit;
         inclusionNote = 'Security deposit is a separate one-time payment (not included in invoice). Utilities are itemized separately for monthly stays.';
     } else if (duration === 'Weekly') {
-        const weeks = Math.max(1, Math.ceil(days / 7));
-        rateTotal = rate.base_price * weeks;
+        const fullWeeks = Math.floor(days / 7);
+        const remainingDays = days % 7;
+
+        // Calculate weekly rate (₱1,750/week = ₱250/day)
+        const dailyRate = rate.base_price / 7;
+        rateTotal = (fullWeeks * rate.base_price) + (remainingDays * dailyRate);
         inclusionNote = 'Water and Wi-Fi are included in the weekly package.';
     } else {
         rateTotal = rate.base_price * Math.max(1, days);

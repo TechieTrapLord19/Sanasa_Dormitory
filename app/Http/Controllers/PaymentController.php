@@ -16,21 +16,7 @@ use App\Traits\LogsActivity;
 class PaymentController extends Controller
 {
     use LogsActivity;
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
-    }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
 
     /**
      * Store a newly created resource in storage.
@@ -66,8 +52,18 @@ class PaymentController extends Controller
             ]);
         }
 
-        // Determine payment type based on invoice type
+        // Validate amount does not exceed outstanding balance
         $invoiceForType = Invoice::with('invoiceUtilities')->findOrFail($validated['invoice_id']);
+        $totalPaid = $invoiceForType->payments()->sum('amount');
+        $outstandingBalance = $invoiceForType->total_due - $totalPaid;
+
+        if ($validated['amount'] > $outstandingBalance) {
+            throw ValidationException::withMessages([
+                'amount' => 'Payment amount (₱' . number_format($validated['amount'], 2) . ') cannot exceed outstanding balance (₱' . number_format($outstandingBalance, 2) . ').',
+            ]);
+        }
+
+        // Determine payment type based on invoice type
         $hasUtilities = $invoiceForType->invoiceUtilities && $invoiceForType->invoiceUtilities->count() > 0;
         $isSecurityDepositInvoice = ($invoiceForType->rent_subtotal == 0 &&
                                     !$hasUtilities &&
@@ -264,37 +260,6 @@ class PaymentController extends Controller
         $securityDeposit->save();
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
 
     /**
      * Show receipt for a payment

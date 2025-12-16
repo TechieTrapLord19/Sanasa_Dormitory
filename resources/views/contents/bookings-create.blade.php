@@ -110,6 +110,38 @@
         margin-bottom: 1rem;
     }
 
+    /* Selected Tenants Display */
+    .selected-tenants-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .selected-tenant-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background-color: #e0f2fe;
+        border: 1px solid #03255b;
+        color: #03255b;
+        padding: 0.4rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .selected-tenant-badge .remove-tenant {
+        cursor: pointer;
+        font-size: 1rem;
+        line-height: 1;
+        color: #dc2626;
+        font-weight: 700;
+    }
+
+    .selected-tenant-badge .remove-tenant:hover {
+        color: #991b1b;
+    }
+
     .duration-button {
         border: 1px solid #cbd5e0;
         background-color: #f7fafc;
@@ -175,6 +207,35 @@
         cursor: not-allowed;
         background-color: #fee2e2;
         border-color: #dc2626;
+    }
+
+    /* Room Status Colors - Simple Gray Disabled */
+    .room-card.room-occupied,
+    .room-card.room-maintenance,
+    .room-card.room-pending {
+        background-color: #f3f4f6;
+        border-color: #d1d5db;
+        cursor: not-allowed;
+        opacity: 0.7;
+        position: relative;
+    }
+
+    .room-card.room-occupied:hover,
+    .room-card.room-maintenance:hover,
+    .room-card.room-pending:hover {
+        background-color: #f3f4f6;
+        border-color: #d1d5db;
+    }
+
+    .room-status-badge {
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-top: 0.25rem;
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        background-color: #6b7280;
+        color: white;
     }
 
     .room-number {
@@ -438,6 +499,33 @@
 <div class="booking-form-container">
     <h1 class="mb-4" style="color: #03255b; font-size: 2rem; font-weight: 700;">Create New Booking</h1>
 
+    <!-- Display Validation Errors -->
+    @if ($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong><i class="bi bi-exclamation-triangle"></i> Please fix the following errors:</strong>
+            <ul class="mb-0 mt-2">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong><i class="bi bi-exclamation-triangle"></i> Error:</strong> {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <strong><i class="bi bi-check-circle"></i> Success:</strong> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <!-- Step Indicator -->
     <div class="step-indicator">
         <div class="step active" data-step="1">
@@ -492,13 +580,14 @@
 
                 <div class="col-md-4">
                     <div class="form-group">
-                        <label class="form-label">Stay Length <span class="text-danger">*</span></label>
+                        <label class="form-label">Stay Length <span class="text-danger">*</span> <small class="text-muted">(max 30 days)</small></label>
                         <input type="number"
                                id="custom_stay_length"
                                name="custom_stay_length"
                                min="1"
+                               max="30"
                                class="form-control @error('stay_length') is-invalid @enderror"
-                               placeholder="Enter days">
+                               placeholder="Enter days (1-30)">
                         <input type="hidden" name="stay_length" id="stay_length" value="{{ old('stay_length') }}" required>
                         @error('stay_length')
                             <div class="text-danger small mt-1">{{ $message }}</div>
@@ -519,7 +608,18 @@
             <div class="form-group">
                 <label class="form-label">Available Rooms <span class="text-danger">*</span></label>
                 <div id="roomsContainer" class="rooms-grid">
-                    <p class="text-muted">Please select check-in date and stay length to see available rooms.</p>
+                    @forelse($rooms as $room)
+                        <div class="room-card"
+                             data-room-id="{{ $room->room_id }}"
+                             data-capacity="{{ $room->capacity }}"
+                             data-status="{{ $room->status }}"
+                             onclick="selectRoom({{ $room->room_id }})">
+                            <div class="room-number">{{ $room->room_num }}</div>
+                            <div class="room-floor">Floor {{ $room->floor }} • Capacity: {{ $room->capacity }}</div>
+                        </div>
+                    @empty
+                        <p class="text-muted">No available rooms at the moment.</p>
+                    @endforelse
                 </div>
             <input type="hidden" name="room_id" id="selected_room_id" value="{{ old('room_id', $selectedRoomId ?? '') }}" required>                @error('room_id')
                     <div class="text-danger small mt-1">{{ $message }}</div>
@@ -564,6 +664,7 @@
                         </div>
                     </div>
                 </div>
+                <div id="selectedTenantsContainer" class="selected-tenants-container mt-2"></div>
                 <small class="text-muted d-block mt-2">Select up to 2 tenants per booking (limited by room capacity).</small>
                 @error('tenant_ids')
                     <div class="text-danger small mt-1">{{ $message }}</div>
@@ -592,8 +693,8 @@
                     <span id="summary_checkout">-</span>
                 </div>
                 <div class="summary-row">
-                    <span>Total Nights:</span>
-                    <span id="summary_nights">-</span>
+                    <span>Total Days:</span>
+                    <span id="summary_days">-</span>
                 </div>
                 <div class="summary-row">
                     <span>Tenant(s):</span>
@@ -611,7 +712,7 @@
                 </ul>
                 <div class="italic-note" id="summary_inclusion_note" style="display:none;"></div>
                 <div class="summary-row total">
-                    <span>Total Due on Arrival:</span>
+                    <span>Initial Payment Required:</span>
                     <span id="summary_total_due">₱0.00</span>
                 </div>
             </div>
@@ -642,7 +743,7 @@
                 <h5 class="modal-title" id="tenantModalLabel">Add New Tenant</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="tenantForm">
+            <form id="tenantForm" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body">
                     <div class="row">
@@ -665,28 +766,36 @@
                             <input type="email" class="form-control" id="email" name="email">
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="contact_num" class="form-label">Contact Number</label>
-                            <input type="text" class="form-control" id="contact_num" name="contact_num" placeholder="0912-345-6789">
+                            <label for="contact_num" class="form-label">Contact Number <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="contact_num" name="contact_num" placeholder="0912-345-6789" required>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="emer_contact_num" class="form-label">Emergency Contact Number</label>
-                            <input type="text" class="form-control" id="emer_contact_num" name="emer_contact_num" placeholder="0917-969-4567">
+                            <label for="emer_contact_num" class="form-label">Emergency Contact Number <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="emer_contact_num" name="emer_contact_num" placeholder="0917-969-4567" required>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="birth_date" class="form-label">Birth Date</label>
-                            <input type="date" class="form-control" id="birth_date" name="birth_date">
+                            <label for="emer_contact_name" class="form-label">Emergency Contact Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="emer_contact_name" name="emer_contact_name" placeholder="e.g., Parent, Spouse, Sibling" required>
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="address" class="form-label">Address</label>
-                        <textarea class="form-control" id="address" name="address" rows="2" placeholder="Street, City, Province"></textarea>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="id_document" class="form-label">ID Document</label>
-                            <input type="text" class="form-control" id="id_document" name="id_document" placeholder="e.g., Driver's License, Passport">
+                            <label for="birth_date" class="form-label">Birth Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="birth_date" name="birth_date"
+                                   max="{{ now()->subYears(12)->format('Y-m-d') }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="address" class="form-label">Address</label>
+                            <textarea class="form-control" id="address" name="address" rows="2" placeholder="Street, City, Province"></textarea>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_document" class="form-label">ID Document <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control" id="id_document" name="id_document" accept="image/*" required>
+                            <small class="text-muted">Upload a photo of valid ID</small>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
@@ -832,10 +941,20 @@ function validateStep(step) {
         // Check if at least one tenant checkbox is selected
         const tenantCheckboxes = document.querySelectorAll('.tenant-checkbox:checked');
 
-        console.log('Tenant checkboxes checked:', tenantCheckboxes.length);
+        console.log('Step 2 validation - Tenant checkboxes checked:', tenantCheckboxes.length);
+        console.log('Checked tenant IDs:', Array.from(tenantCheckboxes).map(cb => cb.value));
 
         if (tenantCheckboxes.length === 0) {
             showToast('Please select at least one tenant.', 'warning');
+            return false;
+        }
+
+        // Also verify rate_id is set
+        const rateId = document.getElementById('rate_id').value;
+        console.log('Step 2 validation - Rate ID:', rateId);
+
+        if (!rateId) {
+            showToast('Rate not selected. Please go back and set stay length.', 'warning');
             return false;
         }
 
@@ -856,7 +975,20 @@ function determineRateDuration(days) {
     return 'Daily';
 }
 
+// Format utility names for display
+function formatUtilityName(name) {
+    const nameMap = {
+        'Garbage': 'Garbage Collection',
+        'garbage': 'Garbage Collection',
+    };
+    return nameMap[name] || name;
+}
+
 function setStayLength(days) {
+    // Cap at 30 days maximum (boarding house rule)
+    if (days > 30) {
+        days = 30;
+    }
     console.log('Setting stay length to:', days);
     document.getElementById('stay_length').value = days;
     document.getElementById('custom_stay_length').value = days;
@@ -886,8 +1018,6 @@ function calculateCheckoutDate() {
     const isoDate = checkoutDate.toISOString().split('T')[0];
     document.getElementById('checkout_date').value = isoDate;
     document.getElementById('checkout_display').value = checkoutDate.toLocaleDateString();
-
-    checkAvailability();
 }
 
 function updateRateSelection(days) {
@@ -934,8 +1064,13 @@ function highlightDurationButton(activeButton) {
 }
 
 function handleCustomStayLength(event) {
-    const value = parseInt(event.target.value, 10);
+    let value = parseInt(event.target.value, 10);
     if (!isNaN(value) && value > 0) {
+        // Cap at 30 days maximum (boarding house rule: book 1 month, renew as needed)
+        if (value > 30) {
+            value = 30;
+            event.target.value = 30;
+        }
         setStayLength(value);
         highlightDurationButton(null);
     }
@@ -952,7 +1087,7 @@ function updateSummary() {
     document.getElementById('summary_room').textContent = roomSelect ? roomSelect.querySelector('.room-number').textContent : '-';
     document.getElementById('summary_checkin').textContent = checkin ? new Date(checkin).toLocaleDateString() : '-';
     document.getElementById('summary_checkout').textContent = checkout ? new Date(checkout).toLocaleDateString() : '-';
-    document.getElementById('summary_nights').textContent = stayLength ? `${stayLength} night(s)` : '-';
+    document.getElementById('summary_days').textContent = stayLength ? `${stayLength} day(s)` : '-';
     const tenantNames = getSelectedTenantNames();
     document.getElementById('summary_tenant').textContent = tenantNames.length ? tenantNames.join(' & ') : '-';
     document.getElementById('summary_rate').textContent = duration && rate ? `${duration} - ₱${Number(rate.base_price).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '-';
@@ -989,7 +1124,9 @@ function updateSummary() {
                 if (utilityFee > 0) {
                     const li = document.createElement('li');
                     li.className = 'utility-row';
-                    li.innerHTML = `<span>${utilityName}</span><span>₱${utilityFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
+                    // Format utility name for display
+                    const displayName = formatUtilityName(utilityName);
+                    li.innerHTML = `<span>${displayName}</span><span>₱${utilityFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
                     // Insert before the total row (which is the last item, but we need to insert before Security Deposit if it exists, or at the end)
                     const depositRowElement = chargesList.querySelector('#summary_deposit_row');
                     if (depositRowElement && depositRowElement.style.display !== 'none') {
@@ -1092,8 +1229,12 @@ function calculatePricingSummary(days, rate) {
         securityDeposit = monthlySecurityDeposit;
         inclusionNote = 'Security deposit is a separate invoice. Utilities are itemized separately for monthly stays.';
     } else if (duration === 'Weekly') {
-        const weeks = Math.max(1, Math.ceil(days / 7));
-        rateTotal = rate.base_price * weeks;
+        const fullWeeks = Math.floor(days / 7);
+        const remainingDays = days % 7;
+
+        // Calculate weekly rate (₱1,750/week = ₱250/day)
+        const dailyRate = rate.base_price / 7;
+        rateTotal = (fullWeeks * rate.base_price) + (remainingDays * dailyRate);
         inclusionNote = 'Water, Wi-Fi and Electricity are included in the weekly package.';
     } else {
         rateTotal = rate.base_price * Math.max(1, days);
@@ -1111,64 +1252,93 @@ function calculatePricingSummary(days, rate) {
 function checkAvailability() {
     const checkin = document.getElementById('checkin_date').value;
     const checkout = document.getElementById('checkout_date').value;
+    const allRoomCards = document.querySelectorAll('.room-card');
 
+    // If no dates selected, restore rooms to their initial status
     if (!checkin || !checkout) {
+        allRoomCards.forEach(card => {
+            const roomStatus = card.getAttribute('data-status');
+            // Remove unavailable class added by date check
+            card.classList.remove('unavailable');
+            // Only make clickable if room is available status
+            if (roomStatus === 'available') {
+                card.onclick = function() { selectRoom(parseInt(card.getAttribute('data-room-id'))); };
+            } else {
+                card.onclick = null; // Keep occupied/maintenance/pending rooms unclickable
+            }
+        });
         return;
     }
 
     if (new Date(checkout) <= new Date(checkin)) {
-        document.getElementById('roomsContainer').innerHTML = '<p class="text-danger">Check-out date must be after check-in date.</p>';
         return;
     }
-
-    document.getElementById('roomsContainer').innerHTML = '<p class="text-muted">Loading available rooms...</p>';
 
     const preSelectedRoomId = document.getElementById('selected_room_id').value;
 
     fetch(`{{ route('bookings.check-availability') }}?checkin_date=${checkin}&checkout_date=${checkout}`)
         .then(response => response.json())
         .then(data => {
-            const container = document.getElementById('roomsContainer');
-            if (data.available_rooms && data.available_rooms.length > 0) {
-                container.innerHTML = data.available_rooms.map(room => {
-                    const capacity = room.capacity !== undefined && room.capacity !== null ? room.capacity : 2;
-                    const isPreSelected = preSelectedRoomId && parseInt(preSelectedRoomId) === room.room_id;
-                    return `
-                    <div class="room-card ${isPreSelected ? 'selected' : ''}" data-room-id="${room.room_id}" data-capacity="${capacity}" onclick="selectRoom(${room.room_id})">
-                        <div class="room-number">${room.room_num}</div>
-                        <div class="room-floor">Floor ${room.floor} • Capacity: ${capacity}</div>
-                    </div>`;
-                }).join('');
+            const availableRoomIds = data.available_rooms ? data.available_rooms.map(r => r.room_id) : [];
 
-                // If pre-selected room exists, set the capacity limit
-                if (preSelectedRoomId) {
-                    const preSelectedCard = document.querySelector(`.room-card[data-room-id="${preSelectedRoomId}"]`);
-                    if (preSelectedCard) {
-                        const capacity = parseInt(preSelectedCard.getAttribute('data-capacity'), 10);
-                        roomCapacityLimit = isNaN(capacity) ? 2 : capacity;
+            // Update each room card's availability status
+            allRoomCards.forEach(card => {
+                const roomId = parseInt(card.getAttribute('data-room-id'));
+                const roomStatus = card.getAttribute('data-status');
+
+                // Only mark as available if it's in the available list AND has 'available' status
+                if (availableRoomIds.includes(roomId) && roomStatus === 'available') {
+                    card.classList.remove('unavailable');
+                    card.onclick = function() { selectRoom(roomId); };
+                } else {
+                    // Mark as unavailable (either due to date conflict or status)
+                    card.classList.add('unavailable');
+                    card.classList.remove('selected');
+                    card.onclick = null;
+                    // If this was the selected room, deselect it
+                    if (preSelectedRoomId && parseInt(preSelectedRoomId) === roomId) {
+                        document.getElementById('selected_room_id').value = '';
                     }
                 }
-            } else {
-                container.innerHTML = '<p class="text-muted">No rooms available for the selected dates.</p>';
+            });
+
+            // If pre-selected room is still available, set the capacity limit
+            if (preSelectedRoomId) {
+                const preSelectedCard = document.querySelector(`.room-card[data-room-id="${preSelectedRoomId}"]:not(.unavailable)`);
+                if (preSelectedCard) {
+                    const capacity = parseInt(preSelectedCard.getAttribute('data-capacity'), 10);
+                    roomCapacityLimit = isNaN(capacity) ? 2 : capacity;
+                }
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            document.getElementById('roomsContainer').innerHTML = '<p class="text-danger">Error loading rooms. Please try again.</p>';
         });
 }
 
 function selectRoom(roomId) {
+    console.log('selectRoom called with roomId:', roomId);
+
     document.querySelectorAll('.room-card').forEach(card => {
         card.classList.remove('selected');
     });
 
     const card = document.querySelector(`.room-card[data-room-id="${roomId}"]`);
-    if (card && !card.classList.contains('unavailable')) {
+    console.log('Found card:', card);
+
+    const roomStatus = card ? card.getAttribute('data-status') : null;
+    console.log('Room status:', roomStatus);
+    console.log('Card has unavailable class:', card ? card.classList.contains('unavailable') : 'N/A');
+
+    // Only allow selection if room is available status and not unavailable
+    if (card && !card.classList.contains('unavailable') && roomStatus === 'available') {
+        console.log('Room is selectable, selecting...');
         card.classList.add('selected');
         document.getElementById('selected_room_id').value = roomId;
         const capacity = parseInt(card.getAttribute('data-capacity'), 10);
         roomCapacityLimit = isNaN(capacity) ? 2 : capacity;
+        console.log('Room capacity set to:', roomCapacityLimit);
+
         const removed = enforceTenantSelectionLimit({ notify: false });
         if (removed) {
             showToast(`Some tenants were unselected because the selected room allows up to ${roomCapacityLimit} tenant(s).`, 'warning');
@@ -1176,41 +1346,122 @@ function selectRoom(roomId) {
         if (currentStep === 3) {
             updateSummary();
         }
+    } else {
+        console.log('Room NOT selectable - conditions not met');
     }
 }
 
 // FORM SUBMISSION
 document.getElementById('bookingForm').addEventListener('submit', function(e) {
+    console.log('=== FORM SUBMIT TRIGGERED ===');
+
     const checkinDate = document.getElementById('checkin_date').value;
     const stayLength = document.getElementById('stay_length').value;
     const roomId = document.getElementById('selected_room_id').value;
     const tenantCheckboxes = document.querySelectorAll('.tenant-checkbox:checked');
     const rateId = document.getElementById('rate_id').value;
+    const checkoutDate = document.getElementById('checkout_date').value;
 
     console.log('Form submission validation:', {
-        checkinDate: !!checkinDate,
-        stayLength: !!stayLength,
-        roomId: !!roomId,
+        checkinDate: checkinDate,
+        checkoutDate: checkoutDate,
+        stayLength: stayLength,
+        roomId: roomId,
         tenantsSelected: tenantCheckboxes.length,
-        rateId: !!rateId,
+        tenantIds: Array.from(tenantCheckboxes).map(cb => cb.value),
+        rateId: rateId,
     });
 
     if (!checkinDate || !stayLength || !roomId || tenantCheckboxes.length === 0 || !rateId) {
         e.preventDefault();
-        showToast('Please complete all required fields before confirming.', 'error');
+        e.stopPropagation();
+        let missing = [];
+        if (!checkinDate) missing.push('Check-in Date');
+        if (!stayLength) missing.push('Stay Length');
+        if (!roomId) missing.push('Room');
+        if (tenantCheckboxes.length === 0) missing.push('Tenant');
+        if (!rateId) missing.push('Rate');
+        showToast('Missing: ' + missing.join(', '), 'error');
+        console.error('Form validation failed - missing:', missing);
+        console.log('Preventing form submission');
         return false;
     }
 
-    console.log('All validations passed, form will submit');
+    console.log('✓ All validations passed, form WILL submit to server');
+    console.log('Form action:', this.action);
+    console.log('Form method:', this.method);
+    // Allow form to submit naturally - DON'T prevent default
     return true;
 });
 
 // DOM INITIALIZATION
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== BOOKING CREATE PAGE LOADED ===');
+
+    // Check if rooms are rendered
+    const roomCards = document.querySelectorAll('.room-card');
+    console.log('Total room cards found:', roomCards.length);
+    roomCards.forEach(card => {
+        const roomId = card.getAttribute('data-room-id');
+        const roomNum = card.querySelector('.room-number')?.textContent;
+        const status = card.getAttribute('data-status');
+        console.log(`Room ${roomNum} - ID: ${roomId}, Status: ${status}`);
+    });
+
+    // Restore form state if returning with errors
+    @if ($errors->any() || old('room_id') || old('stay_length'))
+        console.log('Restoring form state from old input...');
+
+        // Restore selected room
+        const oldRoomId = '{{ old('room_id') }}';
+        if (oldRoomId) {
+            console.log('Restoring room selection:', oldRoomId);
+            const roomCard = document.querySelector(`.room-card[data-room-id="${oldRoomId}"]`);
+            if (roomCard && !roomCard.classList.contains('unavailable')) {
+                roomCard.classList.add('selected');
+                const capacity = parseInt(roomCard.getAttribute('data-capacity'), 10);
+                roomCapacityLimit = isNaN(capacity) ? 2 : capacity;
+            }
+        }
+
+        // Restore stay length and trigger calculations
+        const oldStayLength = '{{ old('stay_length') }}';
+        if (oldStayLength) {
+            console.log('Restoring stay length:', oldStayLength);
+            document.getElementById('stay_length').value = oldStayLength;
+            document.getElementById('custom_stay_length').value = oldStayLength;
+            calculateCheckoutDate();
+            updateRateSelection(parseInt(oldStayLength));
+        }
+
+        // If validation errors exist, determine which step to show
+        @if ($errors->has('room_id') || $errors->has('checkin_date') || $errors->has('stay_length'))
+            // Stay on step 1
+            console.log('Errors in step 1, staying on step 1');
+        @elseif ($errors->has('tenant_ids') || $errors->has('rate_id'))
+            // Move to step 2
+            console.log('Errors in step 2, moving to step 2');
+            currentStep = 2;
+            document.querySelector('.step-content[data-step="1"]').classList.remove('active');
+            document.querySelector('.step-content[data-step="2"]').classList.add('active');
+            document.querySelector('.step[data-step="1"]').classList.remove('active');
+            document.querySelector('.step[data-step="1"]').classList.add('completed');
+            document.querySelector('.step[data-step="2"]').classList.add('active');
+            document.getElementById('prevBtn').style.display = 'inline-block';
+        @endif
+    @endif
+
     initializeDurationButtons();
 
     document.getElementById('checkin_date').addEventListener('change', calculateCheckoutDate);
     document.getElementById('custom_stay_length').addEventListener('input', handleCustomStayLength);
+
+    // Initialize rate if stay_length already has a value (e.g., from old input)
+    const initialStayLength = document.getElementById('stay_length').value;
+    if (initialStayLength && parseInt(initialStayLength) > 0) {
+        calculateCheckoutDate();
+        updateRateSelection(parseInt(initialStayLength));
+    }
 
     // Tenant dropdown and search functionality
     const dropdownBtn = document.getElementById('tenantDropdownBtn');
@@ -1222,11 +1473,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // Open/close dropdown on input click
         searchInput.addEventListener('click', function(e) {
             e.stopPropagation();
+            console.log('Tenant dropdown clicked');
             const isOpen = dropdownMenu.style.display !== 'none';
             dropdownMenu.style.display = isOpen ? 'none' : 'block';
             dropdownBtn.classList.toggle('open');
             if (dropdownMenu.style.display === 'block') {
                 searchInput.focus();
+                console.log('Dropdown opened');
+            } else {
+                console.log('Dropdown closed');
             }
         });
 
@@ -1277,8 +1532,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Tenant checkbox listeners
     const tenantCheckboxes = document.querySelectorAll('.tenant-checkbox');
+    console.log('Found tenant checkboxes:', tenantCheckboxes.length);
+
     tenantCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', function() {
+            console.log('Tenant checkbox changed:', this.id, 'Checked:', this.checked);
+
             // Update visual feedback
             const item = this.parentElement;
             if (this.checked) {
@@ -1292,14 +1551,40 @@ document.addEventListener('DOMContentLoaded', function() {
             if (removed && currentStep !== 3) {
                 // Alert already shown when notify true
             }
+            renderSelectedTenants();
+
+            // Log current state
+            const selectedCount = document.querySelectorAll('.tenant-checkbox:checked').length;
+            console.log('Total tenants selected:', selectedCount);
+
             if (currentStep === 3) {
                 updateSummary();
             }
         });
     });
 
+    // Also add click handlers on the dropdown items (rows) to toggle checkbox when clicking anywhere
+    const tenantItems = document.querySelectorAll('.tenant-dropdown-item');
+    tenantItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            // Don't trigger if clicking on the checkbox itself (it has its own handler)
+            if (e.target.classList.contains('tenant-checkbox')) {
+                return;
+            }
+
+            const checkbox = this.querySelector('.tenant-checkbox');
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                // Manually trigger change event
+                checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                console.log('Row clicked, checkbox toggled:', checkbox.id, 'Checked:', checkbox.checked);
+            }
+        });
+    });
+
     // Update dropdown text on load
     updateTenantDropdownText();
+    renderSelectedTenants();
     enforceTenantSelectionLimit({ notify: false });
 
     // Tenant modal
@@ -1378,6 +1663,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     updateTenantDropdownText();
                     const removed = enforceTenantSelectionLimit();
+                    renderSelectedTenants();
                     if (currentStep === 3) {
                         updateSummary();
                     }
@@ -1385,6 +1671,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 enforceTenantSelectionLimit();
                 updateTenantDropdownText();
+                renderSelectedTenants();
                 if (currentStep === 3) {
                     updateSummary();
                 }
@@ -1407,6 +1694,43 @@ function updateTenantDropdownText() {
     } else {
         searchInput.placeholder = `${selectedTenants.length} tenant(s) selected - Search to add more`;
     }
+}
+
+function renderSelectedTenants() {
+    const container = document.getElementById('selectedTenantsContainer');
+    const checkboxes = document.querySelectorAll('.tenant-checkbox:checked');
+
+    container.innerHTML = '';
+
+    checkboxes.forEach(checkbox => {
+        const tenantId = checkbox.value;
+        const label = checkbox.closest('.tenant-dropdown-item').querySelector('.tenant-label');
+        const tenantName = label ? label.textContent.trim() : 'Unknown';
+
+        const badge = document.createElement('div');
+        badge.className = 'selected-tenant-badge';
+        badge.innerHTML = `
+            <span>${tenantName}</span>
+            <span class="remove-tenant" data-tenant-id="${tenantId}" title="Remove">&times;</span>
+        `;
+        container.appendChild(badge);
+    });
+
+    // Add click handlers for remove buttons
+    container.querySelectorAll('.remove-tenant').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tenantId = this.getAttribute('data-tenant-id');
+            const checkbox = document.getElementById('tenant_' + tenantId);
+            if (checkbox) {
+                checkbox.checked = false;
+                updateTenantDropdownText();
+                renderSelectedTenants();
+                if (currentStep === 3) {
+                    updateSummary();
+                }
+            }
+        });
+    });
 }
 </script>
 @endsection
