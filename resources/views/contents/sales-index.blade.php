@@ -197,6 +197,29 @@
         margin-bottom: 0.5rem;
     }
 
+    /* Sortable Styles */
+    .sales-table th.sortable {
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s ease;
+    }
+
+    .sales-table th.sortable:hover {
+        background: #e2e8f0;
+        color: #03255b;
+    }
+
+    .sales-table th.sortable .sort-icon {
+        margin-left: 0.3rem;
+        font-size: 0.7rem;
+        opacity: 0.4;
+    }
+
+    .sales-table th.sortable.active .sort-icon {
+        opacity: 1;
+        color: #03255b;
+    }
+
     /* Table Styles */
     .sales-table-container {
         background-color: white;
@@ -525,14 +548,9 @@
 <!-- Header -->
 <div class="sales-header d-flex justify-content-between align-items-center">
     <h1 class="sales-title">Sales & Reports</h1>
-    <div class="export-buttons">
-        <a href="{{ route('sales.consolidated', ['start_date' => $startDate, 'end_date' => $endDate]) }}" class="btn-consolidated">
-            <i class="bi bi-file-earmark-text"></i> Consolidated Report
-        </a>
-        <a href="{{ route('sales.export', ['start_date' => $startDate, 'end_date' => $endDate]) }}" class="btn-export">
-            <i class="bi bi-file-earmark-pdf"></i> Sales Report
-        </a>
-    </div>
+    <a href="{{ route('sales.consolidated', ['start_date' => $startDate, 'end_date' => $endDate]) }}" class="btn-consolidated">
+        <i class="bi bi-file-earmark-text"></i> Consolidated Report
+    </a>
 </div>
 
 <!-- Filter Section -->
@@ -625,13 +643,41 @@
     <table class="sales-table">
         <thead>
             <tr>
-                <th>Date</th>
+                <th class="sortable {{ $sortBy === 'date_received' ? 'active' : '' }}" onclick="sortTable('date_received')">
+                    Date
+                    @if($sortBy === 'date_received')
+                        <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                    @else
+                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                    @endif
+                </th>
                 <th>Booking ID</th>
                 <th>Tenant(s)</th>
                 <th>Room</th>
-                <th>Payment Type</th>
-                <th>Method</th>
-                <th>Amount</th>
+                <th class="sortable {{ $sortBy === 'payment_type' ? 'active' : '' }}" onclick="sortTable('payment_type')">
+                    Payment Type
+                    @if($sortBy === 'payment_type')
+                        <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                    @else
+                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                    @endif
+                </th>
+                <th class="sortable {{ $sortBy === 'payment_method' ? 'active' : '' }}" onclick="sortTable('payment_method')">
+                    Method
+                    @if($sortBy === 'payment_method')
+                        <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                    @else
+                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                    @endif
+                </th>
+                <th class="sortable {{ $sortBy === 'amount' ? 'active' : '' }}" onclick="sortTable('amount')">
+                    Amount
+                    @if($sortBy === 'amount')
+                        <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                    @else
+                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                    @endif
+                </th>
                 <th>Collected By</th>
                 <th>Actions</th>
             </tr>
@@ -734,7 +780,7 @@
             <input type="hidden" name="end_date" value="{{ $endDate }}">
             <label for="perPage" class="text-muted small mb-0">Rows per page</label>
             <select class="form-select form-select-sm" id="perPage" name="per_page" onchange="this.form.submit()">
-                @foreach([10, 25, 50] as $option)
+                @foreach([5, 10, 15, 20] as $option)
                     <option value="{{ $option }}" {{ (int) $perPage === $option ? 'selected' : '' }}>
                         {{ $option }}
                     </option>
@@ -754,7 +800,7 @@
         </p>
     </div>
     <div class="pagination-right">
-        {{ $payments->appends(['start_date' => $startDate, 'end_date' => $endDate, 'per_page' => $perPage])->links() }}
+        {{ $payments->appends(['start_date' => $startDate, 'end_date' => $endDate, 'per_page' => $perPage, 'sort_by' => $sortBy, 'sort_dir' => $sortDir])->links() }}
     </div>
 </div>
 
@@ -941,6 +987,22 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// Sorting function
+function sortTable(column) {
+    const url = new URL(window.location.href);
+    const currentSort = url.searchParams.get('sort_by');
+    const currentDir = url.searchParams.get('sort_dir') || 'asc';
+
+    if (currentSort === column) {
+        url.searchParams.set('sort_dir', currentDir === 'asc' ? 'desc' : 'asc');
+    } else {
+        url.searchParams.set('sort_by', column);
+        url.searchParams.set('sort_dir', 'asc');
+    }
+
+    window.location.href = url.toString();
+}
 </script>
 @endsection
 

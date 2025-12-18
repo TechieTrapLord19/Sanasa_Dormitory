@@ -5,11 +5,17 @@ namespace App\Http\Controllers;
 use App\Models\ElectricReading;
 use App\Models\Room;
 use App\Models\Setting;
+use App\Models\Booking;
+use App\Models\Invoice;
+use App\Models\InvoiceUtility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Traits\LogsActivity;
 
 class ElectricReadingController extends Controller
 {
+    use LogsActivity;
+
     /**
      * Display a listing of the resource.
      */
@@ -74,21 +80,42 @@ class ElectricReadingController extends Controller
 
         DB::beginTransaction();
         try {
-            ElectricReading::create([
-                'room_id' => $validated['room_id'],
+            $roomId = $validated['room_id'];
+
+            // Get previous reading BEFORE creating the new one
+            $previousReading = ElectricReading::where('room_id', $roomId)
+                ->orderBy('reading_date', 'desc')
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            // Create the new reading
+            $newReading = ElectricReading::create([
+                'room_id' => $roomId,
                 'reading_date' => $validated['reading_date'],
                 'meter_value_kwh' => $validated['meter_value_kwh'],
                 'is_billed' => false,
             ]);
 
+            $invoiceMessage = '';
+            
+            // If previous reading exists, try to generate electricity invoice
+            if ($previousReading) {
+                $invoiceResult = $this->generateElectricityInvoice($roomId, $newReading, $previousReading);
+                if ($invoiceResult['created']) {
+                    $invoiceMessage = ' Electricity invoice generated: ₱' . number_format($invoiceResult['fee'], 2);
+                }
+            }
+
             DB::commit();
 
+            $message = 'Electric reading recorded successfully.' . $invoiceMessage;
+
             if ($request->expectsJson()) {
-                return response()->json(['success' => true, 'message' => 'Electric reading recorded successfully.']);
+                return response()->json(['success' => true, 'message' => $message]);
             }
 
             return redirect()->back()
-                ->with('success', 'Electric reading recorded successfully.');
+                ->with('success', $message);
         } catch (\Exception $e) {
             DB::rollBack();
             if ($request->expectsJson()) {
@@ -165,19 +192,40 @@ class ElectricReadingController extends Controller
         DB::beginTransaction();
         try {
             $savedCount = 0;
+            $invoicesGenerated = 0;
             foreach ($filteredReadings as $reading) {
-                ElectricReading::create([
-                    'room_id' => $reading['room_id'],
+                $roomId = $reading['room_id'];
+
+                // Get previous reading BEFORE creating the new one
+                $previousReading = ElectricReading::where('room_id', $roomId)
+                    ->orderBy('reading_date', 'desc')
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+
+                // Create the new reading
+                $newReading = ElectricReading::create([
+                    'room_id' => $roomId,
                     'reading_date' => $reading['reading_date'],
                     'meter_value_kwh' => $reading['meter_value_kwh'],
                     'is_billed' => false,
                 ]);
                 $savedCount++;
+
+                // If previous reading exists, try to generate electricity invoice
+                if ($previousReading) {
+                    $invoiceResult = $this->generateElectricityInvoice($roomId, $newReading, $previousReading);
+                    if ($invoiceResult['created']) {
+                        $invoicesGenerated++;
+                    }
+                }
             }
 
             DB::commit();
 
             $message = "Successfully recorded {$savedCount} electric reading(s).";
+            if ($invoicesGenerated > 0) {
+                $message .= " Generated {$invoicesGenerated} electricity invoice(s).";
+            }
 
             if ($request->expectsJson()) {
                 return response()->json(['success' => true, 'message' => $message]);
@@ -253,5 +301,66 @@ class ElectricReadingController extends Controller
 
         return redirect()->back()
             ->with('success', "Electricity rate updated to ₱{$validated['electricity_rate_per_kwh']}/kWh.");
+    }
+
+    /**
+     * Generate electricity invoice for a room if there's a previous reading and active booking.
+     * Returns array with 'created' boolean and 'invoice' if created.
+     */
+    private function generateElectricityInvoice($roomId, $newReading, $previousReading)
+    {
+        // Get electricity rate
+        $rate = (float) Setting::get('electricity_rate_per_kwh', 0);
+        if ($rate <= 0) {
+            return ['created' => false, 'reason' => 'No electricity rate set'];
+        }
+
+        // Find active booking for this room
+        $activeBooking = Booking::where('room_id', $roomId)
+            ->where('status', 'Active')
+            ->first();
+
+        if (!$activeBooking) {
+            return ['created' => false, 'reason' => 'No active booking for room'];
+        }
+
+        // Calculate consumption
+        $consumption = $newReading->meter_value_kwh - $previousReading->meter_value_kwh;
+        if ($consumption <= 0) {
+            return ['created' => false, 'reason' => 'No consumption (new reading <= previous)'];
+        }
+
+        // Calculate electricity fee
+        $electricityFee = round($consumption * $rate, 2);
+
+        // Create the invoice (no InvoiceUtility needed - electricity uses utility_electricity_fee field)
+        $invoice = Invoice::create([
+            'booking_id' => $activeBooking->booking_id,
+            'date_generated' => now()->toDateString(),
+            'rent_subtotal' => 0,
+            'utility_electricity_fee' => $electricityFee,
+            'total_due' => $electricityFee,
+            'is_paid' => false,
+        ]);
+
+        // Mark the new reading as billed
+        $newReading->is_billed = true;
+        $newReading->save();
+
+        // Log activity
+        $room = Room::find($roomId);
+        $roomNum = $room ? $room->room_num : $roomId;
+        $this->logActivity(
+            'Generated Electricity Invoice',
+            "Generated electricity invoice for Room {$roomNum}: {$consumption} kWh × ₱{$rate}/kWh = ₱" . number_format($electricityFee, 2),
+            $invoice
+        );
+
+        return [
+            'created' => true,
+            'invoice' => $invoice,
+            'consumption' => $consumption,
+            'fee' => $electricityFee,
+        ];
     }
 }

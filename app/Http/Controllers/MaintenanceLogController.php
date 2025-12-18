@@ -17,21 +17,63 @@ class MaintenanceLogController extends Controller
      */
     public function index(Request $request)
     {
-        $query = MaintenanceLog::with(['asset.room', 'loggedBy'])
-            ->orderBy('date_reported', 'desc')
-            ->orderBy('created_at', 'desc');
+        $query = MaintenanceLog::with(['asset.room', 'loggedBy']);
+
+        // Sorting
+        $sortBy = $request->input('sort_by', 'date_reported');
+        $sortDir = $request->input('sort_dir', 'desc');
+        if (!in_array($sortDir, ['asc', 'desc'], true)) {
+            $sortDir = 'desc';
+        }
 
         // Filter by status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        // Filter by date range
-        if ($request->filled('date_from')) {
-            $query->whereDate('date_reported', '>=', $request->date_from);
+        // Date filter handling (preset options)
+        $dateFilter = $request->input('date_filter', 'this_month');
+        $dateFrom = '';
+        $dateTo = '';
+
+        switch ($dateFilter) {
+            case 'today':
+                $dateFrom = now()->toDateString();
+                $dateTo = now()->toDateString();
+                break;
+            case 'this_week':
+                $dateFrom = now()->startOfWeek()->toDateString();
+                $dateTo = now()->endOfWeek()->toDateString();
+                break;
+            case 'this_month':
+                $dateFrom = now()->startOfMonth()->toDateString();
+                $dateTo = now()->endOfMonth()->toDateString();
+                break;
+            case 'last_month':
+                $dateFrom = now()->subMonth()->startOfMonth()->toDateString();
+                $dateTo = now()->subMonth()->endOfMonth()->toDateString();
+                break;
+            case 'this_year':
+                $dateFrom = now()->startOfYear()->toDateString();
+                $dateTo = now()->endOfYear()->toDateString();
+                break;
+            case 'custom':
+                $dateFrom = $request->input('date_from', '');
+                $dateTo = $request->input('date_to', '');
+                break;
+            case 'all':
+            default:
+                // No date filter
+                $dateFilter = 'all';
+                break;
         }
-        if ($request->filled('date_to')) {
-            $query->whereDate('date_reported', '<=', $request->date_to);
+
+        // Apply date filters
+        if ($dateFrom) {
+            $query->whereDate('date_reported', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $query->whereDate('date_reported', '<=', $dateTo);
         }
 
         // Filter by asset_id (optional)
@@ -39,10 +81,21 @@ class MaintenanceLogController extends Controller
             $query->where('asset_id', $request->asset_id);
         }
 
+        // Apply sorting
+        $allowedSortColumns = ['log_id', 'asset_id', 'date_reported', 'date_resolved', 'status', 'created_at'];
+        if (in_array($sortBy, $allowedSortColumns, true)) {
+            $query->orderBy($sortBy, $sortDir);
+            if ($sortBy !== 'log_id') {
+                $query->orderBy('log_id', $sortDir);
+            }
+        } else {
+            $query->orderBy('date_reported', 'desc')->orderBy('created_at', 'desc');
+        }
+
         // Pagination
-        $perPage = (int) $request->input('per_page', 25);
-        if (!in_array($perPage, [10, 25, 50, 100], true)) {
-            $perPage = 25;
+        $perPage = (int) $request->input('per_page', 10);
+        if (!in_array($perPage, [5, 10, 15, 20], true)) {
+            $perPage = 10;
         }
 
         $logs = $query->paginate($perPage)->withQueryString();
@@ -52,18 +105,19 @@ class MaintenanceLogController extends Controller
 
         // Get filter values
         $selectedStatus = $request->input('status', '');
-        $dateFrom = $request->input('date_from', '');
-        $dateTo = $request->input('date_to', '');
         $selectedAssetId = $request->input('asset_id', '');
 
         return view('contents.maintenance-logs', compact(
             'logs',
             'assets',
             'selectedStatus',
+            'dateFilter',
             'dateFrom',
             'dateTo',
             'selectedAssetId',
-            'perPage'
+            'perPage',
+            'sortBy',
+            'sortDir'
         ));
     }
 

@@ -64,12 +64,17 @@ class PaymentController extends Controller
         }
 
         // Determine payment type based on invoice type
+        // Security Deposit: no rent, no utilities, utility_electricity_fee = ₱5000 exactly
+        // Electricity: no rent, no utilities, utility_electricity_fee > 0 but not ₱5000
         $hasUtilities = $invoiceForType->invoiceUtilities && $invoiceForType->invoiceUtilities->count() > 0;
-        $isSecurityDepositInvoice = ($invoiceForType->rent_subtotal == 0 &&
-                                    !$hasUtilities &&
-                                    $invoiceForType->utility_electricity_fee > 0);
+        $isElectricityOrSecurityDeposit = ($invoiceForType->rent_subtotal == 0 &&
+                                           !$hasUtilities &&
+                                           $invoiceForType->utility_electricity_fee > 0);
+        $isSecurityDepositAmount = abs($invoiceForType->utility_electricity_fee - 5000.00) < 0.01;
+        $isSecurityDepositInvoice = $isElectricityOrSecurityDeposit && $isSecurityDepositAmount;
+        $isElectricityInvoice = $isElectricityOrSecurityDeposit && !$isSecurityDepositAmount;
 
-        $paymentType = $isSecurityDepositInvoice ? 'Security Deposit' : 'Rent/Utility';
+        $paymentType = $isSecurityDepositInvoice ? 'Security Deposit' : ($isElectricityInvoice ? 'Electricity' : 'Rent/Utility');
 
         // Use database transaction to ensure data consistency
         DB::beginTransaction();
@@ -141,16 +146,18 @@ class PaymentController extends Controller
 
             // Check if booking is ready for check-in (all requirements met)
             // Requirements: Monthly Rent fully paid AND Security Deposit at least half paid
+            // Only redirect for check-in if booking is NOT already active
             $readyForCheckIn = $this->isBookingReadyForCheckIn($booking->booking_id);
+            $isNotYetActive = !in_array($booking->status, ['Active', 'Completed', 'Canceled']);
 
-            if ($readyForCheckIn) {
+            if ($readyForCheckIn && $isNotYetActive) {
                 // Redirect to booking details page for easy check-in
                 return redirect()->route('bookings.show', ['id' => $booking->booking_id])
                     ->with('success', $successMessage . ' Booking is now ready for check-in!')
                     ->with('payment_id', $payment->payment_id)
                     ->with('show_checkin', true); // Flag to highlight check-in button
             } else {
-                // Stay on invoices page if not ready for check-in yet
+                // Stay on invoices page for active bookings or if not ready for check-in
                 return redirect()->route('invoices')
                     ->with('success', $successMessage);
             }
@@ -189,12 +196,15 @@ class PaymentController extends Controller
             $totalPaid = (float) ($invoice->payments_sum ?? 0);
             $totalDue = (float) $invoice->total_due;
 
-            // Check if this is a security deposit invoice
-            // Security deposit: no rent, no utilities from invoice_utilities, only electricity fee
+            // Check if this is a security deposit invoice (exactly ₱5000)
+            // Security deposit: no rent, no utilities from invoice_utilities, utility_electricity_fee = ₱5000
             $hasUtilities = $invoice->invoiceUtilities && $invoice->invoiceUtilities->count() > 0;
-            $isSecurityDepositInvoice = ($invoice->rent_subtotal == 0 &&
-                                        !$hasUtilities &&
-                                        $invoice->utility_electricity_fee > 0);
+            $isElectricityOrSecurityDeposit = ($invoice->rent_subtotal == 0 &&
+                                               !$hasUtilities &&
+                                               $invoice->utility_electricity_fee > 0);
+            $isSecurityDepositAmount = abs($invoice->utility_electricity_fee - 5000.00) < 0.01;
+            $isSecurityDepositInvoice = $isElectricityOrSecurityDeposit && $isSecurityDepositAmount;
+            $isElectricityInvoice = $isElectricityOrSecurityDeposit && !$isSecurityDepositAmount;
 
             if ($isSecurityDepositInvoice) {
                 $hasSecurityDeposit = true;

@@ -213,7 +213,7 @@
         background: #f8fafc;
     }
     .invoices-table th {
-        padding: 0.9rem 0.75rem;
+        padding: 0.9rem 0.5rem;
         font-size: 0.72rem;
         font-weight: 700;
         letter-spacing: 0.05em;
@@ -225,6 +225,31 @@
         top: 0;
         background: #f8fafc;
         z-index: 10;
+    }
+    .invoices-table th:first-child {
+        width: 120px;
+        max-width: 120px;
+    }
+    .invoices-table td {
+        padding: 0.75rem 0.5rem;
+    }
+    .invoices-table th.sortable {
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s ease;
+    }
+    .invoices-table th.sortable:hover {
+        background: #e2e8f0;
+        color: #03255b;
+    }
+    .invoices-table th.sortable .sort-icon {
+        margin-left: 0.3rem;
+        font-size: 0.7rem;
+        opacity: 0.4;
+    }
+    .invoices-table th.sortable.active .sort-icon {
+        opacity: 1;
+        color: #03255b;
     }
     .invoices-table td {
         padding: 0.75rem 0.75rem;
@@ -759,6 +784,11 @@
                 </button>
             </form>
 
+            <!-- Payment History Button -->
+            <button type="button" class="btn btn-outline-secondary" style="border-radius: 8px;" data-bs-toggle="modal" data-bs-target="#paymentHistoryModal">
+                <i class="bi bi-clock-history"></i> Payment History
+            </button>
+
             <!-- Reports Dropdown -->
             <div class="dropdown">
                 <button class="btn btn-outline-primary dropdown-toggle" type="button" id="reportsDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 8px;">
@@ -885,13 +915,41 @@
             <table class="invoices-table">
                 <thead>
                     <tr>
-                        <th>Invoice</th>
+                        <th class="sortable {{ $sortBy === 'invoice_id' ? 'active' : '' }}" onclick="sortTable('invoice_id')" style="width: 120px;">
+                            Invoice
+                            @if($sortBy === 'invoice_id')
+                                <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                            @else
+                                <i class="bi bi-arrow-down-up sort-icon"></i>
+                            @endif
+                        </th>
                         <th>Tenant &amp; Room</th>
-                        <th>Billing Period</th>
+                        <th class="sortable {{ $sortBy === 'date_generated' ? 'active' : '' }}" onclick="sortTable('date_generated')">
+                            Billing Period
+                            @if($sortBy === 'date_generated')
+                                <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                            @else
+                                <i class="bi bi-arrow-down-up sort-icon"></i>
+                            @endif
+                        </th>
                         <th style="width: 50px;">Type</th>
                         <th>Details</th>
-                        <th>Total Due</th>
-                        <th>Penalty</th>
+                        <th class="sortable {{ $sortBy === 'total_due' ? 'active' : '' }}" onclick="sortTable('total_due')">
+                            Total Due
+                            @if($sortBy === 'total_due')
+                                <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                            @else
+                                <i class="bi bi-arrow-down-up sort-icon"></i>
+                            @endif
+                        </th>
+                        <th class="sortable {{ $sortBy === 'penalty_amount' ? 'active' : '' }}" onclick="sortTable('penalty_amount')">
+                            Penalty
+                            @if($sortBy === 'penalty_amount')
+                                <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                            @else
+                                <i class="bi bi-arrow-down-up sort-icon"></i>
+                            @endif
+                        </th>
                         <th>Collected</th>
                         <th>Balance</th>
                         <th style="text-align: center;">Status</th>
@@ -902,11 +960,13 @@
                 @forelse($invoices as $invoice)
                     @php
                         // Check if this is a security deposit invoice
-                        // Use loaded relationship (property) instead of method call
+                        // Security deposit is: no rent, no other utilities, utility_electricity_fee = ₱5000 exactly
                         $hasUtilities = $invoice->invoiceUtilities && $invoice->invoiceUtilities->count() > 0;
-                        $isSecurityDepositInvoice = ($invoice->rent_subtotal == 0 &&
-                                                    !$hasUtilities &&
-                                                    $invoice->utility_electricity_fee > 0);
+                        $hasOnlyElectricityFee = ($invoice->rent_subtotal == 0 &&
+                                                  !$hasUtilities &&
+                                                  $invoice->utility_electricity_fee > 0);
+                        $isSecurityDepositAmount = abs($invoice->utility_electricity_fee - 5000.00) < 0.01;
+                        $isSecurityDepositInvoice = $hasOnlyElectricityFee && $isSecurityDepositAmount;
 
                         if ($isSecurityDepositInvoice) {
                             $utilitiesTotal = 0; // Security deposit is shown separately
@@ -942,7 +1002,8 @@
                         <td>
                             <div class="invoice-metadata">
                                 <span class="invoice-type">#{{ str_pad($invoice->invoice_id, 5, '0', STR_PAD_LEFT) }}</span>
-                                <span class="invoice-date">Generated {{ optional($invoice->date_generated)->format('M d, Y') ?? '—' }}</span>
+                                <span class="invoice-date">{{ optional($invoice->date_generated)->format('M d, Y') ?? '—' }}</span>
+                                <span class="invoice-date" style="font-size: 0.7rem; color: #94a3b8;">{{ optional($invoice->created_at)->format('g:i A') ?? '' }}</span>
                             </div>
                         </td>
                         <td>
@@ -960,9 +1021,9 @@
                             </div>
                         </td>
                         <td>
-                            <span class="invoice-date">
+                            <span class="invoice-date" style="display: block; line-height: 1.3;">
                                 @if($invoice->booking)
-                                    {{ optional($invoice->booking->checkin_date)->format('M d') }} - {{ optional($invoice->booking->checkout_date)->format('M d, Y') }}
+                                    {{ optional($invoice->booking->checkin_date)->format('M d') }} -<br>{{ optional($invoice->booking->checkout_date)->format('M d, Y') }}
                                 @else
                                     —
                                 @endif
@@ -972,8 +1033,16 @@
                             {{ $invoice->invoice_type }}
                         </td>
                         <td style="font-size: 0.8rem; color: #64748b; line-height: 1.5;">
+                            @php
+                                // Detect electricity-only invoice: no rent, has utility_electricity_fee, not security deposit
+                                $isElectricityOnlyInvoice = ($invoice->rent_subtotal == 0 && 
+                                                           $invoice->utility_electricity_fee > 0 &&
+                                                           !$isSecurityDepositInvoice);
+                            @endphp
                             @if($isSecurityDepositInvoice)
                                 Security deposit for<br> monthly stay
+                            @elseif($isElectricityOnlyInvoice)
+                                Electricity Bill
                             @else
                                 @if($invoice->rent_subtotal > 0)
                                     Rent: ₱{{ number_format($invoice->rent_subtotal ?? 0, 2) }}<br>
@@ -1063,7 +1132,7 @@
                 @endif
                 <label for="perPage" class="text-muted small mb-0">Rows per page</label>
                 <select class="form-select form-select-sm" id="perPage" name="per_page" onchange="this.form.submit()">
-                    @foreach([10, 25, 50] as $option)
+                    @foreach([5, 10, 15, 20] as $option)
                         <option value="{{ $option }}" {{ (int) $perPage === $option ? 'selected' : '' }}>
                             {{ $option }}
                         </option>
@@ -1083,7 +1152,7 @@
             </p>
         </div>
         <div class="pagination-right">
-            {{ $invoices->appends(['status' => $activeStatus, 'search' => $searchTerm, 'per_page' => $perPage])->links() }}
+            {{ $invoices->appends(['status' => $activeStatus, 'search' => $searchTerm, 'per_page' => $perPage, 'sort_by' => $sortBy, 'sort_dir' => $sortDir, 'date_filter' => $dateFilter, 'date_from' => $dateFrom, 'date_to' => $dateTo])->links() }}
         </div>
     </div>
 </div>
@@ -1392,6 +1461,322 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 });
+
+// Sorting function
+function sortTable(column) {
+    const url = new URL(window.location.href);
+    const currentSort = url.searchParams.get('sort_by');
+    const currentDir = url.searchParams.get('sort_dir') || 'desc';
+
+    // If clicking the same column, toggle direction
+    if (currentSort === column) {
+        url.searchParams.set('sort_dir', currentDir === 'asc' ? 'desc' : 'asc');
+    } else {
+        // New column, default to descending
+        url.searchParams.set('sort_by', column);
+        url.searchParams.set('sort_dir', 'desc');
+    }
+
+    window.location.href = url.toString();
+}
+</script>
+
+<!-- Payment History Modal -->
+<div class="modal fade" id="paymentHistoryModal" tabindex="-1" aria-labelledby="paymentHistoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header" style="background: #03255b; color: white;">
+                <h5 class="modal-title" id="paymentHistoryModalLabel">
+                    <i class="bi bi-clock-history me-2"></i>Payment History
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Filters -->
+                <div class="d-flex flex-wrap gap-3 align-items-end mb-4">
+                    <!-- Date Filter Dropdown -->
+                    <div>
+                        <label class="form-label small fw-semibold">Date Filter</label>
+                        <select class="form-select" id="phDateFilter" style="min-width: 150px;">
+                            <option value="all">All Time</option>
+                            <option value="today">Today</option>
+                            <option value="this_week">This Week</option>
+                            <option value="this_month">This Month</option>
+                            <option value="last_month">Last Month</option>
+                            <option value="this_year">This Year</option>
+                            <option value="custom">Custom Range</option>
+                        </select>
+                    </div>
+                    <!-- Custom Date Range (hidden by default) -->
+                    <div id="phCustomDateContainer" style="display: none;">
+                        <label class="form-label small fw-semibold">From</label>
+                        <input type="date" class="form-control form-control-sm" id="phDateFrom">
+                    </div>
+                    <div id="phCustomDateContainerTo" style="display: none;">
+                        <label class="form-label small fw-semibold">To</label>
+                        <input type="date" class="form-control form-control-sm" id="phDateTo">
+                    </div>
+                    <!-- Tenant Search -->
+                    <div>
+                        <label class="form-label small fw-semibold">Tenant Search</label>
+                        <input type="text" class="form-control" id="phTenantSearch" placeholder="Search tenant..." style="min-width: 180px;">
+                    </div>
+                    <!-- Collected By -->
+                    <div>
+                        <label class="form-label small fw-semibold">Collected By</label>
+                        <select class="form-select" id="phCollectedBy" style="min-width: 150px;">
+                            <option value="">All Users</option>
+                        </select>
+                    </div>
+                    <!-- Reset Button -->
+                    <div>
+                        <button type="button" class="btn btn-outline-secondary" id="phResetFilters">
+                            <i class="bi bi-x-circle"></i> Reset
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Loading spinner -->
+                <div id="phLoading" class="text-center py-5" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading payments...</p>
+                </div>
+
+                <!-- Table -->
+                <div class="table-responsive" id="phTableContainer">
+                    <table class="table table-hover" id="phTable">
+                        <thead style="background: #f8fafc;">
+                            <tr>
+                                <th style="cursor: pointer;" onclick="sortPaymentHistory('payment_id')">
+                                    ID <i class="bi bi-arrow-down-up small"></i>
+                                </th>
+                                <th style="cursor: pointer;" onclick="sortPaymentHistory('created_at')">
+                                    Date Created <i class="bi bi-arrow-down-up small"></i>
+                                </th>
+                                <th>Tenant</th>
+                                <th>Room</th>
+                                <th style="cursor: pointer;" onclick="sortPaymentHistory('amount')">
+                                    Amount <i class="bi bi-arrow-down-up small"></i>
+                                </th>
+                                <th>Type</th>
+                                <th style="cursor: pointer;" onclick="sortPaymentHistory('payment_method')">
+                                    Method <i class="bi bi-arrow-down-up small"></i>
+                                </th>
+                                <th>Collected By</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="phTableBody">
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-4">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="d-flex justify-content-between align-items-center mt-3" id="phPagination">
+                    <div class="text-muted small" id="phPaginationInfo">Showing 0 to 0 of 0 payments</div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-secondary" id="phPrevPage" disabled>
+                            <i class="bi bi-chevron-left"></i> Previous
+                        </button>
+                        <span class="align-self-center small" id="phPageInfo">Page 1 of 1</span>
+                        <button class="btn btn-sm btn-outline-secondary" id="phNextPage" disabled>
+                            Next <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Payment History Modal Logic
+let phCurrentPage = 1;
+let phSortBy = 'created_at';
+let phSortDir = 'desc';
+let phUsersLoaded = false;
+let phSearchTimeout = null;
+
+// Load payments when modal opens
+document.getElementById('paymentHistoryModal').addEventListener('show.bs.modal', function () {
+    loadPaymentHistory();
+});
+
+// Date filter dropdown - auto-apply on change
+document.getElementById('phDateFilter').addEventListener('change', function() {
+    const customFrom = document.getElementById('phCustomDateContainer');
+    const customTo = document.getElementById('phCustomDateContainerTo');
+    
+    if (this.value === 'custom') {
+        customFrom.style.display = 'block';
+        customTo.style.display = 'block';
+    } else {
+        customFrom.style.display = 'none';
+        customTo.style.display = 'none';
+        phCurrentPage = 1;
+        loadPaymentHistory();
+    }
+});
+
+// Custom date inputs - auto-apply on change
+document.getElementById('phDateFrom').addEventListener('change', function() {
+    phCurrentPage = 1;
+    loadPaymentHistory();
+});
+
+document.getElementById('phDateTo').addEventListener('change', function() {
+    phCurrentPage = 1;
+    loadPaymentHistory();
+});
+
+// Tenant search - auto-apply with debounce (300ms delay)
+document.getElementById('phTenantSearch').addEventListener('input', function() {
+    clearTimeout(phSearchTimeout);
+    phSearchTimeout = setTimeout(function() {
+        phCurrentPage = 1;
+        loadPaymentHistory();
+    }, 300);
+});
+
+// Collected by dropdown - auto-apply on change
+document.getElementById('phCollectedBy').addEventListener('change', function() {
+    phCurrentPage = 1;
+    loadPaymentHistory();
+});
+
+// Reset filters button
+document.getElementById('phResetFilters').addEventListener('click', function() {
+    document.getElementById('phDateFilter').value = 'all';
+    document.getElementById('phDateFrom').value = '';
+    document.getElementById('phDateTo').value = '';
+    document.getElementById('phTenantSearch').value = '';
+    document.getElementById('phCollectedBy').value = '';
+    document.getElementById('phCustomDateContainer').style.display = 'none';
+    document.getElementById('phCustomDateContainerTo').style.display = 'none';
+    phCurrentPage = 1;
+    phSortBy = 'created_at';
+    phSortDir = 'desc';
+    loadPaymentHistory();
+});
+
+// Pagination buttons
+document.getElementById('phPrevPage').addEventListener('click', function() {
+    if (phCurrentPage > 1) {
+        phCurrentPage--;
+        loadPaymentHistory();
+    }
+});
+
+document.getElementById('phNextPage').addEventListener('click', function() {
+    phCurrentPage++;
+    loadPaymentHistory();
+});
+
+// Sort function
+function sortPaymentHistory(column) {
+    if (phSortBy === column) {
+        phSortDir = phSortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+        phSortBy = column;
+        phSortDir = 'desc';
+    }
+    loadPaymentHistory();
+}
+
+function loadPaymentHistory() {
+    const loading = document.getElementById('phLoading');
+    const tableContainer = document.getElementById('phTableContainer');
+    const tableBody = document.getElementById('phTableBody');
+
+    loading.style.display = 'block';
+    tableContainer.style.opacity = '0.5';
+
+    const params = new URLSearchParams({
+        page: phCurrentPage,
+        sort_by: phSortBy,
+        sort_dir: phSortDir,
+        per_page: 10
+    });
+
+    // Date filter
+    const dateFilter = document.getElementById('phDateFilter').value;
+    params.append('date_filter', dateFilter);
+    
+    if (dateFilter === 'custom') {
+        const dateFrom = document.getElementById('phDateFrom').value;
+        const dateTo = document.getElementById('phDateTo').value;
+        if (dateFrom) params.append('date_from', dateFrom);
+        if (dateTo) params.append('date_to', dateTo);
+    }
+
+    const tenantSearch = document.getElementById('phTenantSearch').value;
+    const collectedBy = document.getElementById('phCollectedBy').value;
+
+    if (tenantSearch) params.append('tenant_search', tenantSearch);
+    if (collectedBy) params.append('collected_by', collectedBy);
+
+    fetch(`{{ route('invoices.all-payments') }}?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+            loading.style.display = 'none';
+            tableContainer.style.opacity = '1';
+
+            // Populate users dropdown (once)
+            if (!phUsersLoaded && data.users) {
+                const select = document.getElementById('phCollectedBy');
+                data.users.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    option.textContent = user.name;
+                    select.appendChild(option);
+                });
+                phUsersLoaded = true;
+            }
+
+            // Render table
+            if (data.payments.data.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">No payments found</td></tr>';
+            } else {
+                tableBody.innerHTML = data.payments.data.map(payment => `
+                    <tr>
+                        <td><span class="badge bg-light text-dark">#${payment.payment_id}</span></td>
+                        <td>${payment.created_at}</td>
+                        <td><strong>${payment.tenant_name}</strong></td>
+                        <td>${payment.room_number}</td>
+                        <td class="fw-bold text-success">₱${payment.amount}</td>
+                        <td><span class="badge ${payment.payment_type === 'Security Deposit' ? 'bg-info' : 'bg-primary'}">${payment.payment_type}</span></td>
+                        <td>${payment.payment_method}</td>
+                        <td>${payment.collected_by}</td>
+                        <td>
+                            <a href="${payment.receipt_url}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-receipt"></i>
+                            </a>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            // Update pagination
+            const pagination = data.pagination;
+            document.getElementById('phPaginationInfo').textContent = 
+                `Showing ${pagination.from || 0} to ${pagination.to || 0} of ${pagination.total} payments`;
+            document.getElementById('phPageInfo').textContent = 
+                `Page ${pagination.current_page} of ${pagination.last_page}`;
+            document.getElementById('phPrevPage').disabled = pagination.current_page <= 1;
+            document.getElementById('phNextPage').disabled = pagination.current_page >= pagination.last_page;
+        })
+        .catch(error => {
+            loading.style.display = 'none';
+            tableContainer.style.opacity = '1';
+            tableBody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">Error loading payments</td></tr>';
+            console.error('Error loading payment history:', error);
+        });
+}
 </script>
 @endsection
 

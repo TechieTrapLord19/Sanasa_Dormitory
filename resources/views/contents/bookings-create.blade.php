@@ -767,13 +767,13 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="contact_num" class="form-label">Contact Number <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="contact_num" name="contact_num" placeholder="0912-345-6789" required>
+                            <input type="text" class="form-control" id="contact_num" name="contact_num" placeholder="09123456789" maxlength="11" minlength="11" pattern="[0-9]{11}" required>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="emer_contact_num" class="form-label">Emergency Contact Number <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="emer_contact_num" name="emer_contact_num" placeholder="0917-969-4567" required>
+                            <input type="text" class="form-control" id="emer_contact_num" name="emer_contact_num" placeholder="09179694567" maxlength="11" minlength="11" pattern="[0-9]{11}" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="emer_contact_name" class="form-label">Emergency Contact Name <span class="text-danger">*</span></label>

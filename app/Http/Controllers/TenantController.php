@@ -34,18 +34,33 @@ class TenantController extends Controller
             $query->where('status', $request->status);
         }
 
+        // Sorting
+        $sortBy = $request->input('sort_by', 'created_at');
+        $sortDir = $request->input('sort_dir', 'desc');
+        if (!in_array($sortDir, ['asc', 'desc'], true)) {
+            $sortDir = 'desc';
+        }
+
         // Pagination
         $perPage = (int) $request->input('per_page', 10);
-        if (!in_array($perPage, [10, 25, 50], true)) {
+        if (!in_array($perPage, [5, 10, 15, 20], true)) {
             $perPage = 10;
         }
 
-        $tenants = $query->with(['currentBooking.room'])
-                         ->withCount('bookings')
-                         ->orderBy('created_at', 'desc')
-                         ->orderBy('tenant_id', 'desc')
-                         ->paginate($perPage)
-                         ->withQueryString();
+        $query->with(['currentBooking.room'])->withCount('bookings');
+
+        // Apply sorting
+        $allowedSortColumns = ['tenant_id', 'first_name', 'last_name', 'email', 'contact_num', 'emer_contact_num', 'birth_date', 'created_at', 'status'];
+        if (in_array($sortBy, $allowedSortColumns, true)) {
+            $query->orderBy($sortBy, $sortDir);
+            if ($sortBy !== 'tenant_id') {
+                $query->orderBy('tenant_id', $sortDir);
+            }
+        } else {
+            $query->orderBy('created_at', 'desc')->orderBy('tenant_id', 'desc');
+        }
+
+        $tenants = $query->paginate($perPage)->withQueryString();
 
         // Get counts for status indicators
         $statusCounts = [
@@ -57,7 +72,7 @@ class TenantController extends Controller
         $activeStatus = $request->input('status', 'all');
         $searchTerm = $request->input('search', '');
 
-        return view('contents.tenants', compact('tenants', 'statusCounts', 'activeStatus', 'searchTerm', 'perPage'));
+        return view('contents.tenants', compact('tenants', 'statusCounts', 'activeStatus', 'searchTerm', 'perPage', 'sortBy', 'sortDir'));
     }
 
     /**

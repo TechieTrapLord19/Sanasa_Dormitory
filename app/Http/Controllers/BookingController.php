@@ -33,8 +33,8 @@ class BookingController extends Controller
 
         $query = Booking::with(['tenant', 'secondaryTenant', 'room', 'rate']);
 
-        // Filter by status tab - default to 'Pending Payment' if not specified
-        $statusFilter = $request->get('status', 'Pending Payment');
+        // Filter by status tab - default to 'All' if not specified
+        $statusFilter = $request->get('status', 'All');
 
         // Map 'Paid' to 'Paid Payment' for backward compatibility
         if ($statusFilter === 'Paid') {
@@ -88,9 +88,56 @@ class BookingController extends Controller
             }
         })->values();
 
+        // Sorting
+        $sortBy = $request->get('sort_by', 'booking_id');
+        $sortDir = $request->get('sort_dir', 'desc');
+
+        $allowedSortColumns = ['booking_id', 'room_num', 'check_in_date', 'check_out_date', 'created_at'];
+        if (!in_array($sortBy, $allowedSortColumns)) {
+            $sortBy = 'booking_id';
+        }
+        if (!in_array($sortDir, ['asc', 'desc'])) {
+            $sortDir = 'desc';
+        }
+
+        // Sort the filtered collection
+        if ($sortDir === 'desc') {
+            $filteredBookings = $filteredBookings->sortByDesc(function($booking) use ($sortBy) {
+                switch($sortBy) {
+                    case 'room_num':
+                        return (int) $booking->room->room_num ?? 0;
+                    case 'check_in_date':
+                        return $booking->checkin_date ? $booking->checkin_date->timestamp : 0;
+                    case 'check_out_date':
+                        return $booking->checkout_date ? $booking->checkout_date->timestamp : 0;
+                    case 'created_at':
+                        return $booking->created_at ? $booking->created_at->timestamp : 0;
+                    case 'booking_id':
+                    default:
+                        return $booking->booking_id;
+                }
+            })->values();
+        } else {
+            $filteredBookings = $filteredBookings->sortBy(function($booking) use ($sortBy) {
+                switch($sortBy) {
+                    case 'room_num':
+                        return (int) $booking->room->room_num ?? 0;
+                    case 'check_in_date':
+                        return $booking->checkin_date ? $booking->checkin_date->timestamp : 0;
+                    case 'check_out_date':
+                        return $booking->checkout_date ? $booking->checkout_date->timestamp : 0;
+                    case 'created_at':
+                        return $booking->created_at ? $booking->created_at->timestamp : 0;
+                    case 'booking_id':
+                    default:
+                        return $booking->booking_id;
+                }
+            })->values();
+        }
+
         // Pagination
         $perPage = (int) $request->input('per_page', 10);
-        if (!in_array($perPage, [10, 25, 50], true)) {
+        if (!in_array($perPage, [5, 10, 15, 20], true)) {
             $perPage = 10;
         }
 
@@ -127,7 +174,7 @@ class BookingController extends Controller
 
         $searchTerm = $request->input('search', '');
 
-        return view('contents.bookings', compact('bookings', 'statusCounts', 'statusFilter', 'searchTerm', 'perPage'));
+        return view('contents.bookings', compact('bookings', 'statusCounts', 'statusFilter', 'searchTerm', 'perPage', 'sortBy', 'sortDir'));
     }
 
     /**

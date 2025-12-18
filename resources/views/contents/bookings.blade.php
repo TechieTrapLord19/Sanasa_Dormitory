@@ -116,6 +116,28 @@
         border-bottom: 2px solid #e2e8f0;
     }
 
+    .bookings-table th.sortable {
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s ease;
+    }
+
+    .bookings-table th.sortable:hover {
+        background: #e2e8f0;
+        color: #03255b;
+    }
+
+    .bookings-table th.sortable .sort-icon {
+        margin-left: 0.3rem;
+        font-size: 0.7rem;
+        opacity: 0.4;
+    }
+
+    .bookings-table th.sortable.active .sort-icon {
+        opacity: 1;
+        color: #03255b;
+    }
+
     .bookings-table td {
         padding: 1rem;
         color: #4a5568;
@@ -490,9 +512,30 @@
         <thead>
             <tr>
                 <th>Tenant(s)</th>
-                <th>Room Number</th>
-                <th>Check-in Date</th>
-                <th>Check-out Date</th>
+                <th class="sortable {{ $sortBy === 'room_num' ? 'active' : '' }}" data-sort-column="room_num">
+                    Room Number
+                    @if($sortBy === 'room_num')
+                        <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                    @else
+                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                    @endif
+                </th>
+                <th class="sortable {{ $sortBy === 'check_in_date' ? 'active' : '' }}" data-sort-column="check_in_date">
+                    Check-in Date
+                    @if($sortBy === 'check_in_date')
+                        <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                    @else
+                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                    @endif
+                </th>
+                <th class="sortable {{ $sortBy === 'check_out_date' ? 'active' : '' }}" data-sort-column="check_out_date">
+                    Check-out Date
+                    @if($sortBy === 'check_out_date')
+                        <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                    @else
+                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                    @endif
+                </th>
                 <th>Rate</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -563,7 +606,7 @@
                 <input type="hidden" name="status" value="{{ $statusFilter }}">
                 <label for="perPage" class="text-muted small mb-0">Rows per page</label>
                 <select class="form-select form-select-sm" id="perPage" name="per_page" onchange="this.form.submit()">
-                    @foreach([10, 25, 50] as $option)
+                    @foreach([5, 10, 15, 20] as $option)
                         <option value="{{ $option }}" {{ (int) $perPage === $option ? 'selected' : '' }}>
                             {{ $option }}
                         </option>
@@ -583,7 +626,7 @@
             </p>
         </div>
         <div class="pagination-right">
-            {{ $bookings->appends(['status' => $statusFilter, 'search' => $searchTerm, 'per_page' => $perPage])->links() }}
+            {{ $bookings->appends(['status' => $statusFilter, 'search' => $searchTerm, 'per_page' => $perPage, 'sort_by' => $sortBy, 'sort_dir' => $sortDir])->links() }}
         </div>
     </div>
 </div>
@@ -636,12 +679,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     bookingRows.forEach(row => {
         row.addEventListener('click', function(e) {
-            // Don't navigate if clicking on action buttons or links
+            // Don't navigate if clicking on action buttons, links, or sortable headers
             if (e.target.closest('.action-column') ||
                 e.target.closest('.btn-view') ||
                 e.target.closest('.btn-cancel') ||
                 e.target.closest('button') ||
-                e.target.closest('a')) {
+                e.target.closest('a') ||
+                e.target.closest('.sortable')) {
                 return;
             }
 
@@ -652,7 +696,35 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // Add event listeners to sortable headers
+    const sortableHeaders = document.querySelectorAll('.bookings-table th.sortable');
+    sortableHeaders.forEach(header => {
+        header.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent row click from firing
+            const column = this.getAttribute('data-sort-column');
+            if (column) {
+                sortTable(column);
+            }
+        });
+    });
 });
+
+// Sorting function
+function sortTable(column) {
+    const url = new URL(window.location.href);
+    const currentSort = url.searchParams.get('sort_by');
+    const currentDir = url.searchParams.get('sort_dir') || 'desc';
+
+    if (currentSort === column) {
+        url.searchParams.set('sort_dir', currentDir === 'asc' ? 'desc' : 'asc');
+    } else {
+        url.searchParams.set('sort_by', column);
+        url.searchParams.set('sort_dir', 'desc');
+    }
+
+    window.location.href = url.toString();
+}
 </script>
 
 @endsection

@@ -18,7 +18,14 @@ class AssetController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Asset::with('room')->orderBy('name')->orderBy('asset_id');
+        $query = Asset::with('room');
+
+        // Sorting
+        $sortBy = $request->input('sort_by', 'name');
+        $sortDir = $request->input('sort_dir', 'asc');
+        if (!in_array($sortDir, ['asc', 'desc'], true)) {
+            $sortDir = 'asc';
+        }
 
         // Get filter values
         $selectedAssetType = $request->input('asset_type', '');
@@ -48,9 +55,20 @@ class AssetController extends Controller
             $query->where('name', 'like', "%{$searchTerm}%");
         }
 
+        // Apply sorting
+        $allowedSortColumns = ['asset_id', 'name', 'category', 'condition', 'purchase_date', 'room_id'];
+        if (in_array($sortBy, $allowedSortColumns, true)) {
+            $query->orderBy($sortBy, $sortDir);
+            if ($sortBy !== 'asset_id') {
+                $query->orderBy('asset_id', $sortDir);
+            }
+        } else {
+            $query->orderBy('name')->orderBy('asset_id');
+        }
+
         // Pagination
         $perPage = (int) $request->input('per_page', 25);
-        if (!in_array($perPage, [10, 25, 50, 100], true)) {
+        if (!in_array($perPage, [5, 10, 15, 20], true)) {
             $perPage = 25;
         }
 
@@ -73,7 +91,9 @@ class AssetController extends Controller
             'selectedCondition',
             'selectedLocation',
             'searchTerm',
-            'perPage'
+            'perPage',
+            'sortBy',
+            'sortDir'
         ));
     }
 

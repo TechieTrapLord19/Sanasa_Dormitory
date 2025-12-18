@@ -136,6 +136,28 @@
         border-bottom: 2px solid #e2e8f0;
     }
 
+    .users-table th.sortable {
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s ease;
+    }
+
+    .users-table th.sortable:hover {
+        background: #e2e8f0;
+        color: #03255b;
+    }
+
+    .users-table th.sortable .sort-icon {
+        margin-left: 0.3rem;
+        font-size: 0.7rem;
+        opacity: 0.4;
+    }
+
+    .users-table th.sortable.active .sort-icon {
+        opacity: 1;
+        color: #03255b;
+    }
+
     .users-table td {
         padding: 1rem;
         color: #4a5568;
@@ -416,10 +438,38 @@
     <table class="users-table">
         <thead>
             <tr>
-                <th>Full Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Status</th>
+                <th class="sortable {{ $sortBy === 'first_name' ? 'active' : '' }}" onclick="sortTable('first_name')">
+                    Full Name
+                    @if($sortBy === 'first_name')
+                        <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                    @else
+                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                    @endif
+                </th>
+                <th class="sortable {{ $sortBy === 'email' ? 'active' : '' }}" onclick="sortTable('email')">
+                    Email
+                    @if($sortBy === 'email')
+                        <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                    @else
+                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                    @endif
+                </th>
+                <th class="sortable {{ $sortBy === 'role' ? 'active' : '' }}" onclick="sortTable('role')">
+                    Role
+                    @if($sortBy === 'role')
+                        <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                    @else
+                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                    @endif
+                </th>
+                <th class="sortable {{ $sortBy === 'status' ? 'active' : '' }}" onclick="sortTable('status')">
+                    Status
+                    @if($sortBy === 'status')
+                        <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                    @else
+                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                    @endif
+                </th>
                 <th>Age</th>
                 <th>Address</th>
                 <th>Actions</th>
@@ -490,7 +540,7 @@
                 <input type="hidden" name="role" value="{{ $selectedRole }}">
                 <label for="perPage" class="text-muted small mb-0">Rows per page</label>
                 <select class="form-select form-select-sm" id="perPage" name="per_page" onchange="this.form.submit()">
-                    @foreach([10, 25, 50, 100] as $option)
+                    @foreach([5, 10, 15, 20] as $option)
                         <option value="{{ $option }}" {{ (int) $perPage === $option ? 'selected' : '' }}>
                             {{ $option }}
                         </option>
@@ -510,7 +560,7 @@
             </p>
         </div>
         <div class="pagination-right">
-            {{ $users->appends(['role' => $selectedRole, 'search' => $searchTerm, 'per_page' => $perPage])->links() }}
+            {{ $users->appends(['role' => $selectedRole, 'search' => $searchTerm, 'per_page' => $perPage, 'sort_by' => $sortBy, 'sort_dir' => $sortDir])->links() }}
         </div>
     </div>
 </div>
@@ -755,6 +805,22 @@ function filterByRole(role) {
 function filterByStatus(status) {
     document.getElementById('statusInput').value = status;
     document.querySelector('form[action="{{ route('user-management') }}"]').submit();
+}
+
+// Sorting function
+function sortTable(column) {
+    const url = new URL(window.location.href);
+    const currentSort = url.searchParams.get('sort_by');
+    const currentDir = url.searchParams.get('sort_dir') || 'asc';
+
+    if (currentSort === column) {
+        url.searchParams.set('sort_dir', currentDir === 'asc' ? 'desc' : 'asc');
+    } else {
+        url.searchParams.set('sort_by', column);
+        url.searchParams.set('sort_dir', 'asc');
+    }
+
+    window.location.href = url.toString();
 }
 </script>
 @endsection

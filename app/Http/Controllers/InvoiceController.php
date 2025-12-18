@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Invoice;
+use App\Models\Payment;
 use App\Models\Setting;
+use App\Models\User;
 use App\Traits\LogsActivity;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class InvoiceController extends Controller
@@ -22,16 +25,25 @@ public function index(Request $request): View
 
     $activeStatus = $request->input('status', 'all');
     $searchTerm = trim((string) $request->input('search', ''));
-    $perPage = (int) $request->input('per_page', 10);
+    $perPage = (int) $request->input('per_page', 5);
     $bookingId = $request->get('booking_id');
+
+    // Sorting
+    $sortBy = $request->input('sort_by', 'date_generated');
+    $sortDir = $request->input('sort_dir', 'desc');
+
+    // Validate sort direction
+    if (!in_array($sortDir, ['asc', 'desc'], true)) {
+        $sortDir = 'desc';
+    }
 
     // Date filtering
     $dateFilter = $request->input('date_filter', 'all');
     $dateFrom = $request->input('date_from');
     $dateTo = $request->input('date_to');
 
-    if (! in_array($perPage, [10, 25, 50], true)) {
-        $perPage = 10;
+    if (! in_array($perPage, [5, 10, 15, 20], true)) {
+        $perPage = 5;
     }
 
     // Get first invoice ID per booking
@@ -62,9 +74,20 @@ public function index(Request $request): View
                 $query->orderByDesc('created_at');
             }
         ])
-        ->withSum('payments as payments_sum', 'amount')
-        ->orderByDesc('date_generated')
-        ->orderByDesc('invoice_id');
+        ->withSum('payments as payments_sum', 'amount');
+
+    // Apply sorting
+    $allowedSortColumns = ['invoice_id', 'date_generated', 'total_due', 'due_date', 'penalty_amount', 'rent_subtotal'];
+    if (in_array($sortBy, $allowedSortColumns, true)) {
+        $invoiceQuery->orderBy($sortBy, $sortDir);
+        // Add secondary sort by invoice_id for consistency
+        if ($sortBy !== 'invoice_id') {
+            $invoiceQuery->orderBy('invoice_id', $sortDir);
+        }
+    } else {
+        // Default sorting
+        $invoiceQuery->orderByDesc('date_generated')->orderByDesc('invoice_id');
+    }
 
     // Filter by booking if booking_id provided
     if ($bookingId) {
@@ -186,29 +209,26 @@ public function index(Request $request): View
             // 1. Have only electricity fee (no rent, no utilities from invoice_utilities)
             // 2. Are one of the first 2 invoices for the booking (created during booking creation)
             // 3. Typically have a fixed amount (MONTHLY_SECURITY_DEPOSIT = 5000.00)
-            // Use loaded relationship (property) instead of method call to avoid N+1 queries
-            $hasUtilities = $invoice->invoiceUtilities && $invoice->invoiceUtilities->count() > 0;
-            $hasOnlyElectricityFee = ($invoice->rent_subtotal == 0 &&
-                                     !$hasUtilities &&
-                                     $invoice->utility_electricity_fee > 0);
+            // Electricity invoices: rent_subtotal = 0 and utility_electricity_fee > 0
+            $isElectricityOrSecurityDeposit = ($invoice->rent_subtotal == 0 && $invoice->utility_electricity_fee > 0);
 
             // Get invoice position for this booking (security deposit is typically 2nd invoice)
-            // We'll check if it's one of the first 2 invoices OR if amount matches security deposit
+            // We'll check if it's one of the first 2 invoices AND if amount matches security deposit ₱5000
             $invoiceCount = Invoice::where('booking_id', $invoice->booking_id)
                 ->where('invoice_id', '<=', $invoice->invoice_id)
                 ->count();
 
             $isEarlyInvoice = $invoiceCount <= 2; // First or second invoice for the booking
 
-            // Security deposit is typically the 2nd invoice for monthly bookings, or if amount matches security deposit (₱5,000.00)
-            $isSecurityDepositInvoice = $hasOnlyElectricityFee &&
-                                       ($isEarlyInvoice || abs($invoice->utility_electricity_fee - 5000.00) < 0.01);
+            // Security deposit is ONLY the 2nd invoice for monthly bookings when amount is exactly ₱5,000.00
+            $isSecurityDepositAmount = abs($invoice->utility_electricity_fee - 5000.00) < 0.01;
+            $isSecurityDepositInvoice = $isElectricityOrSecurityDeposit && $isEarlyInvoice && $isSecurityDepositAmount;
 
             if ($isSecurityDepositInvoice) {
                 $billingLabel = 'Security Deposit';
                 $invoiceType = 'Security Deposit';
-            } elseif ($hasOnlyElectricityFee) {
-                // Electricity-only invoice created later = Electricity Invoice
+            } elseif ($isElectricityOrSecurityDeposit) {
+                // Electricity-only invoice (not security deposit) = Electricity Invoice
                 $billingLabel = 'Electricity';
                 $invoiceType = 'Electricity';
             } else {
@@ -274,7 +294,7 @@ public function index(Request $request): View
         })->count(),
     ];
 
-    $financialSnapshot = $this->buildFinancialSnapshot();
+    $financialSnapshot = $this->buildFinancialSnapshot($dateFilter, $dateFrom, $dateTo);
     $highlightInvoiceId = $request->input('highlight');
 
     return view('contents.invoices', [
@@ -288,6 +308,8 @@ public function index(Request $request): View
         'dateFilter' => $dateFilter,
         'dateFrom' => $dateFrom,
         'dateTo' => $dateTo,
+        'sortBy' => $sortBy,
+        'sortDir' => $sortDir,
     ]);
 }
 
@@ -305,13 +327,51 @@ public function index(Request $request): View
 
     /**
      * Build a collection of financial metrics for the invoices dashboard.
+     * Accepts optional date filter parameters to filter the financial snapshot.
      */
-    protected function buildFinancialSnapshot(): array
+    protected function buildFinancialSnapshot(string $dateFilter = 'all', ?string $dateFrom = null, ?string $dateTo = null): array
     {
-        $invoiceCollection = Invoice::query()
+        $query = Invoice::query()
             ->with(['booking'])
-            ->withSum('payments as payments_sum', 'amount')
-            ->get();
+            ->withSum('payments as payments_sum', 'amount');
+
+        // Apply date filtering
+        if ($dateFilter !== 'all') {
+            $now = now();
+            switch ($dateFilter) {
+                case 'today':
+                    $query->whereDate('date_generated', $now->toDateString());
+                    break;
+                case 'this_week':
+                    $query->whereBetween('date_generated', [
+                        $now->copy()->startOfWeek()->toDateString(),
+                        $now->copy()->endOfWeek()->toDateString()
+                    ]);
+                    break;
+                case 'this_month':
+                    $query->whereYear('date_generated', $now->year)
+                        ->whereMonth('date_generated', $now->month);
+                    break;
+                case 'last_month':
+                    $lastMonth = $now->copy()->subMonth();
+                    $query->whereYear('date_generated', $lastMonth->year)
+                        ->whereMonth('date_generated', $lastMonth->month);
+                    break;
+                case 'this_year':
+                    $query->whereYear('date_generated', $now->year);
+                    break;
+                case 'custom':
+                    if ($dateFrom) {
+                        $query->whereDate('date_generated', '>=', $dateFrom);
+                    }
+                    if ($dateTo) {
+                        $query->whereDate('date_generated', '<=', $dateTo);
+                    }
+                    break;
+            }
+        }
+
+        $invoiceCollection = $query->get();
 
         // Filter out invoices from canceled bookings
         $activeInvoices = $invoiceCollection->filter(function (Invoice $invoice) {
@@ -441,5 +501,127 @@ public function index(Request $request): View
                 $invoice->save();
             }
         }
+    }
+
+    /**
+     * Get all payments for the Payment History modal.
+     * Returns JSON for AJAX loading.
+     */
+    public function getAllPayments(Request $request): JsonResponse
+    {
+        $query = Payment::with([
+            'booking.tenant',
+            'booking.room',
+            'invoice',
+            'collectedBy'
+        ]);
+
+        // Date filtering (supports same options as Invoices page)
+        $dateFilter = $request->input('date_filter', 'all');
+        if ($dateFilter !== 'all') {
+            $now = now();
+            switch ($dateFilter) {
+                case 'today':
+                    $query->whereDate('created_at', $now->toDateString());
+                    break;
+                case 'this_week':
+                    $query->whereBetween('created_at', [
+                        $now->copy()->startOfWeek(),
+                        $now->copy()->endOfWeek()
+                    ]);
+                    break;
+                case 'this_month':
+                    $query->whereYear('created_at', $now->year)
+                        ->whereMonth('created_at', $now->month);
+                    break;
+                case 'last_month':
+                    $lastMonth = $now->copy()->subMonth();
+                    $query->whereYear('created_at', $lastMonth->year)
+                        ->whereMonth('created_at', $lastMonth->month);
+                    break;
+                case 'this_year':
+                    $query->whereYear('created_at', $now->year);
+                    break;
+                case 'custom':
+                    if ($request->filled('date_from')) {
+                        $query->whereDate('created_at', '>=', $request->input('date_from'));
+                    }
+                    if ($request->filled('date_to')) {
+                        $query->whereDate('created_at', '<=', $request->input('date_to'));
+                    }
+                    break;
+            }
+        }
+
+        // Tenant search
+        if ($request->filled('tenant_search')) {
+            $search = $request->input('tenant_search');
+            $query->whereHas('booking.tenant', function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhere('middle_name', 'like', "%{$search}%");
+            });
+        }
+
+        // Collected by filter
+        if ($request->filled('collected_by')) {
+            $query->where('collected_by_user_id', $request->input('collected_by'));
+        }
+
+        // Sorting
+        $sortBy = $request->input('sort_by', 'created_at');
+        $sortDir = $request->input('sort_dir', 'desc');
+        $allowedSorts = ['payment_id', 'created_at', 'date_received', 'amount', 'payment_method'];
+        if (in_array($sortBy, $allowedSorts)) {
+            $query->orderBy($sortBy, $sortDir === 'asc' ? 'asc' : 'desc');
+        } else {
+            $query->orderByDesc('created_at');
+        }
+
+        // Paginate
+        $perPage = (int) $request->input('per_page', 10);
+        if (!in_array($perPage, [10, 20, 50], true)) {
+            $perPage = 10;
+        }
+
+        $payments = $query->paginate($perPage);
+
+        // Transform payments for response
+        $paymentsData = $payments->through(function ($payment) {
+            return [
+                'payment_id' => $payment->payment_id,
+                'created_at' => $payment->created_at->format('M d, Y h:i A'),
+                'date_received' => $payment->date_received->format('M d, Y'),
+                'tenant_name' => optional($payment->booking->tenant)->full_name ?? '—',
+                'room_number' => optional($payment->booking->room)->room_num ?? '—',
+                'amount' => number_format($payment->amount, 2),
+                'payment_method' => $payment->payment_method,
+                'payment_type' => $payment->payment_type,
+                'collected_by' => optional($payment->collectedBy)->full_name ?? '—',
+                'invoice_id' => $payment->invoice_id,
+                'receipt_url' => route('payments.receipt', $payment->payment_id),
+            ];
+        });
+
+        // Get list of users for the "Collected By" filter dropdown
+        $users = User::orderBy('last_name')->orderBy('first_name')->get()->map(function ($user) {
+            return [
+                'id' => $user->user_id,
+                'name' => $user->full_name,
+            ];
+        });
+
+        return response()->json([
+            'payments' => $paymentsData,
+            'users' => $users,
+            'pagination' => [
+                'current_page' => $payments->currentPage(),
+                'last_page' => $payments->lastPage(),
+                'per_page' => $payments->perPage(),
+                'total' => $payments->total(),
+                'from' => $payments->firstItem(),
+                'to' => $payments->lastItem(),
+            ],
+        ]);
     }
 }

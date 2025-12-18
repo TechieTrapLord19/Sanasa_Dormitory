@@ -25,6 +25,13 @@ class SecurityDepositController extends Controller
         $search = $request->input('search', '');
         $perPage = $request->input('per_page', 10);
 
+        // Sorting
+        $sortBy = $request->input('sort_by', 'created_at');
+        $sortDir = $request->input('sort_dir', 'desc');
+        if (!in_array($sortDir, ['asc', 'desc'], true)) {
+            $sortDir = 'desc';
+        }
+
         $query = SecurityDeposit::with(['booking.tenant', 'booking.room', 'processedBy']);
 
         if ($status) {
@@ -40,10 +47,27 @@ class SecurityDepositController extends Controller
             });
         }
 
-        $deposits = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        // Apply sorting
+        $allowedSortColumns = ['deposit_id', 'amount_paid', 'amount_deducted', 'amount_refunded', 'status', 'created_at', 'date_received'];
+        if (in_array($sortBy, $allowedSortColumns, true)) {
+            $query->orderBy($sortBy, $sortDir);
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
 
-        // Summary statistics
-        $totalHeld = SecurityDeposit::where('status', SecurityDeposit::STATUS_HELD)->sum('amount_paid');
+        $deposits = $query->paginate($perPage);
+
+        // Summary statistics - Total Held = actual refundable balance
+        $totalHeld = SecurityDeposit::whereIn('status', [
+                SecurityDeposit::STATUS_HELD,
+                SecurityDeposit::STATUS_PENDING,
+                SecurityDeposit::STATUS_DEPLETED,
+                SecurityDeposit::STATUS_PARTIALLY_REFUNDED
+            ])
+            ->get()
+            ->sum(function ($deposit) {
+                return max(0, $deposit->amount_paid - $deposit->amount_deducted - $deposit->amount_refunded);
+            });
         $totalPending = SecurityDeposit::where('status', SecurityDeposit::STATUS_PENDING)->count();
         $totalRefunded = SecurityDeposit::whereIn('status', [SecurityDeposit::STATUS_REFUNDED, SecurityDeposit::STATUS_PARTIALLY_REFUNDED])
             ->sum('amount_refunded');
@@ -55,7 +79,9 @@ class SecurityDepositController extends Controller
             'perPage',
             'totalHeld',
             'totalPending',
-            'totalRefunded'
+            'totalRefunded',
+            'sortBy',
+            'sortDir'
         ));
     }
 

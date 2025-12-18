@@ -43,16 +43,31 @@ class UserController extends Controller
             $query->where('status', $request->status);
         }
 
+        // Sorting
+        $sortBy = $request->input('sort_by', 'last_name');
+        $sortDir = $request->input('sort_dir', 'asc');
+        if (!in_array($sortDir, ['asc', 'desc'], true)) {
+            $sortDir = 'asc';
+        }
+
+        // Apply sorting
+        $allowedSortColumns = ['user_id', 'first_name', 'last_name', 'email', 'role', 'status', 'created_at'];
+        if (in_array($sortBy, $allowedSortColumns, true)) {
+            $query->orderBy($sortBy, $sortDir);
+            if ($sortBy !== 'user_id' && $sortBy !== 'last_name') {
+                $query->orderBy('last_name', $sortDir)->orderBy('first_name', $sortDir);
+            }
+        } else {
+            $query->orderBy('last_name')->orderBy('first_name');
+        }
+
         // Pagination
         $perPage = (int) $request->input('per_page', 25);
-        if (!in_array($perPage, [10, 25, 50, 100], true)) {
+        if (!in_array($perPage, [5, 10, 15, 20], true)) {
             $perPage = 25;
         }
 
-        $users = $query->orderBy('last_name')
-                      ->orderBy('first_name')
-                      ->paginate($perPage)
-                      ->withQueryString();
+        $users = $query->paginate($perPage)->withQueryString();
 
         // Get counts for role indicators
         $roleCounts = [
@@ -71,7 +86,7 @@ class UserController extends Controller
         $selectedStatus = $request->input('status', 'all');
         $searchTerm = $request->input('search', '');
 
-        return view('contents.user-management', compact('users', 'roleCounts', 'statusCounts', 'selectedRole', 'selectedStatus', 'searchTerm', 'perPage'));
+        return view('contents.user-management', compact('users', 'roleCounts', 'statusCounts', 'selectedRole', 'selectedStatus', 'searchTerm', 'perPage', 'sortBy', 'sortDir'));
     }
 
     /**

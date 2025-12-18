@@ -84,6 +84,12 @@
                             <span>Security Deposits</span>
                         </a>
                     </li>
+                    <li class="mb-1 {{ request()->routeIs('expenses.*') ? 'active' : '' }}">
+                        <a href="{{ route('expenses.index') }}" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
+                            <i class="bi bi-wallet2"></i>
+                            <span>Expenses</span>
+                        </a>
+                    </li>
 
                     <hr class="my-2 border-white-10">
 
@@ -122,6 +128,12 @@
                         <a href="{{ route('sales.index') }}" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
                             <i class="bi bi-graph-up-arrow"></i>
                             <span>Sales & Reports</span>
+                        </a>
+                    </li>
+                    <li class="mb-1 {{ request()->routeIs('financial-statement') ? 'active' : '' }}">
+                        <a href="{{ route('financial-statement') }}" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
+                            <i class="bi bi-bar-chart-line"></i>
+                            <span>Financial Statement</span>
                         </a>
                     </li>
 
@@ -176,7 +188,7 @@
             @endphp
             <div class="top-header-bar">
                 <div class="header-left">
-                    <span class="current-date">{{ now()->format('l, F d, Y') }}</span>
+                    <span class="current-date">{{ now()->format('l, F d, Y') }} • <span id="current-time">{{ now()->format('g:i A') }}</span></span>
                 </div>
                 <div class="header-right">
                     <!-- Notification Bell -->
@@ -463,6 +475,24 @@
         window.addEventListener('pagehide', function() {
             sessionStorage.setItem(SCROLL_KEY, sidebar.scrollTop);
         }, { passive: true });
+    })();
+</script>
+
+<script>
+    // Update header time every minute
+    (function updateHeaderTime() {
+        const timeEl = document.getElementById('current-time');
+        if (timeEl) {
+            setInterval(function() {
+                const now = new Date();
+                let hours = now.getHours();
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12;
+                hours = hours ? hours : 12;
+                const minutes = now.getMinutes().toString().padStart(2, '0');
+                timeEl.textContent = hours + ':' + minutes + ' ' + ampm;
+            }, 60000); // Update every minute
+        }
     })();
 </script>
 </html>

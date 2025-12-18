@@ -31,9 +31,13 @@ class DashboardController extends Controller
             ->whereYear('date_received', $currentYear)
             ->sum('amount');
 
-        // 3. OUTSTANDING BALANCE (All unpaid invoices)
-        // Get all invoices with their payments
-        $invoices = Invoice::with('payments')->get();
+        // 3. OUTSTANDING BALANCE (Current month's unpaid invoices)
+        $currentMonth = now()->month;
+        $currentYear = now()->year;
+        $invoices = Invoice::with('payments')
+            ->whereYear('date_generated', $currentYear)
+            ->whereMonth('date_generated', $currentMonth)
+            ->get();
         $outstandingBalance = $invoices->sum(function($invoice) {
             $totalPaid = $invoice->payments->sum('amount');
             return max(0, $invoice->total_due - $totalPaid);
@@ -48,8 +52,18 @@ class DashboardController extends Controller
         $availableRooms = Room::where('status', 'available')->count();
         $totalBookings = Booking::where('status', 'Active')->count();
 
-        // 6. TODAY'S COLLECTIONS
-        $todayCollections = Payment::whereDate('date_received', now())->sum('amount');
+        // 6. MONTHLY COLLECTIONS (current month, capped at invoice total_due to match Invoices page)
+        $monthlyInvoices = Invoice::with(['booking', 'payments'])
+            ->whereYear('date_generated', $currentYear)
+            ->whereMonth('date_generated', $currentMonth)
+            ->get()
+            ->filter(function ($invoice) {
+                return optional($invoice->booking)->status !== 'Canceled';
+            });
+        $monthlyCollections = $monthlyInvoices->sum(function ($invoice) {
+            $totalPaid = $invoice->payments->sum('amount');
+            return min((float) $invoice->total_due, (float) $totalPaid);
+        });
 
         // 7. TODAY'S CHECK-INS
         $todayCheckins = Booking::whereDate('checkin_date', now())
@@ -83,10 +97,11 @@ class DashboardController extends Controller
             ->values();
 
         // 11. SECURITY DEPOSIT METRICS
-        $totalDepositsHeld = SecurityDeposit::where('status', 'Held')
+        // Total Deposits Held = actual balance (amount_paid - amount_deducted - amount_refunded)
+        $totalDepositsHeld = SecurityDeposit::whereIn('status', ['Held', 'Pending', 'Depleted', 'Partially Refunded'])
             ->get()
-            ->sum(function($deposit) {
-                return $deposit->calculateRefundable();
+            ->sum(function ($deposit) {
+                return max(0, $deposit->amount_paid - $deposit->amount_deducted - $deposit->amount_refunded);
             });
 
         $pendingDeposits = SecurityDeposit::whereIn('status', ['Pending', 'Depleted'])->count();
@@ -105,7 +120,7 @@ class DashboardController extends Controller
             'totalTenants',
             'availableRooms',
             'totalBookings',
-            'todayCollections',
+            'monthlyCollections',
             'todayCheckins',
             'todayCheckouts',
             'upcomingExpirations',

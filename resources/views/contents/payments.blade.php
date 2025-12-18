@@ -107,6 +107,24 @@
         font-size: 0.875rem;
         border-bottom: 2px solid #e2e8f0;
     }
+    .logs-table th.sortable {
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s ease;
+    }
+    .logs-table th.sortable:hover {
+        background: #e2e8f0;
+        color: #03255b;
+    }
+    .logs-table th.sortable .sort-icon {
+        margin-left: 0.3rem;
+        font-size: 0.7rem;
+        opacity: 0.4;
+    }
+    .logs-table th.sortable.active .sort-icon {
+        opacity: 1;
+        color: #03255b;
+    }
 
     .logs-table td {
         padding: 1rem;
@@ -345,7 +363,6 @@
             </div>
 
             <div class="filter-group">
-                <button type="submit" class="filter-btn">Apply Filters</button>
                 <a href="{{ route('activity-logs') }}" class="filter-btn filter-btn-clear" style="text-decoration: none; display: inline-block;">Clear</a>
             </div>
         </form>
@@ -357,9 +374,30 @@
             <table class="logs-table">
                 <thead>
                     <tr>
-                        <th>Date & Time</th>
-                        <th>Caretaker</th>
-                        <th>Action</th>
+                        <th class="sortable {{ $sortBy === 'created_at' ? 'active' : '' }}" onclick="sortTable('created_at')">
+                            Date & Time
+                            @if($sortBy === 'created_at')
+                                <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                            @else
+                                <i class="bi bi-arrow-down-up sort-icon"></i>
+                            @endif
+                        </th>
+                        <th class="sortable {{ $sortBy === 'user_id' ? 'active' : '' }}" onclick="sortTable('user_id')">
+                            Caretaker
+                            @if($sortBy === 'user_id')
+                                <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                            @else
+                                <i class="bi bi-arrow-down-up sort-icon"></i>
+                            @endif
+                        </th>
+                        <th class="sortable {{ $sortBy === 'action' ? 'active' : '' }}" onclick="sortTable('action')">
+                            Action
+                            @if($sortBy === 'action')
+                                <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                            @else
+                                <i class="bi bi-arrow-down-up sort-icon"></i>
+                            @endif
+                        </th>
                         <th>Description</th>
                     </tr>
                 </thead>
@@ -407,7 +445,7 @@
                         <input type="hidden" name="date_to" value="{{ $dateTo }}">
                         <label for="perPage" class="text-muted small mb-0">Rows per page</label>
                         <select class="form-select form-select-sm" id="perPage" name="per_page" onchange="this.form.submit()">
-                            @foreach([10, 25, 50, 100] as $option)
+                            @foreach([5, 10, 15, 20] as $option)
                                 <option value="{{ $option }}" {{ (int) $perPage === $option ? 'selected' : '' }}>
                                     {{ $option }}
                                 </option>
@@ -427,7 +465,7 @@
                     </p>
                 </div>
                 <div class="pagination-right">
-                    {{ $logs->appends(['user_id' => $selectedUserId, 'action' => $selectedAction, 'date_from' => $dateFrom, 'date_to' => $dateTo, 'per_page' => $perPage])->links() }}
+                    {{ $logs->appends(['user_id' => $selectedUserId, 'action' => $selectedAction, 'date_from' => $dateFrom, 'date_to' => $dateTo, 'per_page' => $perPage, 'sort_by' => $sortBy, 'sort_dir' => $sortDir])->links() }}
                 </div>
             </div>
         @else
@@ -441,6 +479,44 @@
         @endif
     </div>
 </div>
+
+<script>
+// Sorting function
+function sortTable(column) {
+    const url = new URL(window.location.href);
+    const currentSort = url.searchParams.get('sort_by');
+    const currentDir = url.searchParams.get('sort_dir') || 'desc';
+
+    if (currentSort === column) {
+        url.searchParams.set('sort_dir', currentDir === 'asc' ? 'desc' : 'asc');
+    } else {
+        url.searchParams.set('sort_by', column);
+        url.searchParams.set('sort_dir', 'desc');
+    }
+
+    window.location.href = url.toString();
+}
+
+// Auto-apply filters on change
+document.addEventListener('DOMContentLoaded', function() {
+    const filterForm = document.getElementById('filterForm');
+    if (filterForm) {
+        // Auto-submit on select change
+        filterForm.querySelectorAll('select').forEach(function(select) {
+            select.addEventListener('change', function() {
+                filterForm.submit();
+            });
+        });
+
+        // Auto-submit on date change
+        filterForm.querySelectorAll('input[type="date"]').forEach(function(input) {
+            input.addEventListener('change', function() {
+                filterForm.submit();
+            });
+        });
+    }
+});
+</script>
 @endsection
 
 

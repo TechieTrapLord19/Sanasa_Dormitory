@@ -1255,19 +1255,24 @@
                     }
                 }
 
-                // Load rate from sessionStorage on page load
+                // Load rate from database. SessionStorage is now just for the current session.
+                // Priority: Database value (from PHP) > SessionStorage (if user changed it this session)
                 const storedRate = sessionStorage.getItem('electricity_rate_per_kwh');
                 const currentRateDisplay = document.getElementById('currentRateDisplay');
+                const dbRate = rateInput ? rateInput.value : null;
 
-                if (storedRate && rateInput) {
+                // Only use sessionStorage if it has a valid non-zero rate AND the database rate is empty
+                // This ensures database value takes priority on page load
+                if (storedRate && parseFloat(storedRate) > 0 && (!dbRate || parseFloat(dbRate) <= 0)) {
                     rateInput.value = storedRate;
                     if (currentRateDisplay) {
                         currentRateDisplay.textContent = '₱' + parseFloat(storedRate).toFixed(2);
                     }
-                } else if (rateInput && rateInput.value) {
-                    sessionStorage.setItem('electricity_rate_per_kwh', rateInput.value);
+                } else if (dbRate && parseFloat(dbRate) > 0) {
+                    // Database has a valid rate, use it and update sessionStorage
+                    sessionStorage.setItem('electricity_rate_per_kwh', dbRate);
                     if (currentRateDisplay) {
-                        currentRateDisplay.textContent = '₱' + parseFloat(rateInput.value).toFixed(2);
+                        currentRateDisplay.textContent = '₱' + parseFloat(dbRate).toFixed(2);
                     }
                 }
 

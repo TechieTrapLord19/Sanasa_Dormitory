@@ -145,6 +145,24 @@
         width: 1%;
         white-space: nowrap;
     }
+    .assets-table th.sortable {
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s ease;
+    }
+    .assets-table th.sortable:hover {
+        background: #e2e8f0;
+        color: #03255b;
+    }
+    .assets-table th.sortable .sort-icon {
+        margin-left: 0.3rem;
+        font-size: 0.7rem;
+        opacity: 0.4;
+    }
+    .assets-table th.sortable.active .sort-icon {
+        opacity: 1;
+        color: #03255b;
+    }
 
     .assets-table td {
         padding: 1rem;
@@ -430,10 +448,38 @@
             <table class="assets-table">
                 <thead>
                     <tr>
-                        <th>Asset Name</th>
-                        <th>Location</th>
-                        <th>Condition</th>
-                        <th>Date Acquired</th>
+                        <th class="sortable {{ $sortBy === 'name' ? 'active' : '' }}" onclick="sortTable('name')" style="text-align: left;">
+                            Asset Name
+                            @if($sortBy === 'name')
+                                <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                            @else
+                                <i class="bi bi-arrow-down-up sort-icon"></i>
+                            @endif
+                        </th>
+                        <th class="sortable {{ $sortBy === 'room_id' ? 'active' : '' }}" onclick="sortTable('room_id')">
+                            Location
+                            @if($sortBy === 'room_id')
+                                <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                            @else
+                                <i class="bi bi-arrow-down-up sort-icon"></i>
+                            @endif
+                        </th>
+                        <th class="sortable {{ $sortBy === 'condition' ? 'active' : '' }}" onclick="sortTable('condition')">
+                            Condition
+                            @if($sortBy === 'condition')
+                                <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                            @else
+                                <i class="bi bi-arrow-down-up sort-icon"></i>
+                            @endif
+                        </th>
+                        <th class="sortable {{ $sortBy === 'purchase_date' ? 'active' : '' }}" onclick="sortTable('purchase_date')">
+                            Date Acquired
+                            @if($sortBy === 'purchase_date')
+                                <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                            @else
+                                <i class="bi bi-arrow-down-up sort-icon"></i>
+                            @endif
+                        </th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -481,7 +527,7 @@
                         <input type="hidden" name="search" value="{{ $searchTerm }}">
                         <label for="perPage" class="text-muted small mb-0">Rows per page</label>
                         <select class="form-select form-select-sm" id="perPage" name="per_page" onchange="this.form.submit()">
-                            @foreach([10, 25, 50, 100] as $option)
+                            @foreach([5, 10, 15, 20] as $option)
                                 <option value="{{ $option }}" {{ (int) $perPage === $option ? 'selected' : '' }}>
                                     {{ $option }}
                                 </option>
@@ -501,7 +547,7 @@
                     </p>
                 </div>
                 <div class="pagination-right">
-                    {{ $assets->appends(['asset_type' => $selectedAssetType, 'condition' => $selectedCondition, 'location' => $selectedLocation, 'search' => $searchTerm, 'per_page' => $perPage])->links() }}
+                    {{ $assets->appends(['asset_type' => $selectedAssetType, 'condition' => $selectedCondition, 'location' => $selectedLocation, 'search' => $searchTerm, 'per_page' => $perPage, 'sort_by' => $sortBy, 'sort_dir' => $sortDir])->links() }}
                 </div>
             </div>
         @else
@@ -747,5 +793,23 @@
     </div>
 </div>
 @endforeach
+
+<script>
+// Sorting function
+function sortTable(column) {
+    const url = new URL(window.location.href);
+    const currentSort = url.searchParams.get('sort_by');
+    const currentDir = url.searchParams.get('sort_dir') || 'asc';
+
+    if (currentSort === column) {
+        url.searchParams.set('sort_dir', currentDir === 'asc' ? 'desc' : 'asc');
+    } else {
+        url.searchParams.set('sort_by', column);
+        url.searchParams.set('sort_dir', 'asc');
+    }
+
+    window.location.href = url.toString();
+}
+</script>
 @endsection
 

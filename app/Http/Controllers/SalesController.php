@@ -29,13 +29,28 @@ class SalesController extends Controller
             ->whereDate('date_received', '<=', $endDate)
             ->sum('amount');
 
+        // Sorting
+        $sortBy = $request->input('sort_by', 'date_received');
+        $sortDir = $request->input('sort_dir', 'desc');
+        if (!in_array($sortDir, ['asc', 'desc'], true)) {
+            $sortDir = 'desc';
+        }
+
         // Get revenue transactions only (exclude Security Deposit payments from table)
-        $payments = Payment::with(['invoice.booking.tenant', 'invoice.booking.secondaryTenant', 'invoice.booking.room', 'collectedBy'])
+        $paymentsQuery = Payment::with(['invoice.booking.tenant', 'invoice.booking.secondaryTenant', 'invoice.booking.room', 'collectedBy'])
             ->whereIn('payment_type', ['Rent/Utility', 'Deposit Deduction'])
             ->whereDate('date_received', '>=', $startDate)
-            ->whereDate('date_received', '<=', $endDate)
-            ->orderBy('date_received', 'desc')
-            ->paginate($perPage);
+            ->whereDate('date_received', '<=', $endDate);
+
+        // Apply sorting
+        $allowedSortColumns = ['payment_id', 'date_received', 'amount', 'payment_method', 'payment_type'];
+        if (in_array($sortBy, $allowedSortColumns, true)) {
+            $paymentsQuery->orderBy($sortBy, $sortDir);
+        } else {
+            $paymentsQuery->orderBy('date_received', 'desc');
+        }
+
+        $payments = $paymentsQuery->paginate($perPage);
 
         // Calculate counts (revenue transactions only)
         $totalTransactions = Payment::whereIn('payment_type', ['Rent/Utility', 'Deposit Deduction'])
@@ -88,7 +103,9 @@ class SalesController extends Controller
             'outstandingBalance',
             'perPage',
             'dailyIncomeChart',
-            'paymentTypeChart'
+            'paymentTypeChart',
+            'sortBy',
+            'sortDir'
         ));
     }
 

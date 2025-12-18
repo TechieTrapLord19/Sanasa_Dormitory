@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Pagination\Paginator;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +20,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Set custom pagination view as default
+        Paginator::defaultView('vendor.pagination.custom');
+        Paginator::defaultSimpleView('vendor.pagination.custom');
     }
 }

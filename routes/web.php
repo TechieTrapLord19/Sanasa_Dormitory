@@ -18,6 +18,8 @@ use App\Http\Controllers\RefundController;
 use App\Http\Controllers\ElectricReadingController;
 use App\Http\Controllers\MaintenanceLogController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\FinancialStatementController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\SecurityDepositController;
 use App\Http\Controllers\SettingsController;
@@ -110,5 +112,15 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
     // Settings routes
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
+
+    // Expenses routes
+    Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
+    Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.store');
+    Route::put('/expenses/{id}', [ExpenseController::class, 'update'])->name('expenses.update');
+    Route::delete('/expenses/{id}', [ExpenseController::class, 'destroy'])->name('expenses.destroy');
+
+    // Financial Statement route
+    Route::get('/financial-statement', [FinancialStatementController::class, 'index'])->name('financial-statement');
+    Route::get('/financial-statement/export', [FinancialStatementController::class, 'export'])->name('financial-statement.export');
 
 });

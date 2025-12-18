@@ -36,6 +36,12 @@
     .stat-card:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        cursor: pointer;
+    }
+
+    a.card-link {
+        text-decoration: none;
+        color: inherit;
     }
 
     .stat-card .stat-header {
@@ -334,25 +340,29 @@
 <div class="stats-row">
     <div class="row g-3">
         <div class="col-6 col-md">
-            <div class="stat-card outstanding">
-                <div class="stat-header">
-                    <span class="stat-icon"><i class="bi bi-exclamation-circle"></i></span>
-                    <h6>Outstanding Balance</h6>
+            <a href="{{ route('invoices') }}" class="card-link">
+                <div class="stat-card outstanding">
+                    <div class="stat-header">
+                        <span class="stat-icon"><i class="bi bi-exclamation-circle"></i></span>
+                        <h6>Outstanding Balance</h6>
+                    </div>
+                    <p class="stat-value">₱{{ number_format($outstandingBalance, 2) }}</p>
                 </div>
-                <p class="stat-value">₱{{ number_format($outstandingBalance, 2) }}</p>
-            </div>
+            </a>
         </div>
         <div class="col-6 col-md">
-            <div class="stat-card collections">
-                <div class="stat-header">
-                    <span class="stat-icon"><i class="bi bi-cash-coin"></i></span>
-                    <h6>Today's Collections</h6>
+            <a href="{{ route('invoices') }}" class="card-link">
+                <div class="stat-card collections">
+                    <div class="stat-header">
+                        <span class="stat-icon"><i class="bi bi-cash-coin"></i></span>
+                        <h6>Monthly Collections</h6>
+                    </div>
+                    <p class="stat-value">₱{{ number_format($monthlyCollections, 2) }}</p>
                 </div>
-                <p class="stat-value">₱{{ number_format($todayCollections, 2) }}</p>
-            </div>
+            </a>
         </div>
         <div class="col-6 col-md">
-            <a href="{{ route('security-deposits.index') }}" class="text-decoration-none">
+            <a href="{{ route('security-deposits.index') }}" class="card-link">
                 <div class="stat-card deposits">
                     <div class="stat-header">
                         <span class="stat-icon"><i class="bi bi-shield-check"></i></span>
@@ -366,22 +376,26 @@
             </a>
         </div>
         <div class="col-6 col-md">
-            <div class="stat-card tenants">
-                <div class="stat-header">
-                    <span class="stat-icon"><i class="bi bi-people"></i></span>
-                    <h6>Active Tenants</h6>
+            <a href="{{ route('tenants') }}" class="card-link">
+                <div class="stat-card tenants">
+                    <div class="stat-header">
+                        <span class="stat-icon"><i class="bi bi-people"></i></span>
+                        <h6>Active Tenants</h6>
+                    </div>
+                    <p class="stat-value">{{ $totalTenants }}</p>
                 </div>
-                <p class="stat-value">{{ $totalTenants }}</p>
-            </div>
+            </a>
         </div>
         <div class="col-6 col-md">
-            <div class="stat-card available">
-                <div class="stat-header">
-                    <span class="stat-icon"><i class="bi bi-house-door"></i></span>
-                    <h6>Rooms Available</h6>
+            <a href="{{ route('rooms.index') }}" class="card-link">
+                <div class="stat-card available">
+                    <div class="stat-header">
+                        <span class="stat-icon"><i class="bi bi-house-door"></i></span>
+                        <h6>Rooms Available</h6>
+                    </div>
+                    <p class="stat-value">{{ $availableRooms }}</p>
                 </div>
-                <p class="stat-value">{{ $availableRooms }}</p>
-            </div>
+            </a>
         </div>
     </div>
 </div>

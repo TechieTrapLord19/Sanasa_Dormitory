@@ -137,6 +137,28 @@
         border-bottom: 2px solid #e2e8f0;
     }
 
+    .logs-table th.sortable {
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s ease;
+    }
+
+    .logs-table th.sortable:hover {
+        background: #e2e8f0;
+        color: #03255b;
+    }
+
+    .logs-table th.sortable .sort-icon {
+        margin-left: 0.3rem;
+        font-size: 0.7rem;
+        opacity: 0.4;
+    }
+
+    .logs-table th.sortable.active .sort-icon {
+        opacity: 1;
+        color: #03255b;
+    }
+
     .logs-table td {
         padding: 1rem;
         color: #4a5568;
@@ -359,7 +381,7 @@
         <form method="GET" action="{{ route('maintenance-logs') }}" id="filterForm" class="d-flex flex-wrap align-items-end gap-3">
             <div class="filter-group">
                 <label class="filter-label">Status:</label>
-                <select name="status" class="filter-select">
+                <select name="status" class="filter-select" onchange="this.form.submit()">
                     <option value="">All Statuses</option>
                     <option value="Pending" {{ $selectedStatus == 'Pending' ? 'selected' : '' }}>Pending</option>
                     <option value="In Progress" {{ $selectedStatus == 'In Progress' ? 'selected' : '' }}>In Progress</option>
@@ -369,18 +391,26 @@
             </div>
 
             <div class="filter-group">
-                <label class="filter-label">Date From:</label>
-                <input type="date" name="date_from" class="filter-input" value="{{ $dateFrom }}">
+                <label class="filter-label">Date:</label>
+                <select name="date_filter" id="dateFilterSelect" class="filter-select" onchange="handleDateFilterChange(this)">
+                    <option value="all" {{ $dateFilter == 'all' ? 'selected' : '' }}>All Time</option>
+                    <option value="today" {{ $dateFilter == 'today' ? 'selected' : '' }}>Today</option>
+                    <option value="this_week" {{ $dateFilter == 'this_week' ? 'selected' : '' }}>This Week</option>
+                    <option value="this_month" {{ $dateFilter == 'this_month' ? 'selected' : '' }}>This Month</option>
+                    <option value="last_month" {{ $dateFilter == 'last_month' ? 'selected' : '' }}>Last Month</option>
+                    <option value="this_year" {{ $dateFilter == 'this_year' ? 'selected' : '' }}>This Year</option>
+                    <option value="custom" {{ $dateFilter == 'custom' ? 'selected' : '' }}>Custom Range</option>
+                </select>
+            </div>
+
+            <div class="filter-group" id="customDateInputs" style="display: {{ $dateFilter == 'custom' ? 'flex' : 'none' }}; gap: 0.5rem;">
+                <input type="date" name="date_from" class="filter-input" value="{{ $dateFrom }}" onchange="this.form.submit()">
+                <span style="color: #64748b;">to</span>
+                <input type="date" name="date_to" class="filter-input" value="{{ $dateTo }}" onchange="this.form.submit()">
             </div>
 
             <div class="filter-group">
-                <label class="filter-label">Date To:</label>
-                <input type="date" name="date_to" class="filter-input" value="{{ $dateTo }}">
-            </div>
-
-            <div class="filter-group">
-                <button type="submit" class="filter-btn">Apply Filters</button>
-                <a href="{{ route('maintenance-logs') }}" class="filter-btn filter-btn-clear" style="text-decoration: none; display: inline-block;">Clear</a>
+                <a href="{{ route('maintenance-logs') }}?date_filter=this_month" class="filter-btn filter-btn-clear" style="text-decoration: none; display: inline-block;">Clear</a>
             </div>
         </form>
     </div>
@@ -391,11 +421,32 @@
             <table class="logs-table">
                 <thead>
                     <tr>
-                        <th>Date Reported</th>
-                        <th>Asset / Location</th>
+                        <th class="sortable {{ $sortBy === 'date_reported' ? 'active' : '' }}" onclick="sortTable('date_reported')">
+                            Date Reported
+                            @if($sortBy === 'date_reported')
+                                <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                            @else
+                                <i class="bi bi-arrow-down-up sort-icon"></i>
+                            @endif
+                        </th>
+                        <th class="sortable {{ $sortBy === 'asset_id' ? 'active' : '' }}" onclick="sortTable('asset_id')">
+                            Asset / Location
+                            @if($sortBy === 'asset_id')
+                                <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                            @else
+                                <i class="bi bi-arrow-down-up sort-icon"></i>
+                            @endif
+                        </th>
                         <th>Issue Description</th>
                         <th>Reported By</th>
-                        <th>Status</th>
+                        <th class="sortable {{ $sortBy === 'status' ? 'active' : '' }}" onclick="sortTable('status')">
+                            Status
+                            @if($sortBy === 'status')
+                                <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                            @else
+                                <i class="bi bi-arrow-down-up sort-icon"></i>
+                            @endif
+                        </th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -438,12 +489,15 @@
                 <div class="pagination-left">
                     <form method="GET" action="{{ route('maintenance-logs') }}" class="d-flex align-items-center gap-2">
                         <input type="hidden" name="status" value="{{ $selectedStatus }}">
-                        <input type="hidden" name="date_from" value="{{ $dateFrom }}">
-                        <input type="hidden" name="date_to" value="{{ $dateTo }}">
+                        <input type="hidden" name="date_filter" value="{{ $dateFilter }}">
+                        @if($dateFilter == 'custom')
+                            <input type="hidden" name="date_from" value="{{ $dateFrom }}">
+                            <input type="hidden" name="date_to" value="{{ $dateTo }}">
+                        @endif
                         <input type="hidden" name="asset_id" value="{{ $selectedAssetId }}">
                         <label for="perPage" class="text-muted small mb-0">Rows per page</label>
                         <select class="form-select form-select-sm" id="perPage" name="per_page" onchange="this.form.submit()">
-                            @foreach([10, 25, 50, 100] as $option)
+                            @foreach([5, 10, 15, 20] as $option)
                                 <option value="{{ $option }}" {{ (int) $perPage === $option ? 'selected' : '' }}>
                                     {{ $option }}
                                 </option>
@@ -463,7 +517,7 @@
                     </p>
                 </div>
                 <div class="pagination-right">
-                    {{ $logs->appends(['status' => $selectedStatus, 'date_from' => $dateFrom, 'date_to' => $dateTo, 'asset_id' => $selectedAssetId, 'per_page' => $perPage])->links() }}
+                    {{ $logs->appends(['status' => $selectedStatus, 'date_filter' => $dateFilter, 'date_from' => $dateFrom, 'date_to' => $dateTo, 'asset_id' => $selectedAssetId, 'per_page' => $perPage, 'sort_by' => $sortBy, 'sort_dir' => $sortDir])->links() }}
                 </div>
             </div>
         @else
@@ -644,6 +698,33 @@
             }
         });
     });
+
+    // Sorting function
+    function sortTable(column) {
+        const url = new URL(window.location.href);
+        const currentSort = url.searchParams.get('sort_by');
+        const currentDir = url.searchParams.get('sort_dir') || 'asc';
+
+        if (currentSort === column) {
+            url.searchParams.set('sort_dir', currentDir === 'asc' ? 'desc' : 'asc');
+        } else {
+            url.searchParams.set('sort_by', column);
+            url.searchParams.set('sort_dir', 'asc');
+        }
+
+        window.location.href = url.toString();
+    }
+
+    // Handle date filter dropdown change
+    function handleDateFilterChange(select) {
+        const customDateInputs = document.getElementById('customDateInputs');
+        if (select.value === 'custom') {
+            customDateInputs.style.display = 'flex';
+        } else {
+            customDateInputs.style.display = 'none';
+            select.form.submit();
+        }
+    }
 </script>
 @endsection
 

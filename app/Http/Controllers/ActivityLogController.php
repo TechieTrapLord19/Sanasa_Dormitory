@@ -17,7 +17,14 @@ class ActivityLogController extends Controller
      */
     public function index(Request $request)
     {
-        $query = ActivityLog::with('user')->orderBy('created_at', 'desc');
+        $query = ActivityLog::with('user');
+
+        // Sorting
+        $sortBy = $request->input('sort_by', 'created_at');
+        $sortDir = $request->input('sort_dir', 'desc');
+        if (!in_array($sortDir, ['asc', 'desc'], true)) {
+            $sortDir = 'desc';
+        }
 
         // If caretaker, only show their own logs
         if ($this->isCaretaker()) {
@@ -42,10 +49,21 @@ class ActivityLogController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
+        // Apply sorting
+        $allowedSortColumns = ['log_id', 'user_id', 'action', 'created_at'];
+        if (in_array($sortBy, $allowedSortColumns, true)) {
+            $query->orderBy($sortBy, $sortDir);
+            if ($sortBy !== 'log_id') {
+                $query->orderBy('log_id', $sortDir);
+            }
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
         // Pagination
-        $perPage = (int) $request->input('per_page', 25);
-        if (!in_array($perPage, [10, 25, 50, 100], true)) {
-            $perPage = 25;
+        $perPage = (int) $request->input('per_page', 10);
+        if (!in_array($perPage, [5, 10, 15, 20], true)) {
+            $perPage = 10;
         }
 
         $logs = $query->paginate($perPage)->withQueryString();
@@ -78,7 +96,9 @@ class ActivityLogController extends Controller
             'selectedAction',
             'dateFrom',
             'dateTo',
-            'perPage'
+            'perPage',
+            'sortBy',
+            'sortDir'
         ));
     }
 }

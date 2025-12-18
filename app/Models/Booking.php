@@ -127,7 +127,7 @@ class Booking extends Model
     public static function hasOverlap($roomId, $checkinDate, $checkoutDate, $excludeBookingId = null)
     {
         $query = static::where('room_id', $roomId)
-            ->where('status', '!=', 'Canceled')
+            ->whereNotIn('status', ['Canceled', 'Completed']) // Exclude finished bookings
             ->where(function ($q) use ($checkinDate, $checkoutDate) {
                 $q->whereBetween('checkin_date', [$checkinDate, $checkoutDate])
                   ->orWhereBetween('checkout_date', [$checkinDate, $checkoutDate])
@@ -144,11 +144,7 @@ class Booking extends Model
         return $query->exists();
     }
 
-    /**
-     * Get the effective status based on invoice payment status
-     * Returns: 'Pending Payment', 'Partial Payment', 'Paid', 'Active', 'Completed', or 'Canceled'
-     * Note: Even if booking is Active, it can still show Pending/Partial Payment if invoices are not fully paid
-     */
+   
 public function getEffectiveStatusAttribute(): string
 {
     // If booking is in a final state, return it

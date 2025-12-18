@@ -134,6 +134,24 @@
         color: #2d3748;
         font-size: 0.875rem;
     }
+    .tenants-table th.sortable {
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s ease;
+    }
+    .tenants-table th.sortable:hover {
+        background: #e2e8f0;
+        color: #03255b;
+    }
+    .tenants-table th.sortable .sort-icon {
+        margin-left: 0.3rem;
+        font-size: 0.7rem;
+        opacity: 0.4;
+    }
+    .tenants-table th.sortable.active .sort-icon {
+        opacity: 1;
+        color: #03255b;
+    }
 
     .tenants-table td {
         padding: 1rem;
@@ -428,12 +446,47 @@
     <table class="tenants-table">
         <thead>
             <tr>
-                <th>Name</th>
+                <th class="sortable {{ $sortBy === 'last_name' ? 'active' : '' }}" onclick="sortTable('last_name')">
+                    Name
+                    @if($sortBy === 'last_name')
+                        <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                    @else
+                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                    @endif
+                </th>
                 <th>Room</th>
-                <th>Contact Number</th>
-                <th>Emergency Contact</th>
-                <th>Age</th>
-                <th>Status</th>
+                <th class="sortable {{ $sortBy === 'contact_num' ? 'active' : '' }}" onclick="sortTable('contact_num')">
+                    Contact Number
+                    @if($sortBy === 'contact_num')
+                        <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                    @else
+                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                    @endif
+                </th>
+                <th class="sortable {{ $sortBy === 'emer_contact_num' ? 'active' : '' }}" onclick="sortTable('emer_contact_num')">
+                    Emergency Contact
+                    @if($sortBy === 'emer_contact_num')
+                        <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                    @else
+                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                    @endif
+                </th>
+                <th class="sortable {{ $sortBy === 'birth_date' ? 'active' : '' }}" onclick="sortTable('birth_date')">
+                    Age
+                    @if($sortBy === 'birth_date')
+                        <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                    @else
+                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                    @endif
+                </th>
+                <th class="sortable {{ $sortBy === 'status' ? 'active' : '' }}" onclick="sortTable('status')">
+                    Status
+                    @if($sortBy === 'status')
+                        <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
+                    @else
+                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                    @endif
+                </th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -498,7 +551,7 @@
                 <input type="hidden" name="status" value="{{ $activeStatus }}">
                 <label for="perPage" class="text-muted small mb-0">Rows per page</label>
                 <select class="form-select form-select-sm" id="perPage" name="per_page" onchange="this.form.submit()">
-                    @foreach([10, 25, 50] as $option)
+                    @foreach([5, 10, 15, 20] as $option)
                         <option value="{{ $option }}" {{ (int) $perPage === $option ? 'selected' : '' }}>
                             {{ $option }}
                         </option>
@@ -518,7 +571,7 @@
             </p>
         </div>
         <div class="pagination-right">
-            {{ $tenants->appends(['status' => $activeStatus, 'search' => $searchTerm, 'per_page' => $perPage])->links() }}
+            {{ $tenants->appends(['status' => $activeStatus, 'search' => $searchTerm, 'per_page' => $perPage, 'sort_by' => $sortBy, 'sort_dir' => $sortDir])->links() }}
         </div>
     </div>
 </div>
@@ -573,7 +626,7 @@
                             <label for="contact_num" class="form-label">Contact Number <span class="text-danger">*</span></label>
                             <input type="text" class="form-control @error('contact_num') is-invalid @enderror"
                                    id="contact_num" name="contact_num" value="{{ old('contact_num') }}"
-                                   placeholder="0912-345-6789" required>
+                                   placeholder="09123456789" maxlength="11" minlength="11" pattern="[0-9]{11}" required>
                             @error('contact_num')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -584,7 +637,7 @@
                             <label for="emer_contact_num" class="form-label">Emergency Contact Number <span class="text-danger">*</span></label>
                             <input type="text" class="form-control @error('emer_contact_num') is-invalid @enderror"
                                    id="emer_contact_num" name="emer_contact_num" value="{{ old('emer_contact_num') }}"
-                                   placeholder="0917-969-4567" required>
+                                   placeholder="09179694567" maxlength="11" minlength="11" pattern="[0-9]{11}" required>
                             @error('emer_contact_num')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -700,6 +753,24 @@ function deleteTenant(tenantId) {
         // TODO: Implement delete functionality
         showToast('Delete tenant ' + tenantId, 'info');
     }, { title: 'Delete Tenant', confirmText: 'Yes, Delete', type: 'danger' });
+}
+
+// Sorting function
+function sortTable(column) {
+    const url = new URL(window.location.href);
+    const currentSort = url.searchParams.get('sort_by');
+    const currentDir = url.searchParams.get('sort_dir') || 'desc';
+
+    // If clicking the same column, toggle direction
+    if (currentSort === column) {
+        url.searchParams.set('sort_dir', currentDir === 'asc' ? 'desc' : 'asc');
+    } else {
+        // New column, default to ascending for names, descending for others
+        url.searchParams.set('sort_by', column);
+        url.searchParams.set('sort_dir', column.includes('name') ? 'asc' : 'desc');
+    }
+
+    window.location.href = url.toString();
 }
 </script>
 @endsection
