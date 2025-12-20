@@ -1,0 +1,318 @@
+# Sanasa Dormitory Management System - User Guide
+
+A comprehensive step-by-step guide on how to access and use the Sanasa Dormitory management system.
+
+---
+
+## 🌐 Accessing the System
+
+**System URL:** [https://sanasahomestay.infinityfreeapp.com/](https://sanasahomestay.infinityfreeapp.com/)
+
+---
+
+## 📱 Login Screen
+
+![Login Page](./landing_page_1766195520938.png)
+
+The system features a clean, professional login interface with:
+- **Left Panel**: Dark blue branding with the Sanasa welcome message
+- **Right Panel**: Login form
+
+---
+
+## 🔐 Step 1: Sign In
+
+To access the system:
+
+1. Navigate to the system URL
+2. Enter your **Email Address** in the email field
+3. Enter your **Password** (click the eye icon to show/hide)
+4. Click the **"Sign in"** button
+
+> [!NOTE]
+> If you don't have an account, contact your system administrator (Owner) to create one for you, or navigate to `/register` if registration is enabled.
+
+---
+
+## 👤 User Roles
+
+The system has two user roles:
+
+| Role | Access Level |
+|------|-------------|
+| **Owner** | Full access to all features including User Management and Settings |
+| **Caretaker** | Access to operational features (excludes admin functions) |
+
+---
+
+## 🏠 Step 2: Understanding the Dashboard
+
+After logging in, you'll see the **Dashboard** with key metrics:
+
+### Quick Stats Cards
+| Stat | Description |
+|------|-------------|
+| 💰 **Outstanding Balance** | Total unpaid invoices (shown in red) |
+| 💵 **Monthly Collections** | Total payments received this month |
+| 🛡️ **Deposits Held** | Security deposits currently held |
+| 👥 **Active Tenants** | Number of current tenants |
+| 🏠 **Rooms Available** | Number of vacant rooms |
+
+### Main Sections
+- **Pending Payments Table**: Lists all unpaid invoices with tenant info
+- **Upcoming Check-outs**: Shows bookings ending in the next 3 days
+- **Quick Booking**: Available rooms for quick new bookings
+
+---
+
+## 📋 Main Navigation Menu
+
+The sidebar is organized into sections:
+
+### MAIN
+| Menu Item | Description |
+|-----------|-------------|
+| 🏠 **Dashboard** | Overview of key metrics and actions |
+
+---
+
+### MANAGEMENT
+| Menu Item | Description |
+|-----------|-------------|
+| 📅 **Bookings** | Create, view, edit, and manage tenant bookings |
+| 👥 **Tenants** | Manage tenant profiles and information |
+| 🚪 **Rooms** | View and manage room inventory |
+| 🏷️ **Rates** | Configure room rates and pricing |
+
+---
+
+### FINANCIAL
+| Menu Item | Description |
+|-----------|-------------|
+| 📄 **Invoices** | View all invoices, process payments, apply penalties |
+| 🛡️ **Security Deposits** | Manage deposits, deductions, and refunds |
+| 💸 **Expenses** | Track and manage operational expenses |
+
+---
+
+### UTILITIES
+| Menu Item | Description |
+|-----------|-------------|
+| 📜 **Activity Logs** | View system activity history |
+| ⚡ **Electric Readings** | Record and track electricity consumption |
+| 🔧 **Maintenance Logs** | Track maintenance requests and repairs |
+| 📦 **Asset Inventory** | Manage dormitory assets and equipment |
+
+---
+
+### REPORTS
+| Menu Item | Description |
+|-----------|-------------|
+| 📊 **Sales & Reports** | View sales data and export reports |
+| 📈 **Financial Statement** | Generate comprehensive financial reports |
+
+---
+
+### ADMIN (Owner Only)
+| Menu Item | Description |
+|-----------|-------------|
+| 👤 **User Management** | Create and manage staff accounts |
+| ⚙️ **Settings** | Configure system settings |
+
+---
+
+## 🏨 Step 3: Managing Bookings
+
+### Creating a New Booking
+
+1. Navigate to **Bookings** → Click **"Create Booking"** or use **Quick Booking** from Dashboard
+2. Select or add a **Tenant**
+3. Choose the **Room** (or use pre-selected room from Quick Booking)
+4. Set **Check-in Date** and **Check-out Date**
+5. Select the **Rate** type
+6. Enter **Security Deposit** amount (if applicable)
+7. Click **"Create Booking"**
+
+### Booking Actions
+- **Check-in**: Mark tenant as checked in
+- **Check-out**: Process tenant check-out
+- **Renew**: Generate renewal invoice for extended stay
+- **Generate Electricity Invoice**: Bill for electricity consumption
+
+---
+
+## 👥 Step 4: Managing Tenants
+
+### Adding a New Tenant
+1. Navigate to **Tenants**
+2. Click **"Add Tenant"**
+3. Fill in tenant details:
+   - First Name, Middle Name, Last Name
+   - Contact information
+   - Emergency contact details
+4. Save the tenant profile
+
+### Tenant Actions
+- **View**: See complete tenant details and booking history
+- **Edit**: Update tenant information
+- **Archive**: Deactivate inactive tenants
+- **Activate**: Reactivate archived tenants
+
+---
+
+## 📄 Step 5: Managing Invoices & Payments
+
+### Viewing Invoices
+1. Navigate to **Invoices**
+2. View list of all invoices with status indicators
+3. Click on any invoice to see details
+
+### Processing a Payment
+1. Open the invoice
+2. Click **"Record Payment"**
+3. Enter the payment amount
+4. Select payment method
+5. Submit the payment
+
+### Applying Late Penalties
+1. Open an overdue invoice
+2. Click **"Apply Penalty"** for individual invoices
+3. Or use **"Apply All Penalties"** for bulk processing
+
+---
+
+## 💰 Step 6: Managing Security Deposits
+
+### Available Actions
+| Action | Description |
+|--------|-------------|
+| 📥 **Top-up** | Add additional deposit amount |
+| ➖ **Deduction** | Deduct for damages or cleaning |
+| 💵 **Refund** | Process deposit refund to tenant |
+| ⚠️ **Forfeit** | Forfeit deposit (for violations) |
+| 🔄 **Rollover** | Transfer deposit to new booking |
+
+---
+
+## ⚡ Step 7: Recording Electric Readings
+
+1. Navigate to **Electric Readings**
+2. Click **"Add Reading"**
+3. Select the **Room**
+4. Enter the **Current Reading** (kWh)
+5. The system calculates consumption automatically
+6. Save the reading
+
+> [!TIP]
+> Set the electricity rate in the **Electric Rate** section to ensure accurate billing.
+
+---
+
+## 🔧 Step 8: Logging Maintenance Issues
+
+1. Navigate to **Maintenance Logs**
+2. Click **"Add Log"**
+3. Enter:
+   - Room (if applicable)
+   - Issue description
+   - Priority level
+   - Assigned personnel
+4. Update status as work progresses
+
+---
+
+## 📊 Step 9: Generating Reports
+
+### Sales & Reports
+1. Navigate to **Sales & Reports**
+2. Set the date range filter
+3. View summary data
+4. Click **"Export"** for PDF/Excel reports
+5. Use **"Consolidated Report"** for comprehensive reports
+
+### Financial Statement
+1. Navigate to **Financial Statement**
+2. Select date range
+3. View income vs expenses breakdown
+4. Export as PDF for records
+
+---
+
+## ⚙️ Step 10: System Settings (Owner Only)
+
+1. Navigate to **Settings**
+2. Configure:
+   - Business information
+   - Default values
+   - System preferences
+3. Save changes
+
+---
+
+## 👤 Step 11: User Management (Owner Only)
+
+### Creating a New User
+1. Navigate to **User Management**
+2. Click **"Add User"**
+3. Enter:
+   - First Name, Last Name
+   - Email address
+   - Password
+   - Role (Owner/Caretaker)
+4. Save the user
+
+### Managing Users
+- **Edit**: Update user information
+- **Archive**: Deactivate user access
+- **Activate**: Restore user access
+
+---
+
+## 🔔 Notifications
+
+The system includes a **notification bell** in the top header showing:
+- Overdue invoices
+- Upcoming check-outs
+- Pending security deposit refunds
+- Other important alerts
+
+Click the bell icon to view all notifications and navigate directly to relevant pages.
+
+---
+
+## 📱 System Features
+
+### Real-time Updates
+- Header shows current date and time
+- Dashboard metrics update automatically
+
+### Payment Receipts
+- Generate printable receipts after processing payments
+- Navigate to **Payments** → **Receipt**
+
+### Toast Notifications
+- Success/error messages appear in the bottom-right corner
+- Auto-dismiss after a few seconds
+
+---
+
+## 💡 Tips for Best Use
+
+1. **Check the Dashboard daily** to monitor pending payments and upcoming check-outs
+2. **Record electric readings regularly** (weekly or monthly) for accurate billing
+3. **Process security deposits properly** before tenant check-out
+4. **Generate reports monthly** for financial tracking
+5. **Keep tenant information updated** for emergency contact purposes
+
+---
+
+## 🆘 Need Help?
+
+If you encounter any issues:
+1. Check this guide for the relevant section
+2. Contact your system administrator (Owner)
+3. Review the Activity Logs for system changes
+
+---
+
+*Last updated: December 20, 2025*

@@ -55,11 +55,20 @@ return new class extends Migration
         }
 
         // Set due_date for existing invoices (date_generated + 7 days by default)
-        DB::statement("
-            UPDATE invoices
-            SET due_date = DATEADD(day, 7, date_generated)
-            WHERE due_date IS NULL
-        ");
+        // MySQL uses DATE_ADD, SQL Server uses DATEADD
+        if (config('database.default') === 'mysql') {
+            DB::statement("
+                UPDATE invoices
+                SET due_date = DATE_ADD(date_generated, INTERVAL 7 DAY)
+                WHERE due_date IS NULL AND date_generated IS NOT NULL
+            ");
+        } else {
+            DB::statement("
+                UPDATE invoices
+                SET due_date = DATEADD(day, 7, date_generated)
+                WHERE due_date IS NULL
+            ");
+        }
     }
 
     /**

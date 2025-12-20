@@ -1,0 +1,685 @@
+USE [Sanasa_Dormitory]
+GO
+/****** Object:  Table [dbo].[activity_logs]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[activity_logs](
+	[log_id] [bigint] IDENTITY(1,1) NOT NULL,
+	[user_id] [bigint] NOT NULL,
+	[action] [nvarchar](191) NOT NULL,
+	[description] [nvarchar](max) NOT NULL,
+	[model_type] [nvarchar](191) NULL,
+	[model_id] [bigint] NULL,
+	[created_at] [datetime] NULL,
+	[updated_at] [datetime] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[log_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[assets]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[assets](
+	[asset_id] [bigint] IDENTITY(1,1) NOT NULL,
+	[room_id] [bigint] NULL,
+	[name] [nvarchar](191) NOT NULL,
+	[condition] [nvarchar](191) NOT NULL,
+	[date_acquired] [date] NULL,
+	[created_at] [datetime] NULL,
+	[updated_at] [datetime] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[asset_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[bookings]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[bookings](
+	[booking_id] [bigint] IDENTITY(1,1) NOT NULL,
+	[room_id] [bigint] NOT NULL,
+	[tenant_id] [bigint] NOT NULL,
+	[rate_id] [bigint] NOT NULL,
+	[recorded_by_user_id] [bigint] NOT NULL,
+	[checkin_date] [date] NOT NULL,
+	[checkout_date] [date] NOT NULL,
+	[total_calculated_fee] [decimal](10, 2) NOT NULL,
+	[status] [nvarchar](191) NOT NULL,
+	[created_at] [datetime] NULL,
+	[updated_at] [datetime] NULL,
+	[cancellation_reason] [nvarchar](max) NULL,
+	[secondary_tenant_id] [bigint] NULL,
+	[checked_in_at] [datetime] NULL,
+	[checked_out_at] [datetime] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[booking_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[cache]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[cache](
+	[key] [nvarchar](191) NOT NULL,
+	[value] [nvarchar](max) NOT NULL,
+	[expiration] [int] NOT NULL,
+ CONSTRAINT [cache_key_primary] PRIMARY KEY CLUSTERED 
+(
+	[key] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[cache_locks]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[cache_locks](
+	[key] [nvarchar](191) NOT NULL,
+	[owner] [nvarchar](191) NOT NULL,
+	[expiration] [int] NOT NULL,
+ CONSTRAINT [cache_locks_key_primary] PRIMARY KEY CLUSTERED 
+(
+	[key] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[electric_readings]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[electric_readings](
+	[reading_id] [bigint] IDENTITY(1,1) NOT NULL,
+	[room_id] [bigint] NOT NULL,
+	[reading_date] [date] NOT NULL,
+	[meter_value_kwh] [decimal](8, 2) NOT NULL,
+	[is_billed] [bit] NOT NULL,
+	[created_at] [datetime] NULL,
+	[updated_at] [datetime] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[reading_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[expenses]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[expenses](
+	[expense_id] [bigint] IDENTITY(1,1) NOT NULL,
+	[category] [nvarchar](100) NOT NULL,
+	[description] [nvarchar](max) NULL,
+	[amount] [decimal](10, 2) NOT NULL,
+	[expense_date] [date] NOT NULL,
+	[receipt_number] [nvarchar](100) NULL,
+	[recorded_by_user_id] [bigint] NOT NULL,
+	[notes] [nvarchar](max) NULL,
+	[created_at] [datetime] NULL,
+	[updated_at] [datetime] NULL,
+	[asset_type] [nvarchar](100) NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[expense_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[failed_jobs]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[failed_jobs](
+	[id] [bigint] IDENTITY(1,1) NOT NULL,
+	[uuid] [nvarchar](191) NOT NULL,
+	[connection] [nvarchar](max) NOT NULL,
+	[queue] [nvarchar](max) NOT NULL,
+	[payload] [nvarchar](max) NOT NULL,
+	[exception] [nvarchar](max) NOT NULL,
+	[failed_at] [datetime] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[invoice_utilities]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[invoice_utilities](
+	[invoice_utility_id] [bigint] IDENTITY(1,1) NOT NULL,
+	[invoice_id] [bigint] NOT NULL,
+	[utility_name] [nvarchar](191) NOT NULL,
+	[amount] [decimal](10, 2) NOT NULL,
+	[created_at] [datetime] NULL,
+	[updated_at] [datetime] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[invoice_utility_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[invoices]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[invoices](
+	[invoice_id] [bigint] IDENTITY(1,1) NOT NULL,
+	[booking_id] [bigint] NOT NULL,
+	[date_generated] [date] NOT NULL,
+	[rent_subtotal] [decimal](10, 2) NOT NULL,
+	[utility_electricity_fee] [decimal](10, 2) NOT NULL,
+	[total_due] [decimal](10, 2) NOT NULL,
+	[is_paid] [bit] NOT NULL,
+	[created_at] [datetime] NULL,
+	[updated_at] [datetime] NULL,
+	[due_date] [date] NULL,
+	[penalty_amount] [decimal](10, 2) NOT NULL,
+	[days_overdue] [int] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[invoice_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[job_batches]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[job_batches](
+	[id] [nvarchar](191) NOT NULL,
+	[name] [nvarchar](191) NOT NULL,
+	[total_jobs] [int] NOT NULL,
+	[pending_jobs] [int] NOT NULL,
+	[failed_jobs] [int] NOT NULL,
+	[failed_job_ids] [nvarchar](max) NOT NULL,
+	[options] [nvarchar](max) NULL,
+	[cancelled_at] [int] NULL,
+	[created_at] [int] NOT NULL,
+	[finished_at] [int] NULL,
+ CONSTRAINT [job_batches_id_primary] PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[jobs]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[jobs](
+	[id] [bigint] IDENTITY(1,1) NOT NULL,
+	[queue] [nvarchar](191) NOT NULL,
+	[payload] [nvarchar](max) NOT NULL,
+	[attempts] [tinyint] NOT NULL,
+	[reserved_at] [int] NULL,
+	[available_at] [int] NOT NULL,
+	[created_at] [int] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[maintenance_logs]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[maintenance_logs](
+	[log_id] [bigint] IDENTITY(1,1) NOT NULL,
+	[asset_id] [bigint] NULL,
+	[logged_by_user_id] [bigint] NOT NULL,
+	[description] [nvarchar](max) NOT NULL,
+	[date_reported] [date] NOT NULL,
+	[status] [nvarchar](191) NOT NULL,
+	[date_completed] [date] NULL,
+	[created_at] [datetime] NULL,
+	[updated_at] [datetime] NULL,
+	[notes] [nvarchar](max) NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[log_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[migrations]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[migrations](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[migration] [nvarchar](191) NOT NULL,
+	[batch] [int] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[password_reset_tokens]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[password_reset_tokens](
+	[email] [nvarchar](191) NOT NULL,
+	[token] [nvarchar](191) NOT NULL,
+	[created_at] [datetime] NULL,
+ CONSTRAINT [password_reset_tokens_email_primary] PRIMARY KEY CLUSTERED 
+(
+	[email] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[payments]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[payments](
+	[payment_id] [bigint] IDENTITY(1,1) NOT NULL,
+	[invoice_id] [bigint] NULL,
+	[collected_by_user_id] [bigint] NULL,
+	[payment_type] [nvarchar](191) NOT NULL,
+	[amount] [decimal](10, 2) NOT NULL,
+	[payment_method] [nvarchar](191) NOT NULL,
+	[reference_number] [nvarchar](191) NULL,
+	[date_received] [datetime] NOT NULL,
+	[created_at] [datetime] NULL,
+	[updated_at] [datetime] NULL,
+	[booking_id] [bigint] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[payment_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[rates]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[rates](
+	[rate_id] [bigint] IDENTITY(1,1) NOT NULL,
+	[duration_type] [nvarchar](191) NOT NULL,
+	[base_price] [decimal](10, 2) NOT NULL,
+	[description] [nvarchar](max) NOT NULL,
+	[created_at] [datetime] NULL,
+	[updated_at] [datetime] NULL,
+	[rate_name] [nvarchar](191) NULL,
+	[status] [nvarchar](255) NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[rate_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[refunds]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[refunds](
+	[refund_id] [bigint] IDENTITY(1,1) NOT NULL,
+	[payment_id] [bigint] NOT NULL,
+	[refunded_by_user_id] [bigint] NOT NULL,
+	[refund_amount] [decimal](10, 2) NOT NULL,
+	[refund_method] [nvarchar](191) NOT NULL,
+	[reference_number] [nvarchar](191) NULL,
+	[refund_date] [date] NOT NULL,
+	[cancellation_reason] [nvarchar](max) NOT NULL,
+	[status] [nvarchar](191) NOT NULL,
+	[created_at] [datetime] NULL,
+	[updated_at] [datetime] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[refund_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[rooms]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[rooms](
+	[room_id] [bigint] IDENTITY(1,1) NOT NULL,
+	[room_num] [nvarchar](191) NOT NULL,
+	[floor] [nvarchar](191) NOT NULL,
+	[capacity] [int] NOT NULL,
+	[status] [nvarchar](191) NOT NULL,
+	[created_at] [datetime] NULL,
+	[updated_at] [datetime] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[room_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[security_deposits]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[security_deposits](
+	[security_deposit_id] [bigint] IDENTITY(1,1) NOT NULL,
+	[booking_id] [bigint] NOT NULL,
+	[invoice_id] [bigint] NULL,
+	[amount_required] [decimal](10, 2) NOT NULL,
+	[amount_paid] [decimal](10, 2) NOT NULL,
+	[amount_deducted] [decimal](10, 2) NOT NULL,
+	[amount_refunded] [decimal](10, 2) NOT NULL,
+	[status] [nvarchar](191) NOT NULL,
+	[deduction_reason] [nvarchar](max) NULL,
+	[notes] [nvarchar](max) NULL,
+	[refunded_at] [datetime] NULL,
+	[processed_by_user_id] [bigint] NULL,
+	[created_at] [datetime] NULL,
+	[updated_at] [datetime] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[security_deposit_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[sessions]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[sessions](
+	[id] [nvarchar](191) NOT NULL,
+	[user_id] [bigint] NULL,
+	[ip_address] [nvarchar](45) NULL,
+	[user_agent] [nvarchar](max) NULL,
+	[payload] [nvarchar](max) NOT NULL,
+	[last_activity] [int] NOT NULL,
+ CONSTRAINT [sessions_id_primary] PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[settings]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[settings](
+	[id] [bigint] IDENTITY(1,1) NOT NULL,
+	[key] [nvarchar](191) NOT NULL,
+	[value] [nvarchar](191) NOT NULL,
+	[created_at] [datetime] NULL,
+	[updated_at] [datetime] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[tenants]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[tenants](
+	[tenant_id] [bigint] IDENTITY(1,1) NOT NULL,
+	[first_name] [nvarchar](191) NOT NULL,
+	[middle_name] [nvarchar](191) NULL,
+	[last_name] [nvarchar](191) NOT NULL,
+	[email] [nvarchar](191) NULL,
+	[address] [nvarchar](max) NULL,
+	[birth_date] [date] NULL,
+	[id_document] [nvarchar](191) NULL,
+	[contact_num] [nvarchar](191) NULL,
+	[emer_contact_num] [nvarchar](191) NULL,
+	[status] [nvarchar](255) NOT NULL,
+	[created_at] [datetime] NULL,
+	[updated_at] [datetime] NULL,
+	[emer_contact_name] [nvarchar](255) NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[tenant_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[users]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[users](
+	[user_id] [bigint] IDENTITY(1,1) NOT NULL,
+	[first_name] [nvarchar](191) NOT NULL,
+	[middle_name] [nvarchar](191) NULL,
+	[last_name] [nvarchar](191) NOT NULL,
+	[email] [nvarchar](191) NOT NULL,
+	[role] [nvarchar](255) NOT NULL,
+	[email_verified_at] [datetime] NULL,
+	[password] [nvarchar](191) NOT NULL,
+	[remember_token] [nvarchar](100) NULL,
+	[created_at] [datetime] NULL,
+	[updated_at] [datetime] NULL,
+	[birth_date] [date] NULL,
+	[address] [nvarchar](max) NULL,
+	[status] [nvarchar](255) NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[user_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[utilities]    Script Date: 12/19/2025 7:38:25 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[utilities](
+	[utilities_id] [bigint] IDENTITY(1,1) NOT NULL,
+	[rate_id] [bigint] NOT NULL,
+	[name] [nvarchar](191) NOT NULL,
+	[price] [decimal](10, 2) NOT NULL,
+	[created_at] [datetime] NULL,
+	[updated_at] [datetime] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[utilities_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[electric_readings] ADD  DEFAULT ('0') FOR [is_billed]
+GO
+ALTER TABLE [dbo].[failed_jobs] ADD  DEFAULT (getdate()) FOR [failed_at]
+GO
+ALTER TABLE [dbo].[invoices] ADD  DEFAULT ('0') FOR [utility_electricity_fee]
+GO
+ALTER TABLE [dbo].[invoices] ADD  DEFAULT ('0') FOR [is_paid]
+GO
+ALTER TABLE [dbo].[invoices] ADD  DEFAULT ('0') FOR [penalty_amount]
+GO
+ALTER TABLE [dbo].[invoices] ADD  DEFAULT ('0') FOR [days_overdue]
+GO
+ALTER TABLE [dbo].[rates] ADD  DEFAULT ('active') FOR [status]
+GO
+ALTER TABLE [dbo].[security_deposits] ADD  DEFAULT ('0') FOR [amount_paid]
+GO
+ALTER TABLE [dbo].[security_deposits] ADD  DEFAULT ('0') FOR [amount_deducted]
+GO
+ALTER TABLE [dbo].[security_deposits] ADD  DEFAULT ('0') FOR [amount_refunded]
+GO
+ALTER TABLE [dbo].[security_deposits] ADD  DEFAULT ('Pending') FOR [status]
+GO
+ALTER TABLE [dbo].[tenants] ADD  DEFAULT ('active') FOR [status]
+GO
+ALTER TABLE [dbo].[users] ADD  DEFAULT ('caretaker') FOR [role]
+GO
+ALTER TABLE [dbo].[users] ADD  DEFAULT ('active') FOR [status]
+GO
+ALTER TABLE [dbo].[activity_logs]  WITH CHECK ADD  CONSTRAINT [activity_logs_user_id_foreign] FOREIGN KEY([user_id])
+REFERENCES [dbo].[users] ([user_id])
+GO
+ALTER TABLE [dbo].[activity_logs] CHECK CONSTRAINT [activity_logs_user_id_foreign]
+GO
+ALTER TABLE [dbo].[assets]  WITH CHECK ADD  CONSTRAINT [assets_room_id_foreign] FOREIGN KEY([room_id])
+REFERENCES [dbo].[rooms] ([room_id])
+GO
+ALTER TABLE [dbo].[assets] CHECK CONSTRAINT [assets_room_id_foreign]
+GO
+ALTER TABLE [dbo].[bookings]  WITH CHECK ADD  CONSTRAINT [bookings_rate_id_foreign] FOREIGN KEY([rate_id])
+REFERENCES [dbo].[rates] ([rate_id])
+GO
+ALTER TABLE [dbo].[bookings] CHECK CONSTRAINT [bookings_rate_id_foreign]
+GO
+ALTER TABLE [dbo].[bookings]  WITH CHECK ADD  CONSTRAINT [bookings_recorded_by_user_id_foreign] FOREIGN KEY([recorded_by_user_id])
+REFERENCES [dbo].[users] ([user_id])
+GO
+ALTER TABLE [dbo].[bookings] CHECK CONSTRAINT [bookings_recorded_by_user_id_foreign]
+GO
+ALTER TABLE [dbo].[bookings]  WITH CHECK ADD  CONSTRAINT [bookings_room_id_foreign] FOREIGN KEY([room_id])
+REFERENCES [dbo].[rooms] ([room_id])
+GO
+ALTER TABLE [dbo].[bookings] CHECK CONSTRAINT [bookings_room_id_foreign]
+GO
+ALTER TABLE [dbo].[bookings]  WITH CHECK ADD  CONSTRAINT [bookings_secondary_tenant_id_foreign] FOREIGN KEY([secondary_tenant_id])
+REFERENCES [dbo].[tenants] ([tenant_id])
+ON DELETE SET NULL
+GO
+ALTER TABLE [dbo].[bookings] CHECK CONSTRAINT [bookings_secondary_tenant_id_foreign]
+GO
+ALTER TABLE [dbo].[bookings]  WITH CHECK ADD  CONSTRAINT [bookings_tenant_id_foreign] FOREIGN KEY([tenant_id])
+REFERENCES [dbo].[tenants] ([tenant_id])
+GO
+ALTER TABLE [dbo].[bookings] CHECK CONSTRAINT [bookings_tenant_id_foreign]
+GO
+ALTER TABLE [dbo].[electric_readings]  WITH CHECK ADD  CONSTRAINT [electric_readings_room_id_foreign] FOREIGN KEY([room_id])
+REFERENCES [dbo].[rooms] ([room_id])
+GO
+ALTER TABLE [dbo].[electric_readings] CHECK CONSTRAINT [electric_readings_room_id_foreign]
+GO
+ALTER TABLE [dbo].[invoice_utilities]  WITH CHECK ADD  CONSTRAINT [invoice_utilities_invoice_id_foreign] FOREIGN KEY([invoice_id])
+REFERENCES [dbo].[invoices] ([invoice_id])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[invoice_utilities] CHECK CONSTRAINT [invoice_utilities_invoice_id_foreign]
+GO
+ALTER TABLE [dbo].[invoices]  WITH CHECK ADD  CONSTRAINT [invoices_booking_id_foreign] FOREIGN KEY([booking_id])
+REFERENCES [dbo].[bookings] ([booking_id])
+GO
+ALTER TABLE [dbo].[invoices] CHECK CONSTRAINT [invoices_booking_id_foreign]
+GO
+ALTER TABLE [dbo].[maintenance_logs]  WITH CHECK ADD  CONSTRAINT [maintenance_logs_asset_id_foreign] FOREIGN KEY([asset_id])
+REFERENCES [dbo].[assets] ([asset_id])
+ON DELETE SET NULL
+GO
+ALTER TABLE [dbo].[maintenance_logs] CHECK CONSTRAINT [maintenance_logs_asset_id_foreign]
+GO
+ALTER TABLE [dbo].[maintenance_logs]  WITH CHECK ADD  CONSTRAINT [maintenance_logs_logged_by_user_id_foreign] FOREIGN KEY([logged_by_user_id])
+REFERENCES [dbo].[users] ([user_id])
+GO
+ALTER TABLE [dbo].[maintenance_logs] CHECK CONSTRAINT [maintenance_logs_logged_by_user_id_foreign]
+GO
+ALTER TABLE [dbo].[payments]  WITH CHECK ADD  CONSTRAINT [payments_booking_id_foreign] FOREIGN KEY([booking_id])
+REFERENCES [dbo].[bookings] ([booking_id])
+GO
+ALTER TABLE [dbo].[payments] CHECK CONSTRAINT [payments_booking_id_foreign]
+GO
+ALTER TABLE [dbo].[payments]  WITH CHECK ADD  CONSTRAINT [payments_collected_by_user_id_foreign] FOREIGN KEY([collected_by_user_id])
+REFERENCES [dbo].[users] ([user_id])
+GO
+ALTER TABLE [dbo].[payments] CHECK CONSTRAINT [payments_collected_by_user_id_foreign]
+GO
+ALTER TABLE [dbo].[payments]  WITH CHECK ADD  CONSTRAINT [payments_invoice_id_foreign] FOREIGN KEY([invoice_id])
+REFERENCES [dbo].[invoices] ([invoice_id])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[payments] CHECK CONSTRAINT [payments_invoice_id_foreign]
+GO
+ALTER TABLE [dbo].[refunds]  WITH CHECK ADD  CONSTRAINT [refunds_payment_id_foreign] FOREIGN KEY([payment_id])
+REFERENCES [dbo].[payments] ([payment_id])
+GO
+ALTER TABLE [dbo].[refunds] CHECK CONSTRAINT [refunds_payment_id_foreign]
+GO
+ALTER TABLE [dbo].[refunds]  WITH CHECK ADD  CONSTRAINT [refunds_refunded_by_user_id_foreign] FOREIGN KEY([refunded_by_user_id])
+REFERENCES [dbo].[users] ([user_id])
+GO
+ALTER TABLE [dbo].[refunds] CHECK CONSTRAINT [refunds_refunded_by_user_id_foreign]
+GO
+ALTER TABLE [dbo].[security_deposits]  WITH CHECK ADD  CONSTRAINT [security_deposits_booking_id_foreign] FOREIGN KEY([booking_id])
+REFERENCES [dbo].[bookings] ([booking_id])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[security_deposits] CHECK CONSTRAINT [security_deposits_booking_id_foreign]
+GO
+ALTER TABLE [dbo].[security_deposits]  WITH CHECK ADD  CONSTRAINT [security_deposits_invoice_id_foreign] FOREIGN KEY([invoice_id])
+REFERENCES [dbo].[invoices] ([invoice_id])
+ON DELETE SET NULL
+GO
+ALTER TABLE [dbo].[security_deposits] CHECK CONSTRAINT [security_deposits_invoice_id_foreign]
+GO
+ALTER TABLE [dbo].[security_deposits]  WITH CHECK ADD  CONSTRAINT [security_deposits_processed_by_user_id_foreign] FOREIGN KEY([processed_by_user_id])
+REFERENCES [dbo].[users] ([user_id])
+GO
+ALTER TABLE [dbo].[security_deposits] CHECK CONSTRAINT [security_deposits_processed_by_user_id_foreign]
+GO
+ALTER TABLE [dbo].[utilities]  WITH CHECK ADD  CONSTRAINT [utilities_rate_id_foreign] FOREIGN KEY([rate_id])
+REFERENCES [dbo].[rates] ([rate_id])
+GO
+ALTER TABLE [dbo].[utilities] CHECK CONSTRAINT [utilities_rate_id_foreign]
+GO
+ALTER TABLE [dbo].[assets]  WITH CHECK ADD  CONSTRAINT [CHK_AssetCondition] CHECK  (([condition]='Missing' OR [condition]='Broken' OR [condition]='Needs Repair' OR [condition]='Good'))
+GO
+ALTER TABLE [dbo].[assets] CHECK CONSTRAINT [CHK_AssetCondition]
+GO
+ALTER TABLE [dbo].[maintenance_logs]  WITH CHECK ADD  CONSTRAINT [CHK_MaintenanceStatus] CHECK  (([status]='Cancelled' OR [status]='Completed' OR [status]='In Progress' OR [status]='Pending'))
+GO
+ALTER TABLE [dbo].[maintenance_logs] CHECK CONSTRAINT [CHK_MaintenanceStatus]
+GO
+ALTER TABLE [dbo].[payments]  WITH CHECK ADD  CONSTRAINT [CHK_PaymentType] CHECK  (([payment_type]='Deposit Deduction' OR [payment_type]='Security Deposit' OR [payment_type]='Rent/Utility'))
+GO
+ALTER TABLE [dbo].[payments] CHECK CONSTRAINT [CHK_PaymentType]
+GO
+ALTER TABLE [dbo].[payments]  WITH CHECK ADD  CONSTRAINT [CK_payments_payment_type] CHECK  (([payment_type]='Deposit Deduction' OR [payment_type]='Electricity' OR [payment_type]='Security Deposit' OR [payment_type]='Rent/Utility'))
+GO
+ALTER TABLE [dbo].[payments] CHECK CONSTRAINT [CK_payments_payment_type]
+GO
+ALTER TABLE [dbo].[rates]  WITH CHECK ADD CHECK  (([status]=N'inactive' OR [status]=N'active'))
+GO
+ALTER TABLE [dbo].[refunds]  WITH CHECK ADD  CONSTRAINT [CHK_RefundMethod] CHECK  (([refund_method]='GCash' OR [refund_method]='Cash'))
+GO
+ALTER TABLE [dbo].[refunds] CHECK CONSTRAINT [CHK_RefundMethod]
+GO
+ALTER TABLE [dbo].[refunds]  WITH CHECK ADD  CONSTRAINT [CHK_RefundStatus] CHECK  (([status]='Completed' OR [status]='Processed' OR [status]='Pending'))
+GO
+ALTER TABLE [dbo].[refunds] CHECK CONSTRAINT [CHK_RefundStatus]
+GO
+ALTER TABLE [dbo].[rooms]  WITH CHECK ADD  CONSTRAINT [CHK_RoomStatus] CHECK  (([status]='cleaning' OR [status]='maintenance' OR [status]='occupied' OR [status]='pending' OR [status]='available'))
+GO
+ALTER TABLE [dbo].[rooms] CHECK CONSTRAINT [CHK_RoomStatus]
+GO
+ALTER TABLE [dbo].[tenants]  WITH CHECK ADD CHECK  (([status]=N'inactive' OR [status]=N'active'))
+GO
+ALTER TABLE [dbo].[users]  WITH CHECK ADD CHECK  (([role]=N'caretaker' OR [role]=N'owner'))
+GO
+ALTER TABLE [dbo].[users]  WITH CHECK ADD CHECK  (([status]=N'archived' OR [status]=N'active'))
+GO
