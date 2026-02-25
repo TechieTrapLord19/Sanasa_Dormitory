@@ -148,7 +148,7 @@ class UserController extends Controller
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->user_id . ',user_id',
             'birth_date' => 'nullable|date',
             'address' => 'nullable|string',
-            'password' => 'nullable|confirmed|min:8',
+            'password' => ['nullable', 'confirmed', Password::defaults()],
             'role' => 'required|in:owner,caretaker',
         ], [
             'first_name.required' => 'First name is required.',
@@ -157,7 +157,7 @@ class UserController extends Controller
             'email.email' => 'Email must be a valid email address.',
             'email.unique' => 'This email is already registered.',
             'password.confirmed' => 'Password confirmation does not match.',
-            'password.min' => 'Password must be at least 8 characters.',
+            'password.min' => 'Password must be at least 12 characters.',
             'role.required' => 'Role is required.',
             'role.in' => 'Role must be either owner or caretaker.',
         ]);

@@ -204,6 +204,70 @@
         pointer-events: none;
         transition: opacity 0.3s ease-in-out;
     }
+
+    /* Throttle / Locked alerts */
+    .alert-throttle {
+        background: #fff8e1;
+        border: 1px solid #f59e0b;
+        border-radius: 10px;
+        padding: 1.1rem 1.25rem;
+        margin-bottom: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        text-align: center;
+    }
+    .alert-throttle .throttle-icon {
+        font-size: 2rem;
+        color: #d97706;
+    }
+    .alert-throttle .throttle-title {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: #92400e;
+    }
+    .alert-throttle .throttle-msg {
+        font-size: 0.83rem;
+        color: #78350f;
+    }
+    .countdown-display {
+        font-size: 1.9rem;
+        font-weight: 800;
+        color: #b45309;
+        letter-spacing: 0.05em;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .alert-locked {
+        background: #fef2f2;
+        border: 1px solid #ef4444;
+        border-radius: 10px;
+        padding: 1.1rem 1.25rem;
+        margin-bottom: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        text-align: center;
+    }
+    .alert-locked .locked-icon {
+        font-size: 2rem;
+        color: #dc2626;
+    }
+    .alert-locked .locked-title {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: #7f1d1d;
+    }
+    .alert-locked .locked-msg {
+        font-size: 0.83rem;
+        color: #991b1b;
+    }
+    .form-disabled {
+        opacity: 0.45;
+        pointer-events: none;
+    }
 </style>
 
 <!-- Loading Overlay -->
@@ -216,46 +280,63 @@
     <div class="login-card" id="loginCard">
         <h2 class="login-heading fw-bold">Sign in</h2>
 
+        {{-- Account locked permanently --}}
+        @if(session('account_locked'))
+        <div class="alert-locked">
+            <div class="locked-icon"><i class="bi bi-shield-lock-fill"></i></div>
+            <div class="locked-title">Account Locked</div>
+            <div class="locked-msg">
+                Your account has been locked due to too many failed login attempts.<br>
+                Please contact the administrator to resolve this issue.
+            </div>
+        </div>
+        @endif
+
+        {{-- Temporary 5-minute cooldown with countdown timer --}}
+        @if(session('throttle_seconds'))
+        <div class="alert-throttle" id="throttleAlert">
+            <div class="throttle-icon"><i class="bi bi-clock-history"></i></div>
+            <div class="throttle-title">Too Many Failed Attempts</div>
+            <div class="countdown-display" id="countdownDisplay">{{ gmdate('i:s', session('throttle_seconds')) }}</div>
+            <div class="throttle-msg">Please wait before trying again. If you believe this is a mistake, contact your administrator.</div>
+        </div>
+        @endif
+
+        <div id="loginFormWrap" @if(session('throttle_seconds') || session('account_locked')) class="form-disabled" @endif>
         <form action="{{ route('login') }}" method="POST" id="loginForm" novalidate>
             @csrf
 
             <div class="mb-3">
                 <label for="email" class="form-label-visible">Email</label>
-                <input id="email" name="email" type="email" class="form-control @error('email') is-invalid @enderror"
+                <input id="email" name="email" type="email" class="form-control @if($errors->has('email')) is-invalid @endif"
                     value="{{ old('email') }}" required autocomplete="email" autofocus>
-                @error('email')
-                    <div class="invalid-feedback error-message">
-                        <i class="bi bi-exclamation-circle-fill"></i>
-                        <span>{{ $message }}</span>
-                    </div>
-                @enderror
                 <div class="invalid-feedback error-message" id="emailFormatError" style="display: none;">
                     <i class="bi bi-exclamation-circle-fill"></i>
                     <span>Please enter a valid email address (e.g., user@example.com)</span>
                 </div>
             </div>
 
-            <div class="mb-4">
+            <div class="mb-3">
                 <label for="password" class="form-label-visible">Password</label>
                 <div class="input-group has-validation">
-                    <input id="password" name="password" type="password" class="form-control @error('password') is-invalid @enderror"
+                    <input id="password" name="password" type="password" class="form-control @if($errors->has('email')) is-invalid @endif"
                         required autocomplete="current-password" aria-describedby="passwordToggle">
                     <button id="passwordToggle" type="button" class="password-toggle" tabindex="-1" aria-pressed="false" aria-label="Show password" title="Show password">
                         <i class="bi bi-eye-fill"></i>
                     </button>
-                    @error('password')
-                        <div class="invalid-feedback error-message d-block">
-                            <i class="bi bi-exclamation-circle-fill"></i>
-                            <span>{{ $message }}</span>
-                        </div>
-                    @enderror
                 </div>
             </div>
 
-
+            @if($errors->has('email'))
+            <div class="mb-3 error-message" style="color: #dc3545; font-size: 0.875rem;">
+                <i class="bi bi-exclamation-circle-fill"></i>
+                <span>{{ $errors->first('email') }}</span>
+            </div>
+            @endif
 
             <button type="submit" class="btn login-btn">Sign in</button>
         </form>
+        </div>{{-- end loginFormWrap --}}
     </div>
 </div>
 
@@ -267,9 +348,44 @@
         const loadingOverlay = document.getElementById('loadingOverlay');
         const loginCard = document.getElementById('loginCard');
 
+        // ── Countdown Timer ────────────────────────────────────────────────
+        const countdownEl = document.getElementById('countdownDisplay');
+        const formWrap    = document.getElementById('loginFormWrap');
+
+        @if(session('throttle_seconds'))
+        let remaining = {{ session('throttle_seconds') }};
+
+        function formatTime(secs) {
+            const m = String(Math.floor(secs / 60)).padStart(2, '0');
+            const s = String(secs % 60).padStart(2, '0');
+            return m + ':' + s;
+        }
+
+        const countdownInterval = setInterval(function () {
+            remaining--;
+            if (remaining <= 0) {
+                clearInterval(countdownInterval);
+                // Re-enable form and hide alert
+                if (formWrap) formWrap.classList.remove('form-disabled');
+                const throttleAlert = document.getElementById('throttleAlert');
+                if (throttleAlert) throttleAlert.style.display = 'none';
+                if (countdownEl) countdownEl.textContent = '0:00';
+            } else {
+                if (countdownEl) countdownEl.textContent = formatTime(remaining);
+            }
+        }, 1000);
+        @endif
+        // ──────────────────────────────────────────────────────────────────
+
         // Show loading overlay on form submit
         if (loginForm) {
             loginForm.addEventListener('submit', function(e) {
+                // Block submission during countdown or account lock
+                if (formWrap && formWrap.classList.contains('form-disabled')) {
+                    e.preventDefault();
+                    return;
+                }
+
                 // Check if form is valid before showing loader
                 const emailInput = document.getElementById('email');
                 const passwordInput = document.getElementById('password');
@@ -312,26 +428,15 @@
 
         function clearValidationError(input) {
             if (input.value.trim() !== '') {
-                input.classList.remove('is-invalid');
-                // For email input (direct parent)
-                let errorMessage = input.closest('.mb-3')?.querySelector('.invalid-feedback');
-                // For password input (inside input-group)
-                if (!errorMessage) {
-                    errorMessage = input.closest('.input-group')?.querySelector('.invalid-feedback');
-                }
-                // Also check in parent div
-                if (!errorMessage) {
-                    errorMessage = input.closest('.mb-4')?.querySelector('.invalid-feedback');
-                }
-                if (errorMessage) {
-                    errorMessage.classList.remove('d-block');
-                    errorMessage.style.display = 'none';
-                }
-                // Remove border color from password toggle button
-                const passwordToggle = input.closest('.input-group')?.querySelector('.password-toggle');
-                if (passwordToggle) {
-                    passwordToggle.style.borderColor = '#dee2e6';
-                }
+                // Clear red border from BOTH inputs whenever either is typed in
+                if (emailInput) emailInput.classList.remove('is-invalid');
+                if (passwordInput) passwordInput.classList.remove('is-invalid');
+                // Hide the combined error message below password
+                const combinedError = document.querySelector('.error-message[style]');
+                if (combinedError) combinedError.style.display = 'none';
+                // Reset toggle border
+                const passwordToggle = document.getElementById('passwordToggle');
+                if (passwordToggle) passwordToggle.style.borderColor = '#dee2e6';
             }
         }
 

@@ -23,7 +23,14 @@ class Tenant extends Model
     ];
 
     protected $casts = [
-        'birth_date' => 'date',
+        'birth_date'       => 'date',
+        // AES-256 field-level encryption for sensitive personal data
+        'address'          => 'encrypted',
+        'contact_num'      => 'encrypted',
+        'emer_contact_num' => 'encrypted',
+        'email'            => 'encrypted',
+        'id_document'      => 'encrypted',
+        'emer_contact_name'=> 'encrypted',
     ];
 
     /**

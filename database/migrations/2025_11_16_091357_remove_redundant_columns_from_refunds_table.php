@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -23,7 +23,7 @@ return new class extends Migration
             } catch (\Exception $e) {
                 // Foreign key might not exist, continue
             }
-            
+
             try {
                 DB::statement("
                     IF EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'refunds_invoice_id_foreign')
@@ -63,7 +63,7 @@ return new class extends Migration
         if (DB::getDriverName() === 'sqlsrv') {
             // Add booking_id as nullable first
             DB::statement("ALTER TABLE refunds ADD booking_id BIGINT NULL");
-            
+
             // Try to populate booking_id from payment->invoice->booking relationship
             // Update refunds with booking_id from invoices through payments
             DB::statement("
@@ -74,17 +74,17 @@ return new class extends Migration
                 INNER JOIN invoices i ON p.invoice_id = i.invoice_id
                 WHERE i.booking_id IS NOT NULL
             ");
-            
+
             // Add foreign key constraint (allowing NULLs for now since we can't guarantee all records have booking_id)
             DB::statement("
                 ALTER TABLE refunds
                 ADD CONSTRAINT refunds_booking_id_foreign
                 FOREIGN KEY (booking_id) REFERENCES bookings(booking_id)
             ");
-            
+
             // Add invoice_id as nullable (it was nullable originally)
             DB::statement("ALTER TABLE refunds ADD invoice_id BIGINT NULL");
-            
+
             // Populate invoice_id from payments
             DB::statement("
                 UPDATE r
@@ -93,7 +93,7 @@ return new class extends Migration
                 INNER JOIN payments p ON r.payment_id = p.payment_id
                 WHERE p.invoice_id IS NOT NULL
             ");
-            
+
             DB::statement("
                 ALTER TABLE refunds
                 ADD CONSTRAINT refunds_invoice_id_foreign
@@ -105,7 +105,7 @@ return new class extends Migration
                 $table->bigInteger('booking_id')->nullable()->after('refund_id');
                 $table->bigInteger('invoice_id')->nullable()->after('payment_id');
             });
-            
+
             // Populate booking_id from payment->invoice->booking
             DB::statement("
                 UPDATE refunds r
@@ -114,7 +114,7 @@ return new class extends Migration
                 SET r.booking_id = i.booking_id
                 WHERE i.booking_id IS NOT NULL
             ");
-            
+
             // Populate invoice_id from payments
             DB::statement("
                 UPDATE refunds r
@@ -122,7 +122,7 @@ return new class extends Migration
                 SET r.invoice_id = p.invoice_id
                 WHERE p.invoice_id IS NOT NULL
             ");
-            
+
             // Add foreign key constraints
             Schema::table('refunds', function (Blueprint $table) {
                 $table->foreign('booking_id')->references('booking_id')->on('bookings');

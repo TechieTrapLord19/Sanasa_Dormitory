@@ -194,7 +194,7 @@ class SecurityDepositController extends Controller
             $successMessage = 'Deduction of ₱' . number_format($amount, 2) . ' applied successfully.';
             if (in_array($category, $invoiceCategories) && !empty($validated['invoice_id'])) {
                 $successMessage .= ' Payment applied to invoice.';
-            } else if (!in_array($category, $invoiceCategories)) {
+            } elseif (!in_array($category, $invoiceCategories)) {
                 $successMessage .= ' Recorded as revenue.';
             }
 

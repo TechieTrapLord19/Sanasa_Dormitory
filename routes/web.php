@@ -2,7 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\TwoFactorController;
+use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\IndexController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RateController;
@@ -30,9 +31,11 @@ Route::get('/', [IndexController::class, 'index'])->name('home');
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login']);
-    Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
-    Route::post('/register', [RegisterController::class, 'register']);
 });
+
+// Two-Factor Challenge (accessed after password auth, before full login)
+Route::get('/two-factor-challenge', [TwoFactorChallengeController::class, 'show'])->name('two-factor.challenge');
+Route::post('/two-factor-challenge', [TwoFactorChallengeController::class, 'verify'])->name('two-factor.verify');
 
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
@@ -122,5 +125,10 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
     // Financial Statement route
     Route::get('/financial-statement', [FinancialStatementController::class, 'index'])->name('financial-statement');
     Route::get('/financial-statement/export', [FinancialStatementController::class, 'export'])->name('financial-statement.export');
+
+    // Two-Factor Authentication setup
+    Route::get('/two-factor-setup', [TwoFactorController::class, 'show'])->name('two-factor.setup');
+    Route::post('/two-factor-setup', [TwoFactorController::class, 'enable'])->name('two-factor.enable');
+    Route::delete('/two-factor-setup', [TwoFactorController::class, 'disable'])->name('two-factor.disable');
 
 });

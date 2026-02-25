@@ -10,15 +10,20 @@ use App\Models\Refund;
 use App\Models\Room;
 use App\Models\Booking;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Traits\ChecksRole;
 
 class FinancialStatementController extends Controller
 {
+    use ChecksRole;
     /**
      * Display the financial statement.
      */
     public function index(Request $request)
     {
+        $this->requireOwner();
+
         // Date filter handling
         $dateFilter = $request->input('date_filter', 'this_month');
         $dateFrom = '';
@@ -56,12 +61,12 @@ class FinancialStatementController extends Controller
         }
 
         // === INCOME CALCULATIONS ===
-        
+
         // Rent Income (from payments on invoices with rent_subtotal > 0)
         $rentIncomeQuery = Payment::whereHas('invoice', function ($q) {
             $q->where('rent_subtotal', '>', 0);
         })->where('payment_type', 'Rent/Utility');
-        
+
         if ($dateFrom && $dateTo) {
             $rentIncomeQuery->whereBetween('date_received', [$dateFrom, $dateTo]);
         }
@@ -84,7 +89,7 @@ class FinancialStatementController extends Controller
         $totalRevenue = $rentIncome + $electricityIncome + $forfeitedDeposits;
 
         // === EXPENSE CALCULATIONS ===
-        
+
         $expenseQuery = Expense::query();
         if ($dateFrom && $dateTo) {
             $expenseQuery->whereBetween('expense_date', [$dateFrom, $dateTo]);
@@ -123,7 +128,7 @@ class FinancialStatementController extends Controller
             });
 
         // === KPIs ===
-        
+
         // Total Billed (invoices generated in period)
         $totalBilledQuery = Invoice::query();
         if ($dateFrom && $dateTo) {
@@ -156,7 +161,7 @@ class FinancialStatementController extends Controller
             })
             ->map(function ($invoice) {
                 $invoice->remaining_balance = $invoice->total_due - ($invoice->paid ?? 0);
-                $invoice->days_overdue = $invoice->due_date 
+                $invoice->days_overdue = $invoice->due_date
                     ? max(0, now()->diffInDays($invoice->due_date, false) * -1)
                     : 0;
                 return $invoice;
@@ -230,11 +235,13 @@ class FinancialStatementController extends Controller
      */
     public function export(Request $request)
     {
+        $this->requireOwner();
+
         // Date filter handling (same as index)
         $dateFilter = $request->input('date_filter', 'this_month');
         $dateFrom = '';
         $dateTo = '';
-        $periodLabel = 'All Time';
+        $periodLabel = 'All Time'; // default, overridden in switch below
 
         switch ($dateFilter) {
             case 'today':
@@ -264,8 +271,8 @@ class FinancialStatementController extends Controller
                 break;
             case 'all':
             default:
-                $dateFilter = 'all';
                 $periodLabel = 'All Time';
+                $dateFilter  = 'all';
                 break;
         }
 
@@ -354,7 +361,7 @@ class FinancialStatementController extends Controller
             })
             ->map(function ($invoice) {
                 $invoice->remaining_balance = $invoice->total_due - ($invoice->paid ?? 0);
-                $invoice->days_overdue = $invoice->due_date 
+                $invoice->days_overdue = $invoice->due_date
                     ? max(0, now()->diffInDays($invoice->due_date, false) * -1)
                     : 0;
                 return $invoice;
@@ -364,7 +371,7 @@ class FinancialStatementController extends Controller
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('contents.financial-statement-pdf', [
             'periodLabel' => $periodLabel,
-            'generatedBy' => auth()->user()->full_name ?? 'System',
+            'generatedBy' => Auth::user()->full_name ?? 'System',
             'rentIncome' => $rentIncome,
             'electricityIncome' => $electricityIncome,
             'forfeitedDeposits' => $forfeitedDeposits,

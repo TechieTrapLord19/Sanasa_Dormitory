@@ -27,6 +27,8 @@ class User extends Authenticatable
         'role',
         'status',
         'password',
+        'two_factor_secret',
+        'two_factor_enabled',
     ];
 
     /**
@@ -57,6 +59,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'birth_date' => 'date',
             'password' => 'hashed',
+            'two_factor_enabled' => 'boolean',
         ];
     }
 

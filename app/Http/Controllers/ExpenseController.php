@@ -7,16 +7,19 @@ use App\Models\Asset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Traits\LogsActivity;
+use App\Traits\ChecksRole;
 
 class ExpenseController extends Controller
 {
-    use LogsActivity;
+    use LogsActivity, ChecksRole;
 
     /**
      * Display a listing of expenses.
      */
     public function index(Request $request)
     {
+        $this->requireOwner();
+
         $query = Expense::with('recordedBy');
 
         // Sorting
@@ -122,6 +125,8 @@ class ExpenseController extends Controller
      */
     public function store(Request $request)
     {
+        $this->requireOwner();
+
         $validated = $request->validate([
             'category' => ['required', 'string', 'max:100'],
             'asset_type' => ['nullable', 'string', 'max:100'],
@@ -168,6 +173,8 @@ class ExpenseController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $this->requireOwner();
+
         $expense = Expense::findOrFail($id);
 
         $validated = $request->validate([
@@ -198,8 +205,10 @@ class ExpenseController extends Controller
      */
     public function destroy($id)
     {
+        $this->requireOwner();
+
         $expense = Expense::findOrFail($id);
-        
+
         $this->logActivity(
             'Deleted Expense',
             "Deleted expense #{$expense->expense_id} - ₱" . number_format($expense->amount, 2) . " for {$expense->category}",

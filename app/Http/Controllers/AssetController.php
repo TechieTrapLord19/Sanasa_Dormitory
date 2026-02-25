@@ -144,7 +144,7 @@ class AssetController extends Controller
             // Add automatic description based on condition
             if ($asset->condition === 'Needs Repair') {
                 $issueDescription .= "Requires maintenance and repair work.";
-            } else if ($asset->condition === 'Broken') {
+            } elseif ($asset->condition === 'Broken') {
                 $issueDescription .= "Asset is broken and needs immediate attention.";
             }
 
@@ -234,7 +234,7 @@ class AssetController extends Controller
                 // Add automatic description based on condition
                 if ($asset->condition === 'Needs Repair') {
                     $issueDescription .= "Requires maintenance and repair work.";
-                } else if ($asset->condition === 'Broken') {
+                } elseif ($asset->condition === 'Broken') {
                     $issueDescription .= "Asset is broken and needs immediate attention.";
                 }
 

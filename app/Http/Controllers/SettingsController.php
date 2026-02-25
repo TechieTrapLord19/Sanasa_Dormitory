@@ -6,16 +6,19 @@ use App\Models\Setting;
 use App\Models\Invoice;
 use Illuminate\Http\Request;
 use App\Traits\LogsActivity;
+use App\Traits\ChecksRole;
 
 class SettingsController extends Controller
 {
-    use LogsActivity;
+    use LogsActivity, ChecksRole;
 
     /**
      * Display the settings page
      */
     public function index()
     {
+        $this->requireOwner();
+
         $settings = [
             'late_penalty_rate' => Setting::get('late_penalty_rate', 1),
             'late_penalty_type' => Setting::get('late_penalty_type', 'percentage'),
@@ -33,6 +36,8 @@ class SettingsController extends Controller
      */
     public function update(Request $request)
     {
+        $this->requireOwner();
+
         $request->validate([
             'late_penalty_rate' => 'required|numeric|min:0|max:100',
             'late_penalty_type' => 'required|in:percentage,fixed',

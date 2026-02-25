@@ -13,9 +13,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Traits\ChecksRole;
 
 class SalesController extends Controller
 {
+    use ChecksRole;
     public function index(Request $request)
     {
         // Default to current month
@@ -111,6 +113,8 @@ class SalesController extends Controller
 
     public function export(Request $request)
     {
+        $this->requireOwner();
+
         $startDate = $request->input('start_date', now()->startOfMonth()->toDateString());
         $endDate = $request->input('end_date', now()->toDateString());
 
@@ -164,6 +168,8 @@ class SalesController extends Controller
      */
     public function exportConsolidated(Request $request)
     {
+        $this->requireOwner();
+
         $startDate = $request->input('start_date', now()->startOfMonth()->toDateString());
         $endDate = $request->input('end_date', now()->endOfMonth()->toDateString());
 

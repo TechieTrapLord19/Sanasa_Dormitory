@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -15,7 +15,7 @@ return new class extends Migration
         // Drop the old CHECK constraint and add a new one with Electricity type
         DB::unprepared("
             ALTER TABLE payments DROP CONSTRAINT IF EXISTS CK_payments_payment_type;
-            ALTER TABLE payments ADD CONSTRAINT CK_payments_payment_type 
+            ALTER TABLE payments ADD CONSTRAINT CK_payments_payment_type
             CHECK (payment_type IN ('Rent/Utility', 'Security Deposit', 'Electricity', 'Deposit Deduction'));
         ");
     }
@@ -28,7 +28,7 @@ return new class extends Migration
         // Revert to old constraint (without Electricity)
         DB::unprepared("
             ALTER TABLE payments DROP CONSTRAINT IF EXISTS CK_payments_payment_type;
-            ALTER TABLE payments ADD CONSTRAINT CK_payments_payment_type 
+            ALTER TABLE payments ADD CONSTRAINT CK_payments_payment_type
             CHECK (payment_type IN ('Rent/Utility', 'Security Deposit', 'Deposit Deduction'));
         ");
     }

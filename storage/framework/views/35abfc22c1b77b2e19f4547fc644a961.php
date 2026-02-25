@@ -1,0 +1,1086 @@
+<?php $__env->startSection('title', 'User Management'); ?>
+
+<?php $__env->startSection('content'); ?>
+<style>
+    .users-header {
+        background-color: white;
+        margin-bottom: 2rem;
+    }
+    .users-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #03255b;
+        margin: 0;
+    }
+    .create-user-btn {
+        background-color: #03255b;
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: background-color 0.3s ease;
+    }
+    .create-user-btn:hover {
+        background-color: #021d47;
+        color: white;
+    }
+    .create-user-btn-icon {
+        width: 24px;
+        height: 24px;
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+
+    .modal-footer .btn-primary:hover {
+        background-color: #021d47 !important;
+        border-color: #021d47 !important;
+    }
+
+    /* Filter Styles */
+    .users-filters {
+        background-color: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    }
+
+    .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .filter-label {
+        font-weight: 600;
+        color: #2d3748;
+        font-size: 0.875rem;
+        margin: 0;
+    }
+
+    .filter-input {
+        padding: 0.5rem 1rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        background-color: white;
+        color: #4a5568;
+        min-width: 250px;
+    }
+
+    .filter-input:focus {
+        outline: none;
+        border-color: #03255b;
+        box-shadow: 0 0 0 3px rgba(3, 37, 91, 0.1);
+    }
+
+    .filter-btn {
+        border: 1px solid #cbd5e1;
+        padding: 0.45rem 1.1rem;
+        border-radius: 999px;
+        background-color: white;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+
+    .filter-btn:hover {
+        border-color: #94a3b8;
+        color: #0f172a;
+    }
+
+    .filter-btn.active {
+        background: #03255b;
+        color: white;
+        border-color: #03255b;
+        box-shadow: 0 8px 20px rgba(3, 37, 91, 0.25);
+    }
+
+    /* Table Styles */
+    .users-table-container {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+        overflow: hidden;
+    }
+
+    .users-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .users-table thead {
+        background-color: #f7fafc;
+    }
+
+    .users-table th {
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #2d3748;
+        font-size: 0.875rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .users-table th.sortable {
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s ease;
+    }
+
+    .users-table th.sortable:hover {
+        background: #e2e8f0;
+        color: #03255b;
+    }
+
+    .users-table th.sortable .sort-icon {
+        margin-left: 0.3rem;
+        font-size: 0.7rem;
+        opacity: 0.4;
+    }
+
+    .users-table th.sortable.active .sort-icon {
+        opacity: 1;
+        color: #03255b;
+    }
+
+    .users-table td {
+        padding: 1rem;
+        color: #4a5568;
+        font-size: 0.875rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .users-table tbody tr:hover {
+        background-color: #f7fafc;
+    }
+
+    .users-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .role-badge {
+        display: inline-block;
+        padding: 0.375rem 0.875rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .role-badge.owner {
+        background-color: #e9d5ff;
+        color: #6b21a8;
+    }
+
+    .role-badge.caretaker {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 0.375rem 0.875rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .status-badge.active {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-badge.archived {
+        background-color: #e5e7eb;
+        color: #6b7280;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn-edit, .btn-archive, .btn-activate {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-edit i, .btn-archive i, .btn-activate i {
+        font-size: 1rem;
+    }
+
+    .btn-edit {
+        background-color: #e0f2fe;
+        color: #0369a1;
+    }
+
+    .btn-edit:hover {
+        background-color: #bae6fd;
+        color: #0369a1;
+    }
+
+    .btn-archive {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+
+    .btn-archive:hover {
+        background-color: #fde68a;
+        color: #92400e;
+    }
+
+    .btn-activate {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+
+    .btn-activate:hover {
+        background-color: #a7f3d0;
+        color: #065f46;
+    }
+
+    /* Pagination Styles */
+    .pagination-wrapper {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.25rem;
+        background-color: #f8fafc;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .pagination-wrapper .form-select {
+        width: auto;
+        border-radius: 999px;
+        min-width: 70px;
+    }
+    .pagination-left {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .pagination-center {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .pagination-right {
+        display: flex;
+        align-items: center;
+    }
+    .pagination-wrapper .pagination {
+        margin: 0;
+        display: flex;
+        list-style: none;
+        gap: 0.25rem;
+    }
+    .pagination-wrapper .pagination .page-item {
+        margin: 0;
+    }
+    .pagination-wrapper .pagination .page-link {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        color: #475569;
+        text-decoration: none;
+        background-color: white;
+        font-size: 0.875rem;
+        min-width: 38px;
+        text-align: center;
+        display: inline-block;
+        transition: all 0.2s ease;
+    }
+    .pagination-wrapper .pagination .page-link:hover {
+        background-color: #f1f5f9;
+        border-color: #cbd5e1;
+        color: #03255b;
+    }
+    .pagination-wrapper .pagination .page-item.active .page-link {
+        background-color: #03255b;
+        border-color: #03255b;
+        color: white;
+        font-weight: 600;
+    }
+    .pagination-wrapper .pagination .page-item.disabled .page-link {
+        background-color: #f8fafc;
+        border-color: #e2e8f0;
+        color: #94a3b8;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+    .pagination-wrapper .pagination .page-link:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(3, 37, 91, 0.1);
+    }
+    .pagination-wrapper svg {
+        display: none !important;
+    }
+    .pagination-wrapper nav > div:first-child {
+        display: none !important;
+    }
+    .pagination-wrapper nav > div:last-child > div:first-child {
+        display: none !important;
+    }
+    .pagination-wrapper nav > div:last-child > div:last-child {
+        display: block !important;
+    }
+    .pagination-center .small {
+        font-size: 0.875rem;
+        color: #64748b;
+        margin: 0;
+    }
+    .pagination-center .fw-semibold {
+        font-weight: 600;
+        color: #0f172a;
+    }
+</style>
+
+<div class="users-header">
+    <div class="row align-items-center">
+        <!-- Left: Title -->
+        <div class="col-md-8 d-flex justify-content-start">
+            <h1 class="users-title">User Management</h1>
+        </div>
+
+        <!-- Right: Create Button -->
+        <div class="col-md-4 d-flex justify-content-end">
+            <button class="create-user-btn" data-bs-toggle="modal" data-bs-target="#createUserModal">
+                <i class="bi bi-plus-circle"></i>
+                <span>Create Caretaker</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="users-filters">
+    <div class="filter-group">
+        <p class="filter-label mb-0">Search User:</p>
+        <form method="GET" action="<?php echo e(route('user-management')); ?>" class="d-flex gap-2 flex-grow-1">
+            <input type="text"
+                   class="filter-input"
+                   name="search"
+                   id="searchInput"
+                   placeholder="Search by name or email..."
+                   value="<?php echo e($searchTerm); ?>">
+            <input type="hidden" name="role" id="roleInput" value="<?php echo e($selectedRole); ?>">
+            <input type="hidden" name="status" id="statusInput" value="<?php echo e($selectedStatus ?? 'all'); ?>">
+        </form>
+    </div>
+    <div class="filter-group mt-3">
+        <p class="filter-label mb-0">Filter by Role:</p>
+        <button class="filter-btn <?php echo e($selectedRole === 'all' ? 'active' : ''); ?>"
+                data-role="all"
+                onclick="filterByRole('all')">
+            All (<?php echo e($roleCounts['total'] ?? 0); ?>)
+        </button>
+        <button class="filter-btn <?php echo e($selectedRole === 'owner' ? 'active' : ''); ?>"
+                data-role="owner"
+                onclick="filterByRole('owner')">
+            Admin (<?php echo e($roleCounts['owner'] ?? 0); ?>)
+        </button>
+        <button class="filter-btn <?php echo e($selectedRole === 'caretaker' ? 'active' : ''); ?>"
+                data-role="caretaker"
+                onclick="filterByRole('caretaker')">
+            Caretaker (<?php echo e($roleCounts['caretaker'] ?? 0); ?>)
+        </button>
+    </div>
+    <div class="filter-group mt-3">
+        <p class="filter-label mb-0">Filter by Status:</p>
+        <button class="filter-btn <?php echo e(($selectedStatus ?? 'all') === 'all' ? 'active' : ''); ?>"
+                data-status="all"
+                onclick="filterByStatus('all')">
+            All
+        </button>
+        <button class="filter-btn <?php echo e(($selectedStatus ?? 'all') === 'active' ? 'active' : ''); ?>"
+                data-status="active"
+                onclick="filterByStatus('active')">
+            Active (<?php echo e($statusCounts['active'] ?? 0); ?>)
+        </button>
+        <button class="filter-btn <?php echo e(($selectedStatus ?? 'all') === 'archived' ? 'active' : ''); ?>"
+                data-status="archived"
+                onclick="filterByStatus('archived')">
+            Archived (<?php echo e($statusCounts['archived'] ?? 0); ?>)
+        </button>
+    </div>
+</div>
+
+<!-- Users Table -->
+<div class="users-table-container">
+    <table class="users-table">
+        <thead>
+            <tr>
+                <th class="sortable <?php echo e($sortBy === 'first_name' ? 'active' : ''); ?>" onclick="sortTable('first_name')">
+                    Full Name
+                    <?php if($sortBy === 'first_name'): ?>
+                        <i class="bi bi-<?php echo e($sortDir === 'asc' ? 'sort-up' : 'sort-down'); ?> sort-icon"></i>
+                    <?php else: ?>
+                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                    <?php endif; ?>
+                </th>
+                <th class="sortable <?php echo e($sortBy === 'email' ? 'active' : ''); ?>" onclick="sortTable('email')">
+                    Email
+                    <?php if($sortBy === 'email'): ?>
+                        <i class="bi bi-<?php echo e($sortDir === 'asc' ? 'sort-up' : 'sort-down'); ?> sort-icon"></i>
+                    <?php else: ?>
+                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                    <?php endif; ?>
+                </th>
+                <th class="sortable <?php echo e($sortBy === 'role' ? 'active' : ''); ?>" onclick="sortTable('role')">
+                    Role
+                    <?php if($sortBy === 'role'): ?>
+                        <i class="bi bi-<?php echo e($sortDir === 'asc' ? 'sort-up' : 'sort-down'); ?> sort-icon"></i>
+                    <?php else: ?>
+                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                    <?php endif; ?>
+                </th>
+                <th class="sortable <?php echo e($sortBy === 'status' ? 'active' : ''); ?>" onclick="sortTable('status')">
+                    Status
+                    <?php if($sortBy === 'status'): ?>
+                        <i class="bi bi-<?php echo e($sortDir === 'asc' ? 'sort-up' : 'sort-down'); ?> sort-icon"></i>
+                    <?php else: ?>
+                        <i class="bi bi-arrow-down-up sort-icon"></i>
+                    <?php endif; ?>
+                </th>
+                <th>Age</th>
+                <th>Address</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php $__empty_1 = true; $__currentLoopData = $users; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $user): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                <tr>
+                    <td>
+                        <strong><?php echo e($user->full_name); ?></strong>
+                    </td>
+                    <td>
+                        <?php echo e($user->email); ?>
+
+                    </td>
+                    <td>
+                        <span class="role-badge <?php echo e(strtolower($user->role)); ?>">
+                            <?php echo e(ucfirst($user->role)); ?>
+
+                        </span>
+                    </td>
+                    <td>
+                        <span class="status-badge <?php echo e($user->status ?? 'active'); ?>">
+                            <?php echo e(ucfirst($user->status ?? 'active')); ?>
+
+                        </span>
+                    </td>
+                    <td>
+                        <?php echo e($user->age ? $user->age . ' years old' : 'N/A'); ?>
+
+                    </td>
+                    <td>
+                        <?php echo e($user->address ?? 'N/A'); ?>
+
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button type="button" class="btn-edit" data-bs-toggle="modal" data-bs-target="#editUserModal<?php echo e($user->user_id); ?>">
+                                <i class="bi bi-pencil"></i> Edit
+                            </button>
+                            <?php if($user->user_id !== auth()->user()->user_id): ?>
+                                <?php if($user->status === 'active'): ?>
+                                    <form action="<?php echo e(route('users.archive', $user->user_id)); ?>" method="POST" style="display: inline;" id="archiveUserForm<?php echo e($user->user_id); ?>">
+                                        <?php echo csrf_field(); ?>
+                                        <button type="button" class="btn-archive" onclick="confirmAction('Are you sure you want to archive this user?', function() { document.getElementById('archiveUserForm<?php echo e($user->user_id); ?>').submit(); }, { title: 'Archive User', confirmText: 'Yes, Archive', type: 'warning' })">
+                                            <i class="bi bi-archive"></i> Archive
+                                        </button>
+                                    </form>
+                                <?php else: ?>
+                                    <form action="<?php echo e(route('users.activate', $user->user_id)); ?>" method="POST" style="display: inline;" id="activateUserForm<?php echo e($user->user_id); ?>">
+                                        <?php echo csrf_field(); ?>
+                                        <button type="button" class="btn-activate" onclick="confirmAction('Are you sure you want to activate this user?', function() { document.getElementById('activateUserForm<?php echo e($user->user_id); ?>').submit(); }, { title: 'Activate User', confirmText: 'Yes, Activate', type: 'info' })">
+                                            <i class="bi bi-check-circle"></i> Activate
+                                        </button>
+                                    </form>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        </div>
+                    </td>
+                </tr>
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">No users found</td>
+                </tr>
+            <?php endif; ?>
+        </tbody>
+    </table>
+
+    <div class="pagination-wrapper">
+        <div class="pagination-left">
+            <form method="GET" action="<?php echo e(route('user-management')); ?>" class="d-flex align-items-center gap-2">
+                <input type="hidden" name="search" value="<?php echo e($searchTerm); ?>">
+                <input type="hidden" name="role" value="<?php echo e($selectedRole); ?>">
+                <label for="perPage" class="text-muted small mb-0">Rows per page</label>
+                <select class="form-select form-select-sm" id="perPage" name="per_page" onchange="this.form.submit()">
+                    <?php $__currentLoopData = [5, 10, 15, 20]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $option): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <option value="<?php echo e($option); ?>" <?php echo e((int) $perPage === $option ? 'selected' : ''); ?>>
+                            <?php echo e($option); ?>
+
+                        </option>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                </select>
+            </form>
+        </div>
+        <div class="pagination-center">
+            <p class="small text-muted mb-0">
+                Showing
+                <span class="fw-semibold"><?php echo e($users->firstItem() ?? 0); ?></span>
+                to
+                <span class="fw-semibold"><?php echo e($users->lastItem() ?? 0); ?></span>
+                of
+                <span class="fw-semibold"><?php echo e($users->total()); ?></span>
+                results
+            </p>
+        </div>
+        <div class="pagination-right">
+            <?php echo e($users->appends(['role' => $selectedRole, 'search' => $searchTerm, 'per_page' => $perPage, 'sort_by' => $sortBy, 'sort_dir' => $sortDir])->links()); ?>
+
+        </div>
+    </div>
+</div>
+
+<!-- Create User Modal -->
+<div class="modal fade" id="createUserModal" tabindex="-1" aria-labelledby="createUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createUserModalLabel">Create Caretaker</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="<?php echo e(route('users.store')); ?>" method="POST">
+                <?php echo csrf_field(); ?>
+                <div class="modal-body">
+                    <?php if($errors->any()): ?>
+                        <div class="alert alert-danger">
+                            <ul class="mb-0">
+                                <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <li><?php echo e($error); ?></li>
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="first_name" class="form-label">First Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control <?php $__errorArgs = ['first_name'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                   id="first_name" name="first_name" value="<?php echo e(old('first_name')); ?>" required>
+                            <?php $__errorArgs = ['first_name'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="middle_name" class="form-label">Middle Name</label>
+                            <input type="text" class="form-control <?php $__errorArgs = ['middle_name'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                   id="middle_name" name="middle_name" value="<?php echo e(old('middle_name')); ?>">
+                            <?php $__errorArgs = ['middle_name'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="last_name" class="form-label">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control <?php $__errorArgs = ['last_name'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                   id="last_name" name="last_name" value="<?php echo e(old('last_name')); ?>" required>
+                            <?php $__errorArgs = ['last_name'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control <?php $__errorArgs = ['email'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                   id="email" name="email" value="<?php echo e(old('email')); ?>" required>
+                            <?php $__errorArgs = ['email'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="birth_date" class="form-label">Birth Date</label>
+                            <input type="date" class="form-control <?php $__errorArgs = ['birth_date'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                   id="birth_date" name="birth_date" value="<?php echo e(old('birth_date')); ?>">
+                            <?php $__errorArgs = ['birth_date'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="address" class="form-label">Address</label>
+                            <textarea class="form-control <?php $__errorArgs = ['address'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                      id="address" name="address" rows="2"><?php echo e(old('address')); ?></textarea>
+                            <?php $__errorArgs = ['address'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="role" class="form-label">Role <span class="text-danger">*</span></label>
+                            <select class="form-select <?php $__errorArgs = ['role'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" id="role" name="role" required>
+                                <option value="caretaker" <?php echo e(old('role', 'caretaker') === 'caretaker' ? 'selected' : ''); ?>>Caretaker</option>
+                                <option value="owner" <?php echo e(old('role') === 'owner' ? 'selected' : ''); ?>>Admin</option>
+                            </select>
+                            <?php $__errorArgs = ['role'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control <?php $__errorArgs = ['password'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                   id="password" name="password" required>
+                            <?php $__errorArgs = ['password'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="password_confirmation" class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control <?php $__errorArgs = ['password_confirmation'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                   id="password_confirmation" name="password_confirmation" required>
+                            <?php $__errorArgs = ['password_confirmation'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary" style="background-color: #03255b; border-color: #03255b;">Create User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit User Modals -->
+<?php $__currentLoopData = $users; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $user): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+<div class="modal fade" id="editUserModal<?php echo e($user->user_id); ?>" tabindex="-1" aria-labelledby="editUserModalLabel<?php echo e($user->user_id); ?>" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editUserModalLabel<?php echo e($user->user_id); ?>">Edit User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="<?php echo e(route('users.update', $user->user_id)); ?>" method="POST">
+                <?php echo csrf_field(); ?>
+                <?php echo method_field('PUT'); ?>
+                <div class="modal-body">
+                    <?php if($errors->any() && old('_method') === 'PUT' && old('user_id') == $user->user_id): ?>
+                        <div class="alert alert-danger">
+                            <ul class="mb-0">
+                                <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <li><?php echo e($error); ?></li>
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="first_name_<?php echo e($user->user_id); ?>" class="form-label">First Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control <?php $__errorArgs = ['first_name'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                   id="first_name_<?php echo e($user->user_id); ?>" name="first_name" value="<?php echo e(old('first_name', $user->first_name)); ?>" required>
+                            <?php $__errorArgs = ['first_name'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="middle_name_<?php echo e($user->user_id); ?>" class="form-label">Middle Name</label>
+                            <input type="text" class="form-control <?php $__errorArgs = ['middle_name'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                   id="middle_name_<?php echo e($user->user_id); ?>" name="middle_name" value="<?php echo e(old('middle_name', $user->middle_name)); ?>">
+                            <?php $__errorArgs = ['middle_name'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="last_name_<?php echo e($user->user_id); ?>" class="form-label">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control <?php $__errorArgs = ['last_name'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                   id="last_name_<?php echo e($user->user_id); ?>" name="last_name" value="<?php echo e(old('last_name', $user->last_name)); ?>" required>
+                            <?php $__errorArgs = ['last_name'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="email_<?php echo e($user->user_id); ?>" class="form-label">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control <?php $__errorArgs = ['email'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                   id="email_<?php echo e($user->user_id); ?>" name="email" value="<?php echo e(old('email', $user->email)); ?>" required>
+                            <?php $__errorArgs = ['email'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="birth_date_<?php echo e($user->user_id); ?>" class="form-label">Birth Date</label>
+                            <input type="date" class="form-control <?php $__errorArgs = ['birth_date'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                   id="birth_date_<?php echo e($user->user_id); ?>" name="birth_date" value="<?php echo e(old('birth_date', $user->birth_date ? $user->birth_date->format('Y-m-d') : '')); ?>">
+                            <?php $__errorArgs = ['birth_date'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="address_<?php echo e($user->user_id); ?>" class="form-label">Address</label>
+                            <textarea class="form-control <?php $__errorArgs = ['address'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                      id="address_<?php echo e($user->user_id); ?>" name="address" rows="2"><?php echo e(old('address', $user->address)); ?></textarea>
+                            <?php $__errorArgs = ['address'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="role_<?php echo e($user->user_id); ?>" class="form-label">Role <span class="text-danger">*</span></label>
+                            <select class="form-select <?php $__errorArgs = ['role'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" id="role_<?php echo e($user->user_id); ?>" name="role" required>
+                                <option value="caretaker" <?php echo e(old('role', $user->role) === 'caretaker' ? 'selected' : ''); ?>>Caretaker</option>
+                                <option value="owner" <?php echo e(old('role', $user->role) === 'owner' ? 'selected' : ''); ?>>Admin</option>
+                            </select>
+                            <?php $__errorArgs = ['role'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="password_<?php echo e($user->user_id); ?>" class="form-label">New Password <small class="text-muted">(leave blank to keep current)</small></label>
+                            <input type="password" class="form-control <?php $__errorArgs = ['password'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                   id="password_<?php echo e($user->user_id); ?>" name="password">
+                            <?php $__errorArgs = ['password'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="password_confirmation_<?php echo e($user->user_id); ?>" class="form-label">Confirm New Password</label>
+                            <input type="password" class="form-control <?php $__errorArgs = ['password_confirmation'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                   id="password_confirmation_<?php echo e($user->user_id); ?>" name="password_confirmation">
+                            <?php $__errorArgs = ['password_confirmation'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Update User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+
+<script>
+function filterByRole(role) {
+    document.getElementById('roleInput').value = role;
+    document.querySelector('form[action="<?php echo e(route('user-management')); ?>"]').submit();
+}
+
+function filterByStatus(status) {
+    document.getElementById('statusInput').value = status;
+    document.querySelector('form[action="<?php echo e(route('user-management')); ?>"]').submit();
+}
+
+// Sorting function
+function sortTable(column) {
+    const url = new URL(window.location.href);
+    const currentSort = url.searchParams.get('sort_by');
+    const currentDir = url.searchParams.get('sort_dir') || 'asc';
+
+    if (currentSort === column) {
+        url.searchParams.set('sort_dir', currentDir === 'asc' ? 'desc' : 'asc');
+    } else {
+        url.searchParams.set('sort_by', column);
+        url.searchParams.set('sort_dir', 'asc');
+    }
+
+    window.location.href = url.toString();
+}
+</script>
+<?php $__env->stopSection(); ?>
+
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\hmmth\sanasa_dormitory\resources\views/contents/user-management.blade.php ENDPATH**/ ?>

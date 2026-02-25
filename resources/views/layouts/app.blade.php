@@ -155,6 +155,19 @@
                         </a>
                     </li>
                     @endif
+
+                    <!-- 2FA — available to all users -->
+                    <li class="mb-1 {{ request()->routeIs('two-factor.setup') ? 'active' : '' }}">
+                        <a href="{{ route('two-factor.setup') }}" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
+                            <i class="bi bi-phone-vibrate"></i>
+                            <span>
+                                2FA Setup
+                                @if(auth()->user()->two_factor_enabled)
+                                    <span class="badge bg-success ms-1" style="font-size:0.65rem;">ON</span>
+                                @endif
+                            </span>
+                        </a>
+                    </li>
                 </ul>
             </nav>
             @auth
@@ -494,5 +507,62 @@
             }, 60000); // Update every minute
         }
     })();
+</script>
+
+<script>
+    // ── Global Form Submit Protection ─────────────────────────────────────────
+    // Prevents double-submission by disabling the submit button immediately
+    // after the first click on any POST form in the application.
+    //
+    // Exclusions (will NOT be locked):
+    //   • GET forms (filter/search/sort/pagination — safe to re-submit)
+    //   • Forms with data-no-lock attribute (opt-out escape hatch)
+    //   • The login form (has its own loading overlay already)
+    // ─────────────────────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('form').forEach(function (form) {
+            // Skip GET forms (filters, search, sort) — harmless to re-submit
+            if ((form.method || '').toLowerCase() === 'get') return;
+
+            // Skip forms that opted out
+            if (form.hasAttribute('data-no-lock')) return;
+
+            // Skip the login form — it has its own loading overlay
+            if (form.id === 'loginForm') return;
+
+            form.addEventListener('submit', function () {
+                const btn = form.querySelector('[type="submit"]');
+                if (!btn || btn.disabled) return;
+
+                // Capture original label so we can restore if needed
+                const originalHtml = btn.innerHTML;
+                const originalWidth = btn.offsetWidth;
+
+                // Fix width so button doesn't shrink when text changes
+                btn.style.minWidth = originalWidth + 'px';
+
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Processing...';
+
+                // Safety net: re-enable after 15 seconds in case something goes wrong
+                // (e.g. network error, JS exception, bfcache restore)
+                setTimeout(function () {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                    btn.style.minWidth = '';
+                }, 15000);
+            });
+        });
+
+        // Re-enable all buttons when navigating back (bfcache restore)
+        window.addEventListener('pageshow', function (event) {
+            if (event.persisted) {
+                document.querySelectorAll('form [type="submit"]').forEach(function (btn) {
+                    btn.disabled = false;
+                    btn.style.minWidth = '';
+                });
+            }
+        });
+    });
 </script>
 </html>

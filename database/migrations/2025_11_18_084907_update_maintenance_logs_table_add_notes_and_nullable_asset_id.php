@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -22,14 +22,14 @@ return new class extends Migration
             // If constraint doesn't exist or has different name, try SQL Server specific approach
             DB::statement("
                 IF EXISTS (
-                    SELECT * FROM sys.foreign_keys 
-                    WHERE parent_object_id = OBJECT_ID('maintenance_logs') 
+                    SELECT * FROM sys.foreign_keys
+                    WHERE parent_object_id = OBJECT_ID('maintenance_logs')
                     AND referenced_object_id = OBJECT_ID('assets')
                 )
                 BEGIN
                     DECLARE @fkName NVARCHAR(128)
-                    SELECT @fkName = name FROM sys.foreign_keys 
-                    WHERE parent_object_id = OBJECT_ID('maintenance_logs') 
+                    SELECT @fkName = name FROM sys.foreign_keys
+                    WHERE parent_object_id = OBJECT_ID('maintenance_logs')
                     AND referenced_object_id = OBJECT_ID('assets')
                     EXEC('ALTER TABLE maintenance_logs DROP CONSTRAINT ' + @fkName)
                 END
@@ -69,14 +69,14 @@ return new class extends Migration
             // If constraint doesn't exist or has different name, try SQL Server specific approach
             DB::statement("
                 IF EXISTS (
-                    SELECT * FROM sys.foreign_keys 
-                    WHERE parent_object_id = OBJECT_ID('maintenance_logs') 
+                    SELECT * FROM sys.foreign_keys
+                    WHERE parent_object_id = OBJECT_ID('maintenance_logs')
                     AND referenced_object_id = OBJECT_ID('assets')
                 )
                 BEGIN
                     DECLARE @fkName NVARCHAR(128)
-                    SELECT @fkName = name FROM sys.foreign_keys 
-                    WHERE parent_object_id = OBJECT_ID('maintenance_logs') 
+                    SELECT @fkName = name FROM sys.foreign_keys
+                    WHERE parent_object_id = OBJECT_ID('maintenance_logs')
                     AND referenced_object_id = OBJECT_ID('assets')
                     EXEC('ALTER TABLE maintenance_logs DROP CONSTRAINT ' + @fkName)
                 END
