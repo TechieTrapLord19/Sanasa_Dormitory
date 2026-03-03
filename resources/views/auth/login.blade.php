@@ -280,6 +280,12 @@
     <div class="login-card" id="loginCard">
         <h2 class="login-heading fw-bold">Sign in</h2>
 
+        <div id="idleLogoutAlert" style="display:none;" class="alert-throttle mb-3">
+            <div class="throttle-icon"><i class="bi bi-clock-history"></i></div>
+            <div class="throttle-title">Session Expired</div>
+            <div class="throttle-msg">You were automatically logged out due to inactivity. Please sign in again.</div>
+        </div>
+
         {{-- Account locked permanently --}}
         @if(session('account_locked'))
         <div class="alert-locked">
@@ -331,6 +337,16 @@
             <div class="mb-3 error-message" style="color: #dc3545; font-size: 0.875rem;">
                 <i class="bi bi-exclamation-circle-fill"></i>
                 <span>{{ $errors->first('email') }}</span>
+            </div>
+            @endif
+
+            <div class="mb-3 d-flex justify-content-center">
+                <div class="g-recaptcha" data-sitekey="{{ config('services.recaptcha.site_key') }}"></div>
+            </div>
+            @if($errors->has('g-recaptcha-response'))
+            <div class="mb-3 error-message" style="color: #dc3545; font-size: 0.875rem;">
+                <i class="bi bi-exclamation-circle-fill"></i>
+                <span>{{ $errors->first('g-recaptcha-response') }}</span>
             </div>
             @endif
 
@@ -386,13 +402,38 @@
                     return;
                 }
 
-                // Check if form is valid before showing loader
                 const emailInput = document.getElementById('email');
                 const passwordInput = document.getElementById('password');
+                let hasError = false;
 
-                // Basic validation check
-                if (emailInput.value.trim() === '' || passwordInput.value.trim() === '') {
-                    return; // Don't show loader if fields are empty
+                // Clear previous empty-field warnings
+                document.querySelectorAll('.empty-field-msg').forEach(el => el.remove());
+
+                // Validate email
+                if (emailInput.value.trim() === '') {
+                    emailInput.classList.add('is-invalid');
+                    const msg = document.createElement('div');
+                    msg.className = 'empty-field-msg error-message';
+                    msg.style.cssText = 'color:#dc3545;font-size:0.875rem;margin-top:0.25rem;';
+                    msg.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i> <span>Email is required.</span>';
+                    emailInput.parentNode.appendChild(msg);
+                    hasError = true;
+                }
+
+                // Validate password
+                if (passwordInput.value.trim() === '') {
+                    passwordInput.classList.add('is-invalid');
+                    const msg = document.createElement('div');
+                    msg.className = 'empty-field-msg error-message';
+                    msg.style.cssText = 'color:#dc3545;font-size:0.875rem;margin-top:0.25rem;';
+                    msg.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i> <span>Password is required.</span>';
+                    passwordInput.closest('.mb-3').appendChild(msg);
+                    hasError = true;
+                }
+
+                if (hasError) {
+                    e.preventDefault();
+                    return;
                 }
 
                 // Show loading overlay
@@ -467,6 +508,15 @@
             });
         }
     });
+
+    // Show idle logout notice if redirected after AFK auto-logout
+    (function () {
+        var alertEl = document.getElementById('idleLogoutAlert');
+        if (alertEl && localStorage.getItem('idle_logout') === '1') {
+            alertEl.style.display = 'block';
+            localStorage.removeItem('idle_logout');
+        }
+    })();
 </script>
 
 @endsection

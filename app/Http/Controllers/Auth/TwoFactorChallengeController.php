@@ -7,6 +7,9 @@ use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Contracts\Encryption\DecryptException;
 use PragmaRX\Google2FA\Google2FA;
 
 class TwoFactorChallengeController extends Controller
@@ -39,13 +42,24 @@ class TwoFactorChallengeController extends Controller
 
         $user = User::find($userId);
 
-        if (! $user || ! $user->two_factor_secret) {
+        if (! $user || ! $user->getRawOriginal('two_factor_secret')) {
             $request->session()->forget('2fa.user_id');
             return redirect()->route('login');
         }
 
+        // Handle legacy plaintext secrets that aren't yet encrypted
+        try {
+            $secret = $user->two_factor_secret;
+        } catch (DecryptException $e) {
+            $secret = $user->getRawOriginal('two_factor_secret');
+            // Re-encrypt directly via DB to bypass model cast issues
+            DB::table('users')
+                ->where('user_id', $user->user_id)
+                ->update(['two_factor_secret' => Crypt::encryptString($secret)]);
+        }
+
         $google2fa = new Google2FA();
-        $valid = $google2fa->verifyKey($user->two_factor_secret, $request->code);
+        $valid = $google2fa->verifyKey($secret, $request->code);
 
         if (! $valid) {
             return back()->withErrors(['code' => 'Invalid code. Please try again.']);

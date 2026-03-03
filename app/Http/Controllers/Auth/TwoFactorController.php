@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Contracts\Encryption\DecryptException;
 use PragmaRX\Google2FALaravel\Google2FA;
 use PragmaRX\Google2FA\Google2FA as BaseGoogle2FA;
 
@@ -19,12 +22,25 @@ class TwoFactorController extends Controller
 
         $google2fa = new BaseGoogle2FA();
 
-        // Generate a new secret if the user doesn't have one yet
-        if (! $user->two_factor_secret) {
+        // Read the raw DB value to handle legacy plaintext secrets
+        $rawSecret = $user->getRawOriginal('two_factor_secret');
+
+        if (! $rawSecret) {
+            // No secret yet — generate a new one (will be stored encrypted via cast)
             $secret = $google2fa->generateSecretKey();
             $user->update(['two_factor_secret' => $secret]);
         } else {
-            $secret = $user->two_factor_secret;
+            // Try to read via the encrypted cast; if it fails, the value is legacy plaintext
+            try {
+                $secret = $user->two_factor_secret;
+            } catch (DecryptException $e) {
+                // Legacy plaintext — re-encrypt directly via DB to bypass model cast issues
+                $secret = $rawSecret;
+                DB::table('users')
+                    ->where('user_id', $user->user_id)
+                    ->update(['two_factor_secret' => Crypt::encryptString($secret)]);
+                $user->refresh();
+            }
         }
 
         $qrCodeUrl = $google2fa->getQRCodeUrl(

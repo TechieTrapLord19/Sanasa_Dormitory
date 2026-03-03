@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 
@@ -60,7 +61,23 @@ class LoginController extends Controller
         $request->validate([
             'email' => 'required|email',
             'password' => 'required',
+            'g-recaptcha-response' => 'required',
+        ], [
+            'g-recaptcha-response.required' => 'Please complete the CAPTCHA verification.',
         ]);
+
+        // Verify reCAPTCHA with Google
+        $recaptchaResponse = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
+            'secret'   => config('services.recaptcha.secret_key'),
+            'response' => $request->input('g-recaptcha-response'),
+            'remoteip' => $request->ip(),
+        ]);
+
+        if (!$recaptchaResponse->json('success')) {
+            throw ValidationException::withMessages([
+                'g-recaptcha-response' => ['CAPTCHA verification failed. Please try again.'],
+            ]);
+        }
 
         $throttleKey = $this->throttleKey($request);
         $strikeKey   = $this->strikeKey($request);

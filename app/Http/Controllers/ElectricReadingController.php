@@ -97,7 +97,7 @@ class ElectricReadingController extends Controller
             ]);
 
             $invoiceMessage = '';
-            
+
             // If previous reading exists, try to generate electricity invoice
             if ($previousReading) {
                 $invoiceResult = $this->generateElectricityInvoice($roomId, $newReading, $previousReading);
@@ -257,7 +257,8 @@ class ElectricReadingController extends Controller
      */
     public function edit(string $id)
     {
-        //
+        // Electric readings are managed through the dedicated recording flow
+        abort(404);
     }
 
     /**
@@ -265,7 +266,8 @@ class ElectricReadingController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        // Electric readings are immutable once recorded
+        abort(404);
     }
 
     /**
@@ -273,7 +275,8 @@ class ElectricReadingController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        // Electric readings cannot be deleted to maintain billing integrity
+        abort(404);
     }
 
     /**

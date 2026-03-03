@@ -84,12 +84,14 @@
                             <span>Security Deposits</span>
                         </a>
                     </li>
+                    <?php if(auth()->check() && strtolower(auth()->user()->role) === 'owner'): ?>
                     <li class="mb-1 <?php echo e(request()->routeIs('expenses.*') ? 'active' : ''); ?>">
                         <a href="<?php echo e(route('expenses.index')); ?>" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
                             <i class="bi bi-wallet2"></i>
                             <span>Expenses</span>
                         </a>
                     </li>
+                    <?php endif; ?>
 
                     <hr class="my-2 border-white-10">
 
@@ -123,6 +125,7 @@
                     <hr class="my-2 border-white-10">
 
                     <!-- REPORTS -->
+                    <?php if(auth()->check() && strtolower(auth()->user()->role) === 'owner'): ?>
                     <li class="text-white-50 small px-3 mb-2">REPORTS</li>
                     <li class="mb-1 <?php echo e(request()->routeIs('sales.*') ? 'active' : ''); ?>">
                         <a href="<?php echo e(route('sales.index')); ?>" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
@@ -136,6 +139,7 @@
                             <span>Financial Statement</span>
                         </a>
                     </li>
+                    <?php endif; ?>
 
                     <hr class="my-2 border-white-10">
 
@@ -155,6 +159,16 @@
                         </a>
                     </li>
                     <?php endif; ?>
+
+                    <!-- ACCOUNT — available to all users -->
+                    <hr class="my-2 border-white-10">
+                    <li class="text-white-50 small px-3 mb-2">MY ACCOUNT</li>
+                    <li class="mb-1 <?php echo e(request()->routeIs('account') ? 'active' : ''); ?>">
+                        <a href="<?php echo e(route('account')); ?>" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
+                            <i class="bi bi-person-circle"></i>
+                            <span>My Account</span>
+                        </a>
+                    </li>
 
                     <!-- 2FA — available to all users -->
                     <li class="mb-1 <?php echo e(request()->routeIs('two-factor.setup') ? 'active' : ''); ?>">
@@ -569,6 +583,78 @@
             }
         });
     });
+</script>
+
+<!-- AFK Idle Logout Modal -->
+<div class="modal fade" id="idleWarningModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:380px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:16px;overflow:hidden;">
+            <div class="modal-body text-center px-4 py-5" style="background:#ffffff;">
+                <div style="width:64px;height:64px;border-radius:50%;background:#fff8e1;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1.25rem;">
+                    <i class="bi bi-moon-stars" style="font-size:1.75rem;color:#d97706;"></i>
+                </div>
+                <h5 class="fw-bold mb-2" style="color:#0f172a;">Are you still there?</h5>
+                <p class="mb-4" style="font-size:0.9rem;color:#64748b;line-height:1.5;">
+                    You've been inactive for a while.<br>For your security, you'll be logged out soon.
+                </p>
+                <button type="button" id="idleStayBtn" class="btn w-100 py-2 fw-semibold" style="background:#022c6e;color:#fff;border-radius:10px;font-size:0.95rem;">
+                    Yes, I'm still here
+                </button>
+                <button type="button" id="idleLogoutBtn" class="btn w-100 mt-2 py-2 fw-semibold" style="background:transparent;color:#64748b;border:1px solid #e2e8f0;border-radius:10px;font-size:0.9rem;">
+                    Log me out
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<form id="idleLogoutForm" action="<?php echo e(route('logout')); ?>" method="POST" style="display:none;"><?php echo csrf_field(); ?></form>
+<script>
+(function () {
+    var IDLE_MINUTES = 25, WARN_SECONDS = 60;
+    var idleTimer = null, countdownTimer = null, modal = null;
+    var stayBtn = document.getElementById('idleStayBtn');
+    var logoutBtn = document.getElementById('idleLogoutBtn');
+    var logoutForm = document.getElementById('idleLogoutForm');
+    var remaining = WARN_SECONDS;
+
+    function resetIdle() {
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(showWarning, IDLE_MINUTES * 60 * 1000);
+    }
+
+    function showWarning() {
+        remaining = WARN_SECONDS;
+        if (!modal) modal = new bootstrap.Modal(document.getElementById('idleWarningModal'));
+        modal.show();
+        countdownTimer = setInterval(function () {
+            remaining--;
+            if (remaining <= 0) {
+                clearInterval(countdownTimer);
+                localStorage.setItem('idle_logout', '1');
+                logoutForm.submit();
+            }
+        }, 1000);
+    }
+
+    function dismissWarning() {
+        clearInterval(countdownTimer);
+        if (modal) modal.hide();
+        resetIdle();
+    }
+
+    function doLogout() {
+        clearInterval(countdownTimer);
+        localStorage.setItem('idle_logout', '1');
+        logoutForm.submit();
+    }
+
+    if (stayBtn) stayBtn.addEventListener('click', dismissWarning);
+    if (logoutBtn) logoutBtn.addEventListener('click', doLogout);
+    ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll', 'click'].forEach(function (e) {
+        document.addEventListener(e, resetIdle, { passive: true });
+    });
+    resetIdle();
+})();
 </script>
 </html>
 <?php /**PATH C:\Users\hmmth\sanasa_dormitory\resources\views/layouts/app.blade.php ENDPATH**/ ?>

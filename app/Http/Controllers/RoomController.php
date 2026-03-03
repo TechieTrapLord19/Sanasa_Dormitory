@@ -44,7 +44,8 @@ class RoomController extends Controller
      */
     public function create()
     {
-        //
+        // Rooms are created via modal on the rooms index page
+        abort(404);
     }
 
     /**
@@ -96,7 +97,8 @@ class RoomController extends Controller
      */
     public function edit(string $id)
     {
-        //
+        // Room editing is handled via inline forms on the rooms page
+        abort(404);
     }
 
     /**
@@ -104,6 +106,8 @@ class RoomController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        $this->requireOwner();
+
         $room = Room::with('activeBooking')->findOrFail($id);
         $oldStatus = $room->status;
 
@@ -157,6 +161,24 @@ class RoomController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $this->requireOwner();
+
+        $room = Room::findOrFail($id);
+
+        // Prevent deletion of occupied rooms
+        if ($room->activeBooking) {
+            return redirect()->back()->with('error', 'Cannot delete a room with an active booking.');
+        }
+
+        $roomNum = $room->room_num;
+        $room->delete();
+
+        $this->logActivity(
+            'Deleted Room',
+            "Deleted room {$roomNum}",
+            null
+        );
+
+        return redirect()->route('rooms.index')->with('success', "Room {$roomNum} deleted successfully!");
     }
 }

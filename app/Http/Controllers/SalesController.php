@@ -20,6 +20,8 @@ class SalesController extends Controller
     use ChecksRole;
     public function index(Request $request)
     {
+        $this->requireOwner();
+
         // Default to current month
         $startDate = $request->input('start_date', now()->startOfMonth()->toDateString());
         $endDate = $request->input('end_date', now()->toDateString());

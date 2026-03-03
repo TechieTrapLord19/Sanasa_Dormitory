@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Http\Controllers;
-
 use App\Models\SecurityDeposit;
 use App\Models\Booking;
 use App\Models\Refund;

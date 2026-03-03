@@ -8,10 +8,11 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use App\Traits\ChecksRole;
+use App\Traits\LogsActivity;
 
 class UserController extends Controller
 {
-    use ChecksRole;
+    use ChecksRole, LogsActivity;
 
     /**
      * Display a listing of the resource.
@@ -128,6 +129,12 @@ class UserController extends Controller
             'role' => $validatedData['role'],
         ]);
 
+        $this->logActivity(
+            'Created User',
+            "Created user {$user->full_name} ({$user->email}) with role {$user->role}",
+            $user
+        );
+
         return redirect()->route('user-management')
                         ->with('success', 'User created successfully!');
     }
@@ -179,6 +186,12 @@ class UserController extends Controller
 
         $user->update($updateData);
 
+        $this->logActivity(
+            'Updated User',
+            "Updated user {$user->full_name} ({$user->email})",
+            $user
+        );
+
         return redirect()->route('user-management')
                         ->with('success', 'User updated successfully!');
     }
@@ -201,6 +214,12 @@ class UserController extends Controller
 
         $user->update(['status' => 'archived']);
 
+        $this->logActivity(
+            'Archived User',
+            "Archived user {$user->full_name} ({$user->email})",
+            $user
+        );
+
         return redirect()->route('user-management')
                         ->with('success', 'User archived successfully!');
     }
@@ -214,6 +233,12 @@ class UserController extends Controller
 
         $user = User::findOrFail($id);
         $user->update(['status' => 'active']);
+
+        $this->logActivity(
+            'Activated User',
+            "Activated user {$user->full_name} ({$user->email})",
+            $user
+        );
 
         return redirect()->route('user-management')
                         ->with('success', 'User activated successfully!');

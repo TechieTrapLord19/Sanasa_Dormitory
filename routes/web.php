@@ -24,6 +24,7 @@ use App\Http\Controllers\FinancialStatementController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\SecurityDepositController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\AccountController;
 //default page to login
 Route::get('/', [IndexController::class, 'index'])->name('home');
 
@@ -125,6 +126,10 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
     // Financial Statement route
     Route::get('/financial-statement', [FinancialStatementController::class, 'index'])->name('financial-statement');
     Route::get('/financial-statement/export', [FinancialStatementController::class, 'export'])->name('financial-statement.export');
+
+    // Account / Profile
+    Route::get('/account', [AccountController::class, 'show'])->name('account');
+    Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('account.update-password');
 
     // Two-Factor Authentication setup
     Route::get('/two-factor-setup', [TwoFactorController::class, 'show'])->name('two-factor.setup');
