@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\IndexController;
@@ -32,6 +34,12 @@ Route::get('/', [IndexController::class, 'index'])->name('home');
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login']);
+
+    // Password Reset
+    Route::get('/forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
+    Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+    Route::get('/reset-password/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
 });
 
 // Two-Factor Challenge (accessed after password auth, before full login)
@@ -42,6 +50,14 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 // Protected content routes
 Route::middleware('auth')->group(function () {
+
+    // Two-Factor Authentication setup (exempt from 2FA enforcement so users can set it up)
+    Route::get('/two-factor-setup', [TwoFactorController::class, 'show'])->name('two-factor.setup');
+    Route::post('/two-factor-setup', [TwoFactorController::class, 'enable'])->name('two-factor.enable');
+    Route::delete('/two-factor-setup', [TwoFactorController::class, 'disable'])->name('two-factor.disable');
+
+    // All other routes require 2FA to be enabled
+    Route::middleware('2fa.setup')->group(function () {
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     // Bookings routes
     Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
@@ -131,9 +147,5 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
     Route::get('/account', [AccountController::class, 'show'])->name('account');
     Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('account.update-password');
 
-    // Two-Factor Authentication setup
-    Route::get('/two-factor-setup', [TwoFactorController::class, 'show'])->name('two-factor.setup');
-    Route::post('/two-factor-setup', [TwoFactorController::class, 'enable'])->name('two-factor.enable');
-    Route::delete('/two-factor-setup', [TwoFactorController::class, 'disable'])->name('two-factor.disable');
-
+    }); // end 2fa.setup middleware group
 });

@@ -30,6 +30,7 @@
             </div>
             <nav class="flex-grow-1 py-3" style="overflow-y: auto; overflow-x: hidden;" role="navigation" aria-label="Main sidebar">
                 <ul class="list-unstyled px-2 mb-0">
+                    @if(auth()->check() && auth()->user()->two_factor_enabled)
                     <!-- MAIN -->
                     <li class="text-white-50 small px-3 mb-2">MAIN</li>
                     <li class="mb-1 {{ request()->routeIs('dashboard') ? 'active' : '' }}">
@@ -161,6 +162,7 @@
                     @endif
 
                     <!-- ACCOUNT — available to all users -->
+                    @if(auth()->check() && auth()->user()->two_factor_enabled)
                     <hr class="my-2 border-white-10">
                     <li class="text-white-50 small px-3 mb-2">MY ACCOUNT</li>
                     <li class="mb-1 {{ request()->routeIs('account') ? 'active' : '' }}">
@@ -169,8 +171,10 @@
                             <span>My Account</span>
                         </a>
                     </li>
+                    @endif
+                    @endif {{-- end two_factor_enabled check --}}
 
-                    <!-- 2FA — available to all users -->
+                    <!-- 2FA — always visible -->
                     <li class="mb-1 {{ request()->routeIs('two-factor.setup') ? 'active' : '' }}">
                         <a href="{{ route('two-factor.setup') }}" class="d-flex align-items-center gap-2 px-3 py-2 rounded text-white text-decoration-none">
                             <i class="bi bi-phone-vibrate"></i>
@@ -197,7 +201,7 @@
                 </div>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button type="submit" class="btn btn-primary btn-sm w-100 bg-primary bg-opacity-50 border-0">Sign out</button>
+                    <button type="submit" class="btn btn-primary btn-sm w-100 bg-primary bg-opacity-50 border-0">Log out</button>
                 </form>
             </div>
             @endauth
@@ -523,6 +527,165 @@
     })();
 </script>
 
+<style>
+    /* ── Global Custom Validation Styles ──────────────────────────────────── */
+    .custom-error-msg {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.82rem;
+        color: #dc3545;
+        margin-top: 0.25rem;
+    }
+    .custom-error-msg i {
+        font-size: 0.9rem;
+        flex-shrink: 0;
+    }
+    /* Override Bootstrap: remove default validation icon inside inputs */
+    .form-control.is-invalid,
+    .form-select.is-invalid {
+        background-image: none !important;
+        padding-right: 0.75rem !important;
+    }
+</style>
+
+<script>
+    // ── Global Custom Form Validation ─────────────────────────────────────────
+    // Replaces browser default tooltips with custom red-border + error messages.
+    // Works on ALL forms in the app layout automatically.
+    // ─────────────────────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function () {
+
+        // Add novalidate to ALL forms so browser tooltips are suppressed
+        document.querySelectorAll('form').forEach(function (form) {
+            form.setAttribute('novalidate', '');
+        });
+
+        // ── Validation helper ──────────────────────────────────────────────
+        function getFieldLabel(field) {
+            // Try the <label> associated via `for` attribute
+            var id = field.id || field.name;
+            if (id) {
+                var label = document.querySelector('label[for="' + id + '"]');
+                if (label) {
+                    return label.textContent.replace(/\s*\*\s*$/, '').trim();
+                }
+            }
+            return field.placeholder || field.name || 'This field';
+        }
+
+        function clearFieldError(field) {
+            field.classList.remove('is-invalid');
+            var parent = field.closest('.mb-3') || field.closest('.col-md-6') || field.closest('.col-md-4') || field.closest('.col-12') || field.parentNode;
+            var existing = parent.querySelector('.custom-error-msg');
+            if (existing) existing.remove();
+        }
+
+        function showFieldError(field, message) {
+            field.classList.add('is-invalid');
+            var parent = field.closest('.mb-3') || field.closest('.col-md-6') || field.closest('.col-md-4') || field.closest('.col-12') || field.parentNode;
+            if (parent.querySelector('.custom-error-msg')) return;
+            var msg = document.createElement('div');
+            msg.className = 'custom-error-msg';
+            msg.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i> <span>' + message + '</span>';
+            parent.appendChild(msg);
+        }
+
+        function validateField(field) {
+            var label = getFieldLabel(field);
+            var value = field.value;
+
+            // Required check
+            if (field.hasAttribute('required')) {
+                if (field.type === 'file') {
+                    if (field.files.length === 0) return label + ' is required.';
+                } else if (field.tagName === 'SELECT') {
+                    if (!value) return 'Please select ' + label.toLowerCase() + '.';
+                } else if (!value.trim()) {
+                    return label + ' is required.';
+                }
+            }
+
+            // Email format
+            if (field.type === 'email' && value.trim()) {
+                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) {
+                    return 'Please enter a valid email address.';
+                }
+            }
+
+            // Min length
+            if (field.minLength > 0 && value.length > 0 && value.length < field.minLength) {
+                return label + ' must be at least ' + field.minLength + ' characters.';
+            }
+
+            // Pattern check
+            if (field.pattern && value.trim()) {
+                if (!new RegExp('^' + field.pattern + '$').test(value.trim())) {
+                    return label + ' format is invalid.';
+                }
+            }
+
+            // Number min/max
+            if (field.type === 'number' && value !== '') {
+                if (field.min !== '' && parseFloat(value) < parseFloat(field.min)) {
+                    return label + ' must be at least ' + field.min + '.';
+                }
+                if (field.max !== '' && parseFloat(value) > parseFloat(field.max)) {
+                    return label + ' must be no more than ' + field.max + '.';
+                }
+            }
+
+            return null;
+        }
+
+        // ── Attach validation to POST forms ────────────────────────────────
+        document.querySelectorAll('form').forEach(function (form) {
+            if ((form.method || '').toLowerCase() === 'get') return;
+            if (form.id === 'loginForm') return;
+            if (form.style.display === 'none') return;
+
+            form.addEventListener('submit', function (e) {
+                form.querySelectorAll('.custom-error-msg').forEach(function (el) { el.remove(); });
+                form.querySelectorAll('.is-invalid').forEach(function (el) { el.classList.remove('is-invalid'); });
+
+                var fields = form.querySelectorAll('input, select, textarea');
+                var firstInvalid = null;
+                var hasError = false;
+
+                fields.forEach(function (field) {
+                    if (field.type === 'hidden' || field.type === 'submit' || field.type === 'button' || field.disabled) return;
+                    var error = validateField(field);
+                    if (error) {
+                        showFieldError(field, error);
+                        hasError = true;
+                        if (!firstInvalid) firstInvalid = field;
+                    }
+                });
+
+                if (hasError) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    if (firstInvalid) {
+                        firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        firstInvalid.focus();
+                    }
+                    return false;
+                }
+            });
+
+            // Clear errors when user starts typing/selecting
+            form.querySelectorAll('input, select, textarea').forEach(function (field) {
+                var events = field.type === 'file' ? ['change'] : ['input', 'change'];
+                events.forEach(function (evt) {
+                    field.addEventListener(evt, function () {
+                        clearFieldError(field);
+                    });
+                });
+            });
+        });
+    });
+</script>
+
 <script>
     // ── Global Form Submit Protection ─────────────────────────────────────────
     // Prevents double-submission by disabling the submit button immediately
@@ -605,7 +768,7 @@
 <form id="idleLogoutForm" action="{{ route('logout') }}" method="POST" style="display:none;">@csrf</form>
 <script>
 (function () {
-    var IDLE_MINUTES = 1, WARN_SECONDS = 60;
+    var IDLE_MINUTES = 5, WARN_SECONDS = 60;
     var idleTimer = null, countdownTimer = null, modal = null;
     var stayBtn = document.getElementById('idleStayBtn');
     var logoutBtn = document.getElementById('idleLogoutBtn');

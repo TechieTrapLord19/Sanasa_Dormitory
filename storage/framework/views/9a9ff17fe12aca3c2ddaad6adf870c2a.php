@@ -1,0 +1,542 @@
+<?php $__env->startSection('title', 'Rooms'); ?>
+
+<?php $__env->startSection('content'); ?>
+
+<style>
+    .room-header {
+        background-color: white;
+    }
+    .room-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #03255b;
+        margin: 0;
+    }
+
+    .modal-footer .btn-primary:hover {
+        background-color: #021d47 !important;
+        border-color: #021d47 !important;
+    }
+
+    .create-room-btn {
+        background-color: #03255b;
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: background-color 0.3s ease;
+    }
+    .create-room-btn:hover {
+        background-color: #021d47;
+        color: white;
+    }
+    .create-room-btn-icon {
+        width: 24px;
+        height: 24px;
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+
+    /* Room Card Styles */
+    .room-card-link {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        height: 100%;
+    }
+
+    .room-card {
+        border: 1px solid #e5e5e5;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        background: white;
+        height: 100%;
+        cursor: pointer;
+    }
+
+    .room-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    .room-card-body {
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .room-card-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1a202c;
+        margin-bottom: 1rem;
+    }
+
+    .room-status-badge {
+        display: inline-block;
+        padding: 0.375rem 0.875rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .room-status-badge.available {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+
+    .room-status-badge.occupied {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+
+    .room-status-badge.maintenance {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+    .room-status-badge.cleaning {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+    .room-status-badge.pending {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+
+    .room-info-item {
+        font-size: 0.875rem;
+        color: #4a5568;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .room-info-item:last-of-type {
+        margin-bottom: 0;
+    }
+
+    .room-info-label {
+        font-weight: 600;
+        color: #2d3748;
+    }
+
+    .room-card-actions {
+        position: absolute;
+        bottom: 1rem;
+        right: 1rem;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .room-card:hover .room-card-actions {
+        opacity: 1;
+    }
+
+    .room-action-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: none;
+        background-color: #f7fafc;
+        color: #4a5568;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+    }
+
+    .room-action-btn:hover {
+        background-color: #edf2f7;
+        transform: scale(1.1);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .room-card-content {
+        flex-grow: 1;
+    }
+
+    /* Filter Styles */
+    .room-filters {
+        background-color: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    }
+
+    .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .filter-label {
+        font-weight: 600;
+        color: #2d3748;
+        font-size: 0.875rem;
+        margin: 0;
+        min-width: 130px;
+    }
+
+    .filter-btn {
+        border: 1px solid #cbd5e1;
+        padding: 0.45rem 1.1rem;
+        border-radius: 999px;
+        background-color: white;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+
+    .filter-btn:hover {
+        border-color: #94a3b8;
+        color: #0f172a;
+    }
+
+    .filter-btn.active {
+        background: #03255b;
+        color: white;
+        border-color: #03255b;
+        box-shadow: 0 8px 20px rgba(3, 37, 91, 0.25);
+    }
+
+    .filter-select {
+        padding: 0.5rem 1rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        background-color: white;
+        color: #4a5568;
+        cursor: pointer;
+        min-width: 150px;
+    }
+
+    .filter-select:focus {
+        outline: none;
+        border-color: #03255b;
+        box-shadow: 0 0 0 3px rgba(3, 37, 91, 0.1);
+    }
+
+    .room-item.hidden {
+        display: none;
+    }
+    .tenant-names {
+    font-size: 0.85rem;
+    line-height: 1.4;
+    }
+</style>
+
+<div class="room-header d-flex justify-content-between align-items-center mb-4">
+    <h1 class="room-title">Room Management</h1>
+    <?php if(auth()->check() && strtolower(auth()->user()->role) === 'owner'): ?>
+    <button class="create-room-btn" data-bs-toggle="modal" data-bs-target="#createRoomModal">
+        <i class="bi bi-plus-circle"></i>
+        <span>Create New Room</span>
+    </button>
+    <?php endif; ?>
+</div>
+
+<!-- Filters -->
+<div class="room-filters mt-4">
+    <div class="filter-group">
+        <p class="filter-label mb-0">Filter by Floor:</p>
+        <button class="filter-btn active" data-filter="floor" data-value="all">All</button>
+        <?php $__currentLoopData = $floors; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $floor): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <button class="filter-btn" data-filter="floor" data-value="<?php echo e($floor); ?>">Floor <?php echo e($floor); ?></button>
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+    </div>
+    <div class="filter-group mt-3">
+        <p class="filter-label mb-0">Filter by Status:</p>
+        <button class="filter-btn active" data-filter="status" data-value="all">All (<?php echo e($totalRooms ?? 0); ?>)</button>
+        <button class="filter-btn" data-filter="status" data-value="available">Available (<?php echo e($roomCounts['available'] ?? 0); ?>)</button>
+        <button class="filter-btn" data-filter="status" data-value="pending">Pending (<?php echo e($roomCounts['pending'] ?? 0); ?>)</button>
+        <button class="filter-btn" data-filter="status" data-value="occupied">Occupied (<?php echo e($roomCounts['occupied'] ?? 0); ?>)</button>
+        <button class="filter-btn" data-filter="status" data-value="cleaning">Cleaning (<?php echo e($roomCounts['cleaning'] ?? 0); ?>)</button>
+        <button class="filter-btn" data-filter="status" data-value="maintenance">Maintenance (<?php echo e($roomCounts['maintenance'] ?? 0); ?>)</button>
+    </div>
+</div>
+
+<div class="row p-0 container-fluid" id="roomsContainer">
+    <?php $__currentLoopData = $rooms; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $room): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+        <div class="col-md-3 mb-4 room-item" data-status="<?php echo e($room->status); ?>" data-floor="<?php echo e($room->floor); ?>">
+            <a href="<?php echo e(route('rooms.show', $room->room_id)); ?>" class="room-card-link">
+                <div class="room-card">
+                    <div class="room-card-body">
+                        <div class="room-card-content">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="room-card-title mb-0">
+                                    Room <?php echo e($room->room_num); ?>
+
+                                </h5>
+                                <span class="room-status-badge mb-0 <?php echo e($room->status); ?>">
+                                    <?php echo e(ucfirst($room->status)); ?>
+
+                                </span>
+                            </div>
+                            <div class="room-info-item">
+                                <span class="room-info-label">Tenant(s):</span>
+                                <span class="tenant-names">
+                                    <?php if($room->activeBooking): ?>
+                                        <?php
+                                            $tenants = [];
+                                            if ($room->activeBooking->tenant) {
+                                                $firstName = explode(' ', $room->activeBooking->tenant->full_name)[0];
+                                                $lastName = explode(' ', $room->activeBooking->tenant->full_name);
+                                                $tenants[] = $firstName . ' ' . end($lastName);
+                                            }
+                                            if ($room->activeBooking->secondaryTenant) {
+                                                $firstName = explode(' ', $room->activeBooking->secondaryTenant->full_name)[0];
+                                                $lastName = explode(' ', $room->activeBooking->secondaryTenant->full_name);
+                                                $tenants[] = $firstName . ' ' . end($lastName);
+                                            }
+                                        ?>
+                                        <?php echo implode('<br>', $tenants); ?>
+
+                                    <?php else: ?>
+                                        N/A
+                                    <?php endif; ?>
+                                </span>
+                            </div>
+
+                        <div class="room-info-item">
+                            <span class="room-info-label">Rate:</span>
+                            <span>
+                                <?php if($room->activeBooking && $room->activeBooking->rate): ?>
+                                    <?php
+                                        $rate = $room->activeBooking->rate;
+                                        $rateLabel = $rate->rate_name ?? $rate->duration_type;
+                                    ?>
+                                    <?php echo e($rateLabel); ?> - ₱<?php echo e(number_format($rate->base_price, 2)); ?>
+
+                                <?php else: ?>
+                                    N/A
+                                <?php endif; ?>
+                            </span>
+                        </div>
+
+                        <div class="room-info-item">
+                            <span class="room-info-label">Floor:</span>
+                            <span><?php echo e($room->floor); ?></span>
+                        </div>
+
+                        <div class="room-info-item">
+                            <span class="room-info-label">Capacity:</span>
+                            <span><?php echo e($room->capacity); ?></span>
+                        </div>
+
+
+                    </div>
+
+                    <div class="room-card-actions" onclick="event.stopPropagation();">
+                            <?php if($room->status === 'cleaning'): ?>
+                                <form action="<?php echo e(route('rooms.mark-cleaned', $room->room_id)); ?>" method="POST" style="display: inline;">
+                                    <?php echo csrf_field(); ?>
+                                    <button type="submit" class="btn btn-sm btn-success" title="Mark as Cleaned" onclick="event.preventDefault(); event.stopPropagation(); if(confirm('Mark this room as cleaned and available?')) this.form.submit();">
+                                        <i class="bi bi-check-circle"></i> Mark Cleaned
+                                    </button>
+                                </form>
+                            <?php else: ?>
+                                <button class="room-action-btn" type="button" title="More options" onclick="event.stopPropagation();">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                        <path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
+                                    </svg>
+                                </button>
+                            <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+            </a>
+        </div>
+    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+</div>
+<!-- Create Room Modal -->
+<div class="modal fade" id="createRoomModal" tabindex="-1" aria-labelledby="createRoomModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createRoomModalLabel">Create New Room</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="<?php echo e(route('rooms.store')); ?>" method="POST">
+                <?php echo csrf_field(); ?>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="room_num" class="form-label">Room Number</label>
+                        <input type="text" class="form-control <?php $__errorArgs = ['room_num'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                               id="room_num" name="room_num" required>
+                        <?php $__errorArgs = ['room_num'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                            <div class="invalid-feedback"><?php echo e($message); ?></div>
+                        <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                    </div>
+                    <div class="mb-3">
+                        <label for="floor" class="form-label">Floor</label>
+                        <input type="text" class="form-control <?php $__errorArgs = ['floor'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                               id="floor" name="floor" required>
+                        <?php $__errorArgs = ['floor'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                            <div class="invalid-feedback"><?php echo e($message); ?></div>
+                        <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                    </div>
+                    <div class="mb-3">
+                        <label for="capacity" class="form-label">Capacity</label>
+                        <input type="number" class="form-control <?php $__errorArgs = ['capacity'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                               id="capacity" name="capacity" required value="<?php echo e(old('capacity', 2)); ?>">
+                        <?php $__errorArgs = ['capacity'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                            <div class="invalid-feedback"><?php echo e($message); ?></div>
+                        <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                    </div>
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select <?php $__errorArgs = ['status'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                id="status" name="status" required>
+                            <option value="">Select status...</option>
+                            <option value="available" selected>Available</option>
+                            <option value="pending">Pending</option>
+                            <option value="occupied">Occupied</option>
+                            <option value="maintenance">Maintenance</option>
+                        </select>
+                        <?php $__errorArgs = ['status'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                            <div class="invalid-feedback"><?php echo e($message); ?></div>
+                        <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Close
+                    </button>
+                    <button type="submit" class="btn btn-primary" style="background-color: #03255b; border-color: #03255b;">
+                        <i class="bi bi-plus-circle"></i> Create Room
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const statusButtons = document.querySelectorAll('[data-filter="status"]');
+    const floorButtons = document.querySelectorAll('[data-filter="floor"]');
+    const roomItems = document.querySelectorAll('.room-item');
+
+    let currentStatus = 'all';
+    let currentFloor = 'all';
+
+    function filterRooms() {
+        roomItems.forEach(item => {
+            const itemStatus = item.getAttribute('data-status');
+            const itemFloor = item.getAttribute('data-floor');
+
+            const statusMatch = currentStatus === 'all' || itemStatus === currentStatus;
+            const floorMatch = currentFloor === 'all' || itemFloor === currentFloor;
+
+            if (statusMatch && floorMatch) {
+                item.classList.remove('hidden');
+            } else {
+                item.classList.add('hidden');
+            }
+        });
+    }
+
+    // Status filter buttons
+    statusButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            statusButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            currentStatus = this.getAttribute('data-value');
+            filterRooms();
+        });
+    });
+
+    // Floor filter buttons
+    floorButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            floorButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            currentFloor = this.getAttribute('data-value');
+            filterRooms();
+        });
+    });
+});
+</script>
+<?php $__env->stopSection(); ?>
+
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\hmmth\sanasa_dormitory\resources\views/contents/rooms.blade.php ENDPATH**/ ?>

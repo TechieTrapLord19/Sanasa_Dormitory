@@ -21,36 +21,36 @@ class UserSeeder extends Seeder
 
         // 1. The Owner
         User::create([
-            'first_name' => 'Admin',
-            'last_name' => 'Owner',
-            'email' => 'owner@app.com',
+            'first_name' => 'Liam',
+            'last_name' => 'Go',
+            'email' => 'lloren.kolai@gmail.com',
             'birth_date' => '1980-01-15',
             'address' => '123 Admin Street, Metro Manila',
             'role' => 'owner',
-            'password' => Hash::make('lloren123')
+            'password' => Hash::make('Lloren@12345')
         ]);
 
         // 2. Caretaker 1
         User::create([
-            'first_name' => 'Caretaker',
-            'last_name' => 'One',
-            'email' => 'caretaker1@app.com',
+            'first_name' => 'John',
+            'last_name' => 'Doe',
+            'email' => 'llorennikolai@gmail.com',
             'birth_date' => '1990-05-20',
             'address' => '456 Caretaker Avenue, Quezon City',
             'role' => 'caretaker',
-            'password' => Hash::make('lloren123')
+            'password' => Hash::make('Lloren@12345')
         ]);
 
         // ... (rest of your users) ...
 
         User::create([
-            'first_name' => 'Dev',
-            'last_name' => 'Account',
-            'email' => 'dev@app.com',
+            'first_name' => 'John Nikolai',
+            'last_name' => 'Lloren',
+            'email' => 'j.lloren.546693@umindanao.edu.ph',
             'birth_date' => '1995-03-10',
             'address' => '789 Developer Road, Makati City',
             'role' => 'owner',
-            'password' => Hash::make('lloren123')
+            'password' => Hash::make('Lloren@12345')
         ]);
     }
 }

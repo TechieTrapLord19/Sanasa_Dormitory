@@ -170,6 +170,18 @@
         <p class="text-muted mt-1">Protect your account with an additional layer of security.</p>
     </div>
 
+    {{-- Forced 2FA setup notice --}}
+    @if (! $enabled)
+    <div class="alert d-flex align-items-start gap-2 mb-4" role="alert"
+         style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; color: #664d03;">
+        <i class="bi bi-exclamation-triangle-fill mt-1" style="font-size: 1.2rem;"></i>
+        <div>
+            <strong>Two-Factor Authentication is required.</strong><br>
+            You must enable 2FA before you can access the system. Please scan the QR code below and enter the verification code to continue.
+        </div>
+    </div>
+    @endif
+
     {{-- Success message --}}
     @if (session('success'))
     <div class="alert alert-success d-flex align-items-center gap-2 mb-4" role="alert">

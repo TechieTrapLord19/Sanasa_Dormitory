@@ -1,8 +1,6 @@
-@extends('layouts.app')
+<?php $__env->startSection('title', 'Activity Logs'); ?>
 
-@section('title', 'Activity Logs')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 <style>
     .logs-header {
         background-color: white;
@@ -347,94 +345,95 @@
 
     <!-- Filters -->
     <div class="logs-filters">
-        <form method="GET" action="{{ route('activity-logs') }}" id="filterForm" class="d-flex flex-wrap align-items-end gap-3">
-            @if(auth()->check() && strtolower(auth()->user()->role) !== 'caretaker')
+        <form method="GET" action="<?php echo e(route('activity-logs')); ?>" id="filterForm" class="d-flex flex-wrap align-items-end gap-3">
+            <?php if(auth()->check() && strtolower(auth()->user()->role) !== 'caretaker'): ?>
             <div class="filter-group">
                 <label class="filter-label">User:</label>
                 <select name="user_id" class="filter-select">
                     <option value="">All Users</option>
-                    @foreach($users as $user)
-                        <option value="{{ $user->user_id }}" {{ $selectedUserId == $user->user_id ? 'selected' : '' }}>
-                            {{ $user->last_name }}, {{ $user->first_name }} ({{ ucfirst($user->role) }})
+                    <?php $__currentLoopData = $users; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $user): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <option value="<?php echo e($user->user_id); ?>" <?php echo e($selectedUserId == $user->user_id ? 'selected' : ''); ?>>
+                            <?php echo e($user->last_name); ?>, <?php echo e($user->first_name); ?> (<?php echo e(ucfirst($user->role)); ?>)
                         </option>
-                    @endforeach
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </select>
             </div>
-            @endif
+            <?php endif; ?>
 
             <div class="filter-group">
                 <label class="filter-label">Action:</label>
                 <select name="action" class="filter-select">
                     <option value="">All Actions</option>
-                    @foreach($actions as $action)
-                        <option value="{{ $action }}" {{ $selectedAction == $action ? 'selected' : '' }}>
-                            {{ $action }}
+                    <?php $__currentLoopData = $actions; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $action): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <option value="<?php echo e($action); ?>" <?php echo e($selectedAction == $action ? 'selected' : ''); ?>>
+                            <?php echo e($action); ?>
+
                         </option>
-                    @endforeach
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </select>
             </div>
 
             <div class="filter-group">
                 <label class="filter-label">Date From:</label>
-                <input type="date" name="date_from" class="filter-input" value="{{ $dateFrom }}">
+                <input type="date" name="date_from" class="filter-input" value="<?php echo e($dateFrom); ?>">
             </div>
 
             <div class="filter-group">
                 <label class="filter-label">Date To:</label>
-                <input type="date" name="date_to" class="filter-input" value="{{ $dateTo }}">
+                <input type="date" name="date_to" class="filter-input" value="<?php echo e($dateTo); ?>">
             </div>
 
             <div class="filter-group">
-                <a href="{{ route('activity-logs') }}" class="filter-btn filter-btn-clear" style="text-decoration: none; display: inline-block;">Clear</a>
+                <a href="<?php echo e(route('activity-logs')); ?>" class="filter-btn filter-btn-clear" style="text-decoration: none; display: inline-block;">Clear</a>
             </div>
         </form>
     </div>
 
     <!-- Logs Table -->
     <div class="logs-table-container">
-        @if($logs->count() > 0)
+        <?php if($logs->count() > 0): ?>
             <table class="logs-table">
                 <thead>
                     <tr>
-                        <th class="sortable {{ $sortBy === 'created_at' ? 'active' : '' }}" onclick="sortTable('created_at')">
+                        <th class="sortable <?php echo e($sortBy === 'created_at' ? 'active' : ''); ?>" onclick="sortTable('created_at')">
                             Date & Time
-                            @if($sortBy === 'created_at')
-                                <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
-                            @else
+                            <?php if($sortBy === 'created_at'): ?>
+                                <i class="bi bi-<?php echo e($sortDir === 'asc' ? 'sort-up' : 'sort-down'); ?> sort-icon"></i>
+                            <?php else: ?>
                                 <i class="bi bi-arrow-down-up sort-icon"></i>
-                            @endif
+                            <?php endif; ?>
                         </th>
-                        <th class="sortable {{ $sortBy === 'user_id' ? 'active' : '' }}" onclick="sortTable('user_id')">
+                        <th class="sortable <?php echo e($sortBy === 'user_id' ? 'active' : ''); ?>" onclick="sortTable('user_id')">
                             Name
-                            @if($sortBy === 'user_id')
-                                <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
-                            @else
+                            <?php if($sortBy === 'user_id'): ?>
+                                <i class="bi bi-<?php echo e($sortDir === 'asc' ? 'sort-up' : 'sort-down'); ?> sort-icon"></i>
+                            <?php else: ?>
                                 <i class="bi bi-arrow-down-up sort-icon"></i>
-                            @endif
+                            <?php endif; ?>
                         </th>
-                        <th class="sortable {{ $sortBy === 'action' ? 'active' : '' }}" onclick="sortTable('action')">
+                        <th class="sortable <?php echo e($sortBy === 'action' ? 'active' : ''); ?>" onclick="sortTable('action')">
                             Action
-                            @if($sortBy === 'action')
-                                <i class="bi bi-{{ $sortDir === 'asc' ? 'sort-up' : 'sort-down' }} sort-icon"></i>
-                            @else
+                            <?php if($sortBy === 'action'): ?>
+                                <i class="bi bi-<?php echo e($sortDir === 'asc' ? 'sort-up' : 'sort-down'); ?> sort-icon"></i>
+                            <?php else: ?>
                                 <i class="bi bi-arrow-down-up sort-icon"></i>
-                            @endif
+                            <?php endif; ?>
                         </th>
                         <th>Description</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($logs as $log)
-                        <tr @if($log->resource_url) class="clickable" onclick="window.location.href='{{ $log->resource_url }}'" @endif>
+                    <?php $__currentLoopData = $logs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $log): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <tr <?php if($log->resource_url): ?> class="clickable" onclick="window.location.href='<?php echo e($log->resource_url); ?>'" <?php endif; ?>>
                             <td>
-                                <div>{{ $log->created_at->format('M d, Y') }}</div>
-                                <div style="font-size: 0.75rem; color: #718096;">{{ $log->created_at->format('h:i A') }}</div>
+                                <div><?php echo e($log->created_at->format('M d, Y')); ?></div>
+                                <div style="font-size: 0.75rem; color: #718096;"><?php echo e($log->created_at->format('h:i A')); ?></div>
                             </td>
                             <td>
-                                <strong>{{ $log->caretaker_name }}</strong>
+                                <strong><?php echo e($log->caretaker_name); ?></strong>
                             </td>
                             <td>
-                                @php
+                                <?php
                                     $actionClass = 'created';
                                     $actionLower = strtolower($log->action);
                                     if (str_contains($actionLower, 'login failed')) {
@@ -458,51 +457,53 @@
                                     } elseif (str_contains($actionLower, 'payment') || str_contains($actionLower, 'generate')) {
                                         $actionClass = 'payment';
                                     }
-                                @endphp
-                                <span class="action-badge {{ $actionClass }}">{{ $log->action }}</span>
+                                ?>
+                                <span class="action-badge <?php echo e($actionClass); ?>"><?php echo e($log->action); ?></span>
                             </td>
                             <td>
-                                <div class="description-text">{{ $log->description }}</div>
+                                <div class="description-text"><?php echo e($log->description); ?></div>
                             </td>
                         </tr>
-                    @endforeach
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </tbody>
             </table>
 
             <!-- Pagination -->
             <div class="pagination-wrapper">
                 <div class="pagination-left">
-                    <form method="GET" action="{{ route('activity-logs') }}" class="d-flex align-items-center gap-2">
-                        <input type="hidden" name="user_id" value="{{ $selectedUserId }}">
-                        <input type="hidden" name="action" value="{{ $selectedAction }}">
-                        <input type="hidden" name="date_from" value="{{ $dateFrom }}">
-                        <input type="hidden" name="date_to" value="{{ $dateTo }}">
+                    <form method="GET" action="<?php echo e(route('activity-logs')); ?>" class="d-flex align-items-center gap-2">
+                        <input type="hidden" name="user_id" value="<?php echo e($selectedUserId); ?>">
+                        <input type="hidden" name="action" value="<?php echo e($selectedAction); ?>">
+                        <input type="hidden" name="date_from" value="<?php echo e($dateFrom); ?>">
+                        <input type="hidden" name="date_to" value="<?php echo e($dateTo); ?>">
                         <label for="perPage" class="text-muted small mb-0">Rows per page</label>
                         <select class="form-select form-select-sm" id="perPage" name="per_page" onchange="this.form.submit()">
-                            @foreach([5, 10, 15, 20] as $option)
-                                <option value="{{ $option }}" {{ (int) $perPage === $option ? 'selected' : '' }}>
-                                    {{ $option }}
+                            <?php $__currentLoopData = [5, 10, 15, 20]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $option): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <option value="<?php echo e($option); ?>" <?php echo e((int) $perPage === $option ? 'selected' : ''); ?>>
+                                    <?php echo e($option); ?>
+
                                 </option>
-                            @endforeach
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         </select>
                     </form>
                 </div>
                 <div class="pagination-center">
                     <p class="small text-muted mb-0">
                         Showing
-                        <span class="fw-semibold">{{ $logs->firstItem() ?? 0 }}</span>
+                        <span class="fw-semibold"><?php echo e($logs->firstItem() ?? 0); ?></span>
                         to
-                        <span class="fw-semibold">{{ $logs->lastItem() ?? 0 }}</span>
+                        <span class="fw-semibold"><?php echo e($logs->lastItem() ?? 0); ?></span>
                         of
-                        <span class="fw-semibold">{{ $logs->total() }}</span>
+                        <span class="fw-semibold"><?php echo e($logs->total()); ?></span>
                         results
                     </p>
                 </div>
                 <div class="pagination-right">
-                    {{ $logs->appends(['user_id' => $selectedUserId, 'action' => $selectedAction, 'date_from' => $dateFrom, 'date_to' => $dateTo, 'per_page' => $perPage, 'sort_by' => $sortBy, 'sort_dir' => $sortDir])->links() }}
+                    <?php echo e($logs->appends(['user_id' => $selectedUserId, 'action' => $selectedAction, 'date_from' => $dateFrom, 'date_to' => $dateTo, 'per_page' => $perPage, 'sort_by' => $sortBy, 'sort_dir' => $sortDir])->links()); ?>
+
                 </div>
             </div>
-        @else
+        <?php else: ?>
             <div class="empty-state">
                 <div class="empty-state-icon">
                     <i class="bi bi-inbox"></i>
@@ -510,7 +511,7 @@
                 <h3>No activity logs found</h3>
                 <p>There are no activity logs matching your filters.</p>
             </div>
-        @endif
+        <?php endif; ?>
     </div>
 </div>
 
@@ -551,6 +552,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-@endsection
+<?php $__env->stopSection(); ?>
 
 
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\Users\hmmth\sanasa_dormitory\resources\views/contents/payments.blade.php ENDPATH**/ ?>

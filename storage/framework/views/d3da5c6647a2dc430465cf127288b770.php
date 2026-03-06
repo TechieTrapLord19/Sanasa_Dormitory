@@ -276,12 +276,20 @@
 
 <div class="login-outer">
     <div class="login-card" id="loginCard">
-        <h2 class="login-heading fw-bold">Sign in</h2>
+        <h2 class="login-heading fw-bold">Log in</h2>
+
+        
+        <?php if(session('status')): ?>
+        <div style="background: #dcfce7; border: 1px solid #86efac; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; color: #166534;">
+            <i class="bi bi-check-circle-fill" style="font-size: 1.1rem; flex-shrink: 0;"></i>
+            <span><?php echo e(session('status')); ?></span>
+        </div>
+        <?php endif; ?>
 
         <div id="idleLogoutAlert" style="display:none;" class="alert-throttle mb-3">
             <div class="throttle-icon"><i class="bi bi-clock-history"></i></div>
             <div class="throttle-title">Session Expired</div>
-            <div class="throttle-msg">You were automatically logged out due to inactivity. Please sign in again.</div>
+            <div class="throttle-msg">You were automatically logged out due to inactivity. Please log in again.</div>
         </div>
 
         
@@ -348,7 +356,13 @@
             </div>
             <?php endif; ?>
 
-            <button type="submit" class="btn login-btn">Sign in</button>
+            <button type="submit" class="btn login-btn">Log in</button>
+
+            <div class="text-center mt-3">
+                <a href="<?php echo e(route('password.request')); ?>" style="color: #022c6e; font-size: 0.88rem; font-weight: 600; text-decoration: none;">
+                    Forgot your password?
+                </a>
+            </div>
         </form>
         </div>
     </div>
